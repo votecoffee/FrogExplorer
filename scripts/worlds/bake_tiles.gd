@@ -1,6 +1,7 @@
 extends SceneTree
 
-var shared_material:Material
+var shared_materials={}
+var folder=""
 
 func _initialize():
  call_deferred("bake")
@@ -9,7 +10,15 @@ func bake_meshes(node:Node,root:Node3D,prefix:String,transform_so_far:Transform3
  var current=transform_so_far
  if node is Node3D:current=current*node.transform
  if node is MeshInstance3D and node.mesh:
-  for surface in range(node.mesh.get_surface_count()):node.mesh.surface_set_material(surface,shared_material)
+  for surface in range(node.mesh.get_surface_count()):
+   var material=node.mesh.surface_get_material(surface)
+   assert(material)
+   var key=material.resource_name
+   assert(key.begins_with("FrogExplorerMaterial_"))
+   if not shared_materials.has(key):
+    assert(ResourceSaver.save(material,folder+"/shared/"+key+".tres",ResourceSaver.FLAG_CHANGE_PATH)==OK)
+    shared_materials[key]=material
+   node.mesh.surface_set_material(surface,shared_materials[key])
   var path=prefix+"_mesh_"+str(root.get_child_count())+".res"
   assert(ResourceSaver.save(node.mesh,path,ResourceSaver.FLAG_COMPRESS|ResourceSaver.FLAG_CHANGE_PATH)==OK)
   var mesh=MeshInstance3D.new();mesh.mesh=load(path);mesh.transform=current;root.add_child(mesh);mesh.owner=root
@@ -32,7 +41,6 @@ func save_scene(root:Node,path:String):
  var scene=PackedScene.new();assert(scene.pack(root)==OK);assert(ResourceSaver.save(scene,path)==OK)
 
 func bake():
- var folder=""
  for arg in OS.get_cmdline_user_args():
   if arg.begins_with("--pack="):folder=arg.trim_prefix("--pack=")
  assert(not folder.is_empty())
@@ -44,11 +52,6 @@ func bake():
   var root=Node3D.new();root.name=str(tile.id)
   root.position=Vector3(tile.origin[0],0,tile.origin[2])
   var mesh=source.instantiate()
-  if not shared_material:
-   var meshes=mesh.find_children("*","MeshInstance3D",true,false)
-   assert(not meshes.is_empty())
-   shared_material=meshes[0].mesh.surface_get_material(0)
-   assert(ResourceSaver.save(shared_material,folder+"/shared/material.tres",ResourceSaver.FLAG_CHANGE_PATH)==OK)
   bake_meshes(mesh,root,path);add_collision(mesh,root,path);mesh.free()
   save_scene(root,path+".tscn");root.free()
   if tile.overview:

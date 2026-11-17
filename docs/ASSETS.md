@@ -1,6 +1,8 @@
-# Optional models and world packs
+# Runtime assets and optional source files
 
-The public game runs with its authored starter frogs, vehicle meshes, synthesized audio and procedural pond. Realistic frog models and world packs are optional local inputs. Their presence is checked at runtime; an absent pack is excluded from travel rather than causing a missing-resource load.
+The public game includes five realistic frog GLBs and all 16 runtime world tile packs, alongside starter frogs, vehicles, synthesized audio and the pond. `config/runtime_assets.lock.json` identifies the published files and their source notices. The installer verifies this inventory before importing Godot resources. Run `python scripts/runtime_assets.py` to check it manually.
+
+The red-eyed tree frog remains a locally licensed optional model; its source terms prohibit distribution as an extractable GLB. The public game uses its authored starter model. Original world GLBs, texture authoring files and previous tile builds remain local development inputs.
 
 ## Import the existing reference set
 
@@ -14,7 +16,7 @@ Linux uses `bash scripts/install_linux.sh --asset-source /path/to/project --test
 
 `config/assets.lock.json` identifies the previously prepared reference files by path, size and SHA-256. Every source file is checked before copying starts. Differing existing destination files cause a refusal rather than being overwritten. Original files stay intact. The importer records its source only in ignored `.local/assets.json`.
 
-The lock file does not host these assets or grant redistribution rights. Do not commit imported `game/assets/frogs` or `game/assets/worlds` files. The README files in those ignored folders explain their purpose.
+The reference lock does not grant redistribution rights. The separate runtime inventory and narrow ignore exceptions define the reviewed files committed to Git. Do not add original full scenes, raw downloads, intermediate glTF buffers or the restricted red-eyed model. Both inventories preserve their own purpose: the original reference set supports local authoring; the runtime inventory supports public installation.
 
 ## Rebuild world packs from sources
 
@@ -40,7 +42,7 @@ Other exporters are `prepare_landmarks.py`, `prepare_us_cities.py` and `prepare_
 
 World scenes have finite edges, missing geometry and varying close-up detail. Models without a verified geographic transform explicitly use `LOCAL_MODEL` and approximate scale. A photograph of a tree, river, bridge or doorway does not supply corresponding gameplay semantics.
 
-The largest two single-surface exports, Tokyo and the Colosseum, can be split into optional streaming packs without modifying their GLBs. See [tile building and validation](TILING.md). The original reference lock and asset importer continue to describe the original assets; derived tile packs are separate local outputs.
+All 16 exports can be split into streaming packs without modifying their original GLBs. See [tile building and validation](TILING.md). The original reference lock and asset importer continue to describe the original assets. `python scripts/prepare_runtime_assets.py` inventories completed tiles and updates the Git ignore exceptions after a reviewed rebuild; it does not stage files or delete prior local packs.
 
 ## Rebuild original small assets
 

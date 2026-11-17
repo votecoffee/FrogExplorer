@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/worlds/tokyo_imperial_palace/tiles_128_1b721845d5d9/detail/x2_z4_mesh_0.res" id="1_apdj0"]
+[ext_resource type="Shape3D" path="res://assets/worlds/tokyo_imperial_palace/tiles_128_1b721845d5d9/detail/x2_z4_1.res" id="2_tyj6a"]
+
+[node name="x2_z4" type="Node3D" unique_id=208180445]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 256, 0, 512)
+
+[node name="@MeshInstance3D@542" type="MeshInstance3D" parent="." unique_id=1658303067]
+mesh = ExtResource("1_apdj0")
+
+[node name="@StaticBody3D@543" type="StaticBody3D" parent="." unique_id=1223555338]
+collision_layer = 2
+collision_mask = 0
+
+[node name="@CollisionShape3D@544" type="CollisionShape3D" parent="@StaticBody3D@543" unique_id=1117428973]
+shape = ExtResource("2_tyj6a")

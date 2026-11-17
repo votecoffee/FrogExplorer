@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/worlds/shanghai_lujiazui/tiles_256_4a71cdd3bd1a/detail/x1_z-5_mesh_0.res" id="1_brffs"]
+[ext_resource type="Shape3D" path="res://assets/worlds/shanghai_lujiazui/tiles_256_4a71cdd3bd1a/detail/x1_z-5_1.res" id="2_c2tqd"]
+
+[node name="x1_z-5" type="Node3D" unique_id=51341841]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 256, 0, -1280)
+
+[node name="@MeshInstance3D@390" type="MeshInstance3D" parent="." unique_id=1998930822]
+mesh = ExtResource("1_brffs")
+
+[node name="@StaticBody3D@391" type="StaticBody3D" parent="." unique_id=74696480]
+collision_layer = 2
+collision_mask = 0
+
+[node name="@CollisionShape3D@392" type="CollisionShape3D" parent="@StaticBody3D@391" unique_id=1918312571]
+shape = ExtResource("2_c2tqd")

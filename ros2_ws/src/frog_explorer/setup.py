@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 from setuptools import setup
+from frog_explorer.asset_files import game_files
 
 project = Path(__file__).resolve().parents[3]
 game = project / "game"
@@ -8,8 +9,9 @@ data = [("share/ament_index/resource_index/packages", ["resource/frog_explorer"]
         ("share/frog_explorer", ["package.xml"]),
         ("share/frog_explorer/launch", ["launch/explorer.launch.py"])]
 data.append(("share/frog_explorer",[os.path.relpath(project/name,Path(__file__).resolve().parent) for name in ["README.md","LICENSE","ASSET_CREDITS.md"]]))
-for folder in sorted({p.parent for p in game.rglob("*") if p.is_file() and ".godot" not in p.parts}):
-    files = [os.path.relpath(p, Path(__file__).resolve().parent) for p in folder.iterdir() if p.is_file() and not p.name.endswith(".tmp")]
+runtime_files=game_files(game)
+for folder in sorted({p.parent for p in runtime_files}):
+    files = [os.path.relpath(p, Path(__file__).resolve().parent) for p in runtime_files if p.parent==folder]
     if files:
         data.append((str(Path("share/frog_explorer/game") / folder.relative_to(game)), files))
 setup(name="frog_explorer", version="0.1.0", packages=["frog_explorer"],

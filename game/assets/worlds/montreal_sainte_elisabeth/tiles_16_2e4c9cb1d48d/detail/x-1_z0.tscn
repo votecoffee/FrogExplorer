@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/worlds/montreal_sainte_elisabeth/tiles_16_2e4c9cb1d48d/detail/x-1_z0_mesh_0.res" id="1_jl2o7"]
+[ext_resource type="Shape3D" path="res://assets/worlds/montreal_sainte_elisabeth/tiles_16_2e4c9cb1d48d/detail/x-1_z0_1.res" id="2_j58t2"]
+
+[node name="x-1_z0" type="Node3D" unique_id=19265064]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, 0)
+
+[node name="@MeshInstance3D@6" type="MeshInstance3D" parent="." unique_id=1465107409]
+mesh = ExtResource("1_jl2o7")
+
+[node name="@StaticBody3D@7" type="StaticBody3D" parent="." unique_id=1925015408]
+collision_layer = 2
+collision_mask = 0
+
+[node name="@CollisionShape3D@8" type="CollisionShape3D" parent="@StaticBody3D@7" unique_id=937961295]
+shape = ExtResource("2_j58t2")

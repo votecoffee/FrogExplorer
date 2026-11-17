@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/worlds/machu_picchu/tiles_64_b0c80c66bac6/detail/x2_z2_mesh_0.res" id="1_vvrxv"]
+[ext_resource type="Shape3D" path="res://assets/worlds/machu_picchu/tiles_64_b0c80c66bac6/detail/x2_z2_1.res" id="2_w5pyi"]
+
+[node name="x2_z2" type="Node3D" unique_id=187005253]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 128, 0, 128)
+
+[node name="@MeshInstance3D@153" type="MeshInstance3D" parent="." unique_id=1357657577]
+mesh = ExtResource("1_vvrxv")
+
+[node name="@StaticBody3D@154" type="StaticBody3D" parent="." unique_id=1821960634]
+collision_layer = 2
+collision_mask = 0
+
+[node name="@CollisionShape3D@155" type="CollisionShape3D" parent="@StaticBody3D@154" unique_id=266375526]
+shape = ExtResource("2_w5pyi")

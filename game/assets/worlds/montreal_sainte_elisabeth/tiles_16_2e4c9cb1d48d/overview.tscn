@@ -1,0 +1,31 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/worlds/montreal_sainte_elisabeth/tiles_16_2e4c9cb1d48d/overview/x-1_z-1_mesh_0.res" id="1_oc3j3"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/montreal_sainte_elisabeth/tiles_16_2e4c9cb1d48d/overview/x-1_z0_mesh_0.res" id="2_fq8yo"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/montreal_sainte_elisabeth/tiles_16_2e4c9cb1d48d/overview/x0_z-1_mesh_0.res" id="3_umdwn"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/montreal_sainte_elisabeth/tiles_16_2e4c9cb1d48d/overview/x0_z0_mesh_0.res" id="4_bkkuo"]
+
+[node name="Overview" type="Node3D" unique_id=1517802747]
+
+[node name="x-1_z-1" type="Node3D" parent="." unique_id=804154390]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, -16)
+
+[node name="@MeshInstance3D@5" type="MeshInstance3D" parent="x-1_z-1" unique_id=855218930]
+mesh = ExtResource("1_oc3j3")
+
+[node name="x-1_z0" type="Node3D" parent="." unique_id=1135045916]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, 0)
+
+[node name="@MeshInstance3D@9" type="MeshInstance3D" parent="x-1_z0" unique_id=1751682948]
+mesh = ExtResource("2_fq8yo")
+
+[node name="x0_z-1" type="Node3D" parent="." unique_id=284463405]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -16)
+
+[node name="@MeshInstance3D@13" type="MeshInstance3D" parent="x0_z-1" unique_id=722207266]
+mesh = ExtResource("3_umdwn")
+
+[node name="x0_z0" type="Node3D" parent="." unique_id=1165977563]
+
+[node name="@MeshInstance3D@17" type="MeshInstance3D" parent="x0_z0" unique_id=469168131]
+mesh = ExtResource("4_bkkuo")

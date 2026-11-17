@@ -1,0 +1,10 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/worlds/moscow_andronikov/tiles_16_79739a20b20f/shared/image_1.jpg" id="1_ygs4l"]
+
+[resource]
+resource_name = "FrogExplorerMaterial_0001"
+cull_mode = 2
+shading_mode = 0
+albedo_texture = ExtResource("1_ygs4l")
+metadata/_gltf_primary_texture_coord = 0

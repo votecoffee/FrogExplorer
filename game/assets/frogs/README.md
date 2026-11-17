@@ -1,4 +1,6 @@
-Optional realistic GLBs and their textures are imported locally by the installer.
-They are not part of this code repository. Without them, the game builds its
-original procedural starter models from `game/scripts/starter_frog.gd`.
-See the root README and ASSET_CREDITS.md.
+Five self-contained realistic frog GLBs are included, with their original
+source terms documented in ASSET_CREDITS.md and config/runtime_assets.lock.json.
+The restricted red-eyed tree-frog model remains an optional local import; its
+procedural starter model works without that file. Texture authoring files and
+original downloads stay local. Existing realistic models are not modified by
+the fallback or the world tiling pipeline.

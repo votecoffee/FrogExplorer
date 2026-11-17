@@ -1,31 +1,37 @@
 # Streamed world tiles
 
-Tokyo uses a 128 m grid (202 occupied cells); the Colosseum uses a 64 m grid (72 occupied cells). This first implementation covers those two large static exports. Other places retain their existing loaders, spawns and coverage.
+All 16 city/landmark exports use streamed tiles. Per-place grid sizes are in `config/worlds/tiling.json`: 16 m for the Great Wall, Moscow and Montréal; 32 m for Berlin and Mexico City; 64 m for Helsinki, Machu Picchu and the Colosseum; 128 m for Tokyo, Giza and four US cities; 256 m for Washington and Shanghai. Spawns, geographic anchors and source coverage are preserved. Montréal is a short scan and fits into only four cells; tiling does not guarantee savings for such a small area.
 
-Full-resolution triangles are clipped at cell boundaries, including interpolated UVs and normals. Each tile has its own baked collision shape. Tiles share their texture and material; they do not reference or retain the original GLB. A simplified, non-colliding overview supplies distant scenery. Its shape and texture mapping are approximate; close scenery uses the original surface attributes.
+Full-resolution triangles are clipped at cell boundaries, including interpolated UVs, vertex colors and normals. All source meshes and material slots are retained. Each tile has its own baked collision shape. Tiles reuse shared textures and materials; each tile imports only the subset it uses. They do not reference or retain the original GLB. A simplified, non-colliding overview supplies distant scenery. Its shape and texture mapping are approximate; close scenery uses the original surface attributes.
 
 The loader prefetches around every frog, including authoritative remote players and client replicas. It also requests geometry ahead of movement. Detail normally extends 1.25 tile widths from an actor. Arrival and recovery areas remain pinned. Unwanted detail unloads after two seconds; a soft target of 96 resident cells trims distant visual demand. Collision needed by players takes priority and may exceed that target. This is a cell budget, not a fixed RAM limit.
 
 Movement, growth and boarding queries require nearby collision to be ready. On slow storage the frog or vehicle waits at the frontier. A failed tile load leaves already loaded ground available and displays a notice. **H** returns to the pond. Incoming travel remains isolated on a staging collision layer until the arrival is checked. Invalid packs, failed integrity checks and cancelled travel preserve the old world.
 
-## Build the optional packs
+## Rebuild the included packs
 
-First install the original realistic world assets and Godot as described in [the asset guide](ASSETS.md). Use the pinned world-building Python environment; Blender is not needed for this splitting step.
+First install the original realistic world assets and Godot as described in [the asset guide](ASSETS.md). Use Python 3.11 or newer for the pinned world-building environment; Blender is not needed for this splitting step. The normal game installer still supports Python 3.10 or newer.
 
 ```powershell
 python -m venv tools/world_data_env
 .\tools\world_data_env\Scripts\python.exe -m pip install -r scripts/worlds/requirements.txt
 .\tools\world_data_env\Scripts\python.exe scripts/worlds/tile_world.py tokyo_imperial_palace --tile-size 128 --register
 .\tools\world_data_env\Scripts\python.exe scripts/worlds/tile_world.py rome_colosseum --tile-size 64 --register
+# Or build every catalog scene using its per-place recipe:
+.\tools\world_data_env\Scripts\python.exe scripts/worlds/tile_world.py --all --register
+python scripts/prepare_runtime_assets.py
+python scripts/runtime_assets.py
 ```
 
-Linux uses the environment's `bin/python`. Engine resolution uses `GODOT_BIN`, the installer settings, then PATH. The splitter supports baked, static, single-mesh/surface triangle GLBs with ordinary position/normal/tangent/UV/color attributes. Unsupported transforms, skins, morphs, sparse/normalized accessors and additional surfaces fail explicitly. Other source formats need a separate baking/generalization step.
+Linux uses the environment's `bin/python`. Engine resolution uses `GODOT_BIN`, the installer settings, then PATH. The splitter supports baked static triangle GLBs with multiple meshes, materials, UV sets and float or normalized integer attributes. Only nodes in the active scene contribute geometry. Unsupported node transforms, skins, morphs, sparse accessors and required extensions fail explicitly; bake those before tiling.
 
 Outputs go beside each source, under an ignored `tiles_<size>_<digest>` folder. The digest includes source identity, build-script identity and tile size. The scripts preserve originals and previous derived packs. They import geometry through Godot, save render meshes and collision resources, then write a SHA-256 manifest. `--register` updates only that place's optional `tile_manifest` field in the catalog. Coordinates and the original `scene` path are preserved. Logs stay in `.local/tiling/`.
 
-No generated assets are published with the code. A fresh clone or an original-only asset import uses the original whole scene when its optional manifest is absent. A present but invalid pack is refused. The startup availability check verifies required files; travel verifies their hashes before staging. As with the original assets, do not modify a pack during play.
+The reviewed runtime dependency closure is published in ordinary Git: each active manifest, baked meshes and collision, shared materials and images. Duplicate intermediate glTF/buffers and original full scenes stay ignored. `config/runtime_assets.lock.json` records all published files, checksums and source terms. The inventory tool updates narrow ignore exceptions without staging files or deleting old packs. ROS packaging also selects active runtime dependencies rather than copying the authoring cache.
 
-For LAN, copy the **same completed tile folder** to the matching relative path on every computer, retain the matching catalog, and run Godot import there. Rebuilding separately can produce different serialized resource identities. The LAN fingerprint includes the manifest and its files, preventing mixed whole-scene/tiled builds from joining. Original asset licenses still apply to derived geometry and textures.
+A source-only checkout or an original-only asset import can still use the whole scene when its optional manifest is absent. A present but invalid pack is refused. The startup availability check verifies required files; travel verifies their hashes before staging. As with the original assets, do not modify a pack during play. Rebuilding changes serialized identities; review the new inventory and remove obsolete published paths from the Git index while preserving any local backups.
+
+For LAN, use the same repository revision and optional model set on every computer, then run the installer there. Rebuilding separately can produce different serialized resource identities. The LAN fingerprint includes the manifest and its files, preventing mixed whole-scene/tiled builds from joining. Original asset licenses still apply to derived geometry and textures.
 
 ## Check the implementation
 
@@ -34,11 +40,13 @@ The source-only streaming harness creates a flat tiled fixture under Godot's use
 ```powershell
 python -m unittest discover -s tests -v
 python scripts/wait_engine.py --log state/stream.log -- tools/godot/Godot_v4.7.2-stable_win64.exe --headless --path game --script res://scripts/stream_smoke.gd -- --test-session --no-ros --starter-models
-# Requires both completed real tile packs:
+# Uses the included real tile packs:
 python scripts/wait_engine.py --log state/tile_travel.log -- tools/godot/Godot_v4.7.2-stable_win64.exe --headless --path game --script res://scripts/tile_travel_smoke.gd -- --test-session --no-ros --starter-models
 ```
 
 The real-pack harness checks integrity failure, cancellation/retry, atomic travel, original-mesh absence from the resource cache and return to the pond. The existing city, landmark and LAN suites also exercise tiled destinations when installed.
+
+`tile_catalog_probe.gd` additionally traverses every runtime resource dependency and checks each tile's rendered triangle count against its baked collision and manifest, all source material slots, and the non-colliding overview. It runs without original full-scene GLBs, which is also checked in a fresh public clone.
 
 For reproducible comparisons, `stream_probe.gd` records Godot's static allocation counter, resources, arrival time and resident triangles. Launch separate processes with identical arguments; add `--whole-scenes` to the legacy run. Use `--destination=rome_colosseum` for that pack and `--report=res://../state/name.json` for a report. `--whole-scenes` is a development flag; it is included in the LAN fingerprint.
 

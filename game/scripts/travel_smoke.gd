@@ -52,7 +52,7 @@ func run(game):
  check(game.clock>started and t.map_epoch==epoch+1,"Clock continues and map epoch changes exactly once")
  check(game.woodland.trees.is_empty() and not game.woodland.in_water(Vector3.ZERO),"City scan does not invent climbable trunks or water volumes")
  check(game.ambience.stream_paused,"Pond ambience pauses at the city")
- check(game.woodland.collision_count>100,"Visual mesh parts have registered collision")
+ check(game.woodland.collision_count>0,"Loaded world geometry has registered collision")
  var source=t.state().geographic_anchor
  check(source.horizontal_crs=="EPSG:3879" and source.source_srs=="EPSG:3879+5773","Geographic anchor retains the archive's declared CRS and vertical datum")
  var random_id=t.choose_random()
@@ -66,9 +66,11 @@ func run(game):
  t.request("not_installed");await wait(.05)
  check(t.status=="failed" and game.woodland==city and t.map_epoch==epoch and is_equal_approx(p.metrics.factor,4),"Unknown place fails without changing world or epoch")
  var broken=t.place("helsinki_senate_square").duplicate(true);broken.id="missing_test";broken.scene="res://assets/worlds/missing.glb";t.catalog.append(broken)
+ broken.erase("tile_manifest") # Exercise a genuinely missing whole-scene pack.
  t.request("missing_test");await wait(.05)
  check(t.last_error.contains("missing") and game.woodland==city and is_equal_approx(p.metrics.factor,4),"Missing pack fails before replacing the current world")
  var unsupported=broken.duplicate(true);unsupported.id="size_test";unsupported.scene=t.place("helsinki_senate_square").scene;unsupported.size_range=[2,4];t.catalog.append(unsupported)
+ unsupported.tile_manifest=t.place("helsinki_senate_square").tile_manifest
  t.request("size_test");await wait(.05)
  check(t.last_error.contains("size") and game.woodland==city,"Unsupported default arrival size is rejected without changing current size")
  var unsafe=unsupported.duplicate(true);unsafe.id="unsafe_test";unsafe.size_range=[1,1];unsafe.spawn=[0,500,0];unsafe.spawn_candidates=[];t.catalog.append(unsafe)

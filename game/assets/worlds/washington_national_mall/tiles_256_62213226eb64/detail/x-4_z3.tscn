@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/worlds/washington_national_mall/tiles_256_62213226eb64/detail/x-4_z3_mesh_0.res" id="1_ucovx"]
+[ext_resource type="Shape3D" path="res://assets/worlds/washington_national_mall/tiles_256_62213226eb64/detail/x-4_z3_1.res" id="2_86vt0"]
+
+[node name="x-4_z3" type="Node3D" unique_id=2057552817]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1024, 0, 768)
+
+[node name="@MeshInstance3D@30" type="MeshInstance3D" parent="." unique_id=2142143909]
+mesh = ExtResource("1_ucovx")
+
+[node name="@StaticBody3D@31" type="StaticBody3D" parent="." unique_id=266286333]
+collision_layer = 2
+collision_mask = 0
+
+[node name="@CollisionShape3D@32" type="CollisionShape3D" parent="@StaticBody3D@31" unique_id=1270031670]
+shape = ExtResource("2_86vt0")

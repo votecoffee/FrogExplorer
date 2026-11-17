@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/worlds/berlin_teufelsberg/tiles_32_3481b92694d7/detail/x2_z1_mesh_0.res" id="1_qqgng"]
+[ext_resource type="Shape3D" path="res://assets/worlds/berlin_teufelsberg/tiles_32_3481b92694d7/detail/x2_z1_1.res" id="2_o8ifl"]
+
+[node name="x2_z1" type="Node3D" unique_id=1853842073]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 0, 32)
+
+[node name="@MeshInstance3D@182" type="MeshInstance3D" parent="." unique_id=1291066384]
+mesh = ExtResource("1_qqgng")
+
+[node name="@StaticBody3D@183" type="StaticBody3D" parent="." unique_id=842818943]
+collision_layer = 2
+collision_mask = 0
+
+[node name="@CollisionShape3D@184" type="CollisionShape3D" parent="@StaticBody3D@183" unique_id=1056694500]
+shape = ExtResource("2_o8ifl")

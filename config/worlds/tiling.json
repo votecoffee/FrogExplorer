@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "tile_sizes": {
+    "helsinki_senate_square": 64,
+    "rochester_high_falls": 128,
+    "washington_national_mall": 256,
+    "holland_downtown": 128,
+    "norfolk_waterfront": 128,
+    "lynchburg_riverfront": 128,
+    "machu_picchu": 64,
+    "great_wall_china": 16,
+    "giza_pyramids": 128,
+    "rome_colosseum": 64,
+    "tokyo_imperial_palace": 128,
+    "shanghai_lujiazui": 256,
+    "berlin_teufelsberg": 32,
+    "moscow_andronikov": 16,
+    "montreal_sainte_elisabeth": 16,
+    "mexico_city_cathedral": 32
+  }
+}

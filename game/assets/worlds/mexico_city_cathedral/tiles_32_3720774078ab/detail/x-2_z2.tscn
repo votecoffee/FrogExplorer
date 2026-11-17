@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/worlds/mexico_city_cathedral/tiles_32_3720774078ab/detail/x-2_z2_mesh_0.res" id="1_mcogu"]
+[ext_resource type="Shape3D" path="res://assets/worlds/mexico_city_cathedral/tiles_32_3720774078ab/detail/x-2_z2_1.res" id="2_nmo7e"]
+
+[node name="x-2_z2" type="Node3D" unique_id=1376613834]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64, 0, 64)
+
+[node name="@MeshInstance3D@46" type="MeshInstance3D" parent="." unique_id=1716330534]
+mesh = ExtResource("1_mcogu")
+
+[node name="@StaticBody3D@47" type="StaticBody3D" parent="." unique_id=1041665532]
+collision_layer = 2
+collision_mask = 0
+
+[node name="@CollisionShape3D@48" type="CollisionShape3D" parent="@StaticBody3D@47" unique_id=1017251773]
+shape = ExtResource("2_nmo7e")

@@ -1,4 +1,4 @@
-"""Exact X/Z clipping and shared-texture tiles for static, single-surface GLBs.
+"""Exact X/Z clipping and shared-texture tiles for baked static GLB scenes.
 
 The supported source is intentionally narrow: no skins, morphs or animation.
 Unsupported inputs fail rather than silently losing source appearance.
@@ -10,7 +10,7 @@ import struct
 
 import numpy as np
 
-COMPONENTS={5121:np.dtype('u1'),5123:np.dtype('<u2'),5125:np.dtype('<u4'),5126:np.dtype('<f4')}
+COMPONENTS={5120:np.dtype('i1'),5121:np.dtype('u1'),5122:np.dtype('<i2'),5123:np.dtype('<u2'),5125:np.dtype('<u4'),5126:np.dtype('<f4')}
 WIDTHS={'SCALAR':1,'VEC2':2,'VEC3':3,'VEC4':4}
 
 
@@ -24,10 +24,7 @@ def read_glb(path):
         chunks[kind]=raw[offset:offset+size];offset+=size
     doc=json.loads(chunks[0x4e4f534a]);binary=chunks[0x004e4942]
     if doc.get('skins') or doc.get('animations'):raise ValueError('Only static scenery is supported')
-    primitives=[(node,doc['meshes'][node['mesh']]['primitives']) for node in doc['nodes'] if 'mesh' in node]
-    if len(primitives)!=1 or len(primitives[0][1])!=1:raise ValueError('Tile source must have one mesh and one surface')
-    node,prims=primitives[0];primitive=prims[0]
-    if primitive.get('mode',4)!=4 or primitive.get('targets'):raise ValueError('Only static triangles are supported')
+    if doc.get('extensionsRequired'):raise ValueError('Bake required glTF extensions before tiling')
     # Existing world recipes bake all transforms. Reject transformed sources
     # rather than producing plausible-looking, geographically misplaced tiles.
     for n in doc['nodes']:
@@ -35,18 +32,53 @@ def read_glb(path):
             if n.get('matrix',np.eye(4).flatten().tolist())!=np.eye(4).flatten().tolist() or n.get('translation',[0,0,0])!=[0,0,0] or n.get('rotation',[0,0,0,1])!=[0,0,0,1] or n.get('scale',[1,1,1])!=[1,1,1]:raise ValueError('Bake source node transforms before tiling')
     def accessor(index):
         a=doc['accessors'][index]
-        if 'sparse' in a or a.get('normalized',False):raise ValueError('Sparse/normalized accessors need baking first')
+        if 'sparse' in a:raise ValueError('Sparse accessors need baking first')
         view=doc['bufferViews'][a['bufferView']];dtype=COMPONENTS[a['componentType']];width=WIDTHS[a['type']]
-        return np.ndarray((a['count'],width),dtype=dtype,buffer=binary,offset=view.get('byteOffset',0)+a.get('byteOffset',0),strides=(view.get('byteStride',width*dtype.itemsize),dtype.itemsize)).copy()
-    attrs={key:accessor(value).astype(np.float32) for key,value in primitive['attributes'].items()}
-    if set(attrs)-{'POSITION','NORMAL','TANGENT','TEXCOORD_0','COLOR_0'}:raise ValueError('Unsupported vertex attributes')
-    faces=accessor(primitive['indices']).reshape(-1,3).astype(np.int64) if 'indices' in primitive else np.arange(len(attrs['POSITION'])).reshape(-1,3)
-    material=copy.deepcopy(doc.get('materials',[{}])[primitive.get('material',0)])
+        values=np.ndarray((a['count'],width),dtype=dtype,buffer=binary,offset=view.get('byteOffset',0)+a.get('byteOffset',0),strides=(view.get('byteStride',width*dtype.itemsize),dtype.itemsize)).copy()
+        if a.get('normalized',False):values=np.maximum(values.astype(np.float32)/np.iinfo(dtype).max,-1)
+        return values
+    materials=copy.deepcopy(doc.get('materials',[]));default_material=None;surfaces=[]
+    def visit(index):
+        nonlocal default_material
+        node=doc['nodes'][index]
+        if 'mesh' in node:
+            for primitive in doc['meshes'][node['mesh']]['primitives']:
+                if primitive.get('mode',4)!=4 or primitive.get('targets'):raise ValueError('Only static triangles are supported')
+                attrs={key:accessor(value).astype(np.float32) for key,value in primitive['attributes'].items()}
+                allowed={'POSITION','NORMAL','TANGENT','COLOR_0'}|{'TEXCOORD_'+str(i) for i in range(8)}
+                if set(attrs)-allowed:raise ValueError('Unsupported vertex attributes')
+                faces=accessor(primitive['indices']).reshape(-1,3).astype(np.int64) if 'indices' in primitive else np.arange(len(attrs['POSITION'])).reshape(-1,3)
+                material=primitive.get('material')
+                if material is None:
+                    if default_material is None:default_material=len(materials);materials.append({})
+                    material=default_material
+                if len(faces):surfaces.append({'attrs':attrs,'faces':faces,'material':material})
+        for child in node.get('children',[]):visit(child)
+    scene=doc.get('scene',0)
+    for node in doc['scenes'][scene]['nodes']:visit(node)
+    if not surfaces:raise ValueError('No triangle surfaces in the active scene')
+    for i,material in enumerate(materials):material['name']=f'FrogExplorerMaterial_{i:04d}'
     images=[]
     for item in doc.get('images',[]):
+        if item.get('mimeType') not in ['image/png','image/jpeg'] or 'bufferView' not in item:raise ValueError('Expected embedded PNG/JPEG images')
         view=doc['bufferViews'][item['bufferView']]
         images.append((item.get('mimeType','image/png'),binary[view.get('byteOffset',0):view.get('byteOffset',0)+view['byteLength']]))
-    return attrs,faces,material,images,copy.deepcopy(doc.get('textures',[])),copy.deepcopy(doc.get('samplers',[]))
+    return surfaces,materials,images,copy.deepcopy(doc.get('textures',[])),copy.deepcopy(doc.get('samplers',[]))
+
+
+def merge_surfaces(surfaces):
+    """Batch compatible material surfaces; never merge distinct material slots."""
+    groups={}
+    for surface in surfaces:
+        key=(surface['material'],tuple(sorted(surface['attrs'])))
+        groups.setdefault(key,[]).append(surface)
+    result=[]
+    for (material,_),group in groups.items():
+        attributes={key:np.concatenate([s['attrs'][key] for s in group]) for key in group[0]['attrs']}
+        offset=0;indices=[]
+        for surface in group:indices.append(surface['faces']+offset);offset+=len(surface['attrs']['POSITION'])
+        result.append({'attrs':attributes,'faces':np.concatenate(indices),'material':material})
+    return result
 
 
 def clip_triangle(vertices,cell,size):
@@ -112,19 +144,38 @@ def simplify(attrs,faces,voxel):
     return result,remapped[valid].astype(np.uint32)
 
 
-def write_gltf(path,attrs,faces,material,images,textures,samplers):
+def write_gltf(path,surfaces,materials,images,textures,samplers):
     path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
-    doc={'asset':{'version':'2.0','generator':'FrogExplorer tile packer'},'scene':0,'scenes':[{'nodes':[0]}],'nodes':[{'mesh':0}],'buffers':[],'bufferViews':[],'accessors':[],'materials':[material],'meshes':[{'primitives':[{'attributes':{},'material':0}]}]}
-    binary=bytearray();primitive=doc['meshes'][0]['primitives'][0]
-    for name,values in [*attrs.items(),('indices',faces.reshape(-1,1))]:
-        while len(binary)%4:binary.append(0)
-        values=np.asarray(values,dtype='<u4' if name=='indices' else '<f4');start=len(binary);binary.extend(values.tobytes())
-        doc['bufferViews'].append({'buffer':0,'byteOffset':start,'byteLength':values.nbytes,'target':34963 if name=='indices' else 34962})
-        access={'bufferView':len(doc['bufferViews'])-1,'componentType':5125 if name=='indices' else 5126,'count':len(values),'type':{1:'SCALAR',2:'VEC2',3:'VEC3',4:'VEC4'}[values.shape[1]]}
-        if name=='POSITION':access.update(min=values.min(axis=0).tolist(),max=values.max(axis=0).tolist())
-        doc['accessors'].append(access)
-        if name=='indices':primitive['indices']=len(doc['accessors'])-1
-        else:primitive['attributes'][name]=len(doc['accessors'])-1
+    # A tile imports only its own materials and image dependencies. Otherwise a
+    # Helsinki tile would instantiate all 131 source materials during import.
+    used=sorted({s['material'] for s in surfaces});material_map={old:new for new,old in enumerate(used)}
+    local_materials=[copy.deepcopy(materials[i]) for i in used];texture_slots=[]
+    def slots(value):
+        if isinstance(value,dict):
+            for key,item in value.items():
+                if key.endswith('Texture') and isinstance(item,dict) and 'index' in item:texture_slots.append(item)
+                else:slots(item)
+        elif isinstance(value,list):
+            for item in value:slots(item)
+    slots(local_materials)
+    texture_ids=sorted({slot['index'] for slot in texture_slots});texture_map={old:new for new,old in enumerate(texture_ids)}
+    local_textures=[copy.deepcopy(textures[i]) for i in texture_ids]
+    image_ids=sorted({t['source'] for t in local_textures});image_map={old:new for new,old in enumerate(image_ids)}
+    for slot in texture_slots:slot['index']=texture_map[slot['index']]
+    for texture in local_textures:texture['source']=image_map[texture['source']]
+    doc={'asset':{'version':'2.0','generator':'FrogExplorer tile packer'},'scene':0,'scenes':[{'nodes':[0]}],'nodes':[{'mesh':0}],'buffers':[],'bufferViews':[],'accessors':[],'materials':local_materials,'meshes':[{'primitives':[]}]}
+    binary=bytearray()
+    for surface in surfaces:
+        primitive={'attributes':{},'material':material_map[surface['material']]};doc['meshes'][0]['primitives'].append(primitive)
+        for name,values in [*surface['attrs'].items(),('indices',surface['faces'].reshape(-1,1))]:
+            while len(binary)%4:binary.append(0)
+            values=np.asarray(values,dtype='<u4' if name=='indices' else '<f4');start=len(binary);binary.extend(values.tobytes())
+            doc['bufferViews'].append({'buffer':0,'byteOffset':start,'byteLength':values.nbytes,'target':34963 if name=='indices' else 34962})
+            access={'bufferView':len(doc['bufferViews'])-1,'componentType':5125 if name=='indices' else 5126,'count':len(values),'type':{1:'SCALAR',2:'VEC2',3:'VEC3',4:'VEC4'}[values.shape[1]]}
+            if name=='POSITION':access.update(min=values.min(axis=0).tolist(),max=values.max(axis=0).tolist())
+            doc['accessors'].append(access)
+            if name=='indices':primitive['indices']=len(doc['accessors'])-1
+            else:primitive['attributes'][name]=len(doc['accessors'])-1
     doc['buffers']=[{'uri':path.with_suffix('.bin').name,'byteLength':len(binary)}]
-    if images:doc.update(images=[{'uri':'../shared/'+name} for name in images],textures=textures,samplers=samplers)
+    if image_ids:doc.update(images=[{'uri':'../shared/'+images[i]} for i in image_ids],textures=local_textures,samplers=samplers)
     path.with_suffix('.bin').write_bytes(binary);path.write_text(json.dumps(doc,separators=(',',':'))+'\n',encoding='utf-8',newline='\n')

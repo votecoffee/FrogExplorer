@@ -5,39 +5,70 @@ original procedural starter geometry/keyframes, synthesized audio and small
 procedurally modeled balloon, convertible and parachute included in this repo.
 See LICENSE. Starter models are authored stand-ins, not repackaged scans.
 
-## Optional realistic frogs
+## Included realistic frogs
 
-These prepared files stay in ignored local folders. The importer's SHA-256
-identities describe a reference set; they do not grant redistribution rights.
-The original detailed asset authoring archives remain outside this repository.
+Five prepared, self-contained GLBs are included. The public inventory in
+`config/runtime_assets.lock.json` records their paths, SHA-256 and source notices.
+Original downloads, intermediate textures and authoring archives stay local.
+FrogExplorer adaptations include geometry/body, skin, eye and mouth changes,
+retargeting, articulation and added motion clips. Underlying terms still apply.
 
 - Montane brown frog / Japanese toad: RubenCUR, incorporating ffish.asia scans,
-  [2 Realistic Frogs](https://blendswap.com/blend/29791).
+  [2 Realistic Frogs](https://blendswap.com/blend/29791). The page identifies the
+  underlying scans as [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
+  and the contributor's rig release as CC0. Preserve both creators' credits;
+  the included derived frog/toad lineage is distributed with CC BY 4.0 attribution.
 - American bullfrog: [ffish.asia original scan](https://sketchfab.com/3d-models/12244c1e4f3a4bfdbc217acba90e8baa).
+  The source API identifies [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
 - White's tree frog: [DigitalLife Model 23](https://sketchfab.com/3d-models/model-23-whites-tree-frog-ed77b869c1aa49cfa1305724b28f3b94).
-- Red-eyed tree frog: Joachim Bornemann,
-  [BlenderKit/Blendkit model](https://www.blendkit.com/asset-gallery-detail/4ef2f4ee-e5de-4174-ad8f-f947914625da/),
-  under that asset's royalty-free terms.
+  Source and included adaptation use [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/):
+  credit DigitalLife3D; noncommercial use only.
 - American toad: a locally authored adaptation of the toad lineage above,
-  retaining its underlying source terms; the small synthesized trill is authored.
+  distributed with the underlying CC BY 4.0 attribution; the synthesized trill is authored.
 - Earlier motion lineage: [AFK animated frog](https://afk.ai/auto-rig/frog).
-  The prepared realistic models include retargeted and extended motion libraries.
+  The source identifies its sample and animations as CC0. The prepared models
+  include retargeted animation and original extended motion libraries.
 
-Check original source terms when acquiring or distributing derived assets.
-No third-party realistic frog GLB or texture is committed here.
+The bullfrog's original scan is CC0; FrogExplorer-authored contributions are MIT
+where not subject to an underlying attribution/noncommercial/share-alike term.
+The code license does not remove any model's original restrictions.
 
-## Optional worlds
+## Optional red-eyed tree frog
+
+Joachim Bornemann's [BlenderKit/Blendkit model](https://www.blendkit.com/asset-gallery-detail/4ef2f4ee-e5de-4174-ad8f-f947914625da/)
+uses royalty-free terms. [Article 5 of the source terms](https://www.blendkit.com/terms-and-conditions-2026/)
+requires protection against separating the model and prohibits an open-format
+model in distributed software. Its GLB and textures are therefore excluded from
+public Git. Local import remains supported; the public game uses its authored
+procedural starter frog. No encryption or format rename is used to evade this.
+
+## Included worlds
 
 `game/data/travel_places.json` records per-place source URLs and attribution.
-The international-city entries also retain the archive's declared license ID.
-Source archives and generated scene GLBs are local caches, outside Git.
+The runtime inventory and per-pack manifests retain the source notices. The
+included derivatives are rebased/rescaled, clipped into cells, use shared
+materials and textures, and add baked collision and a simplified distant view.
+Full scene GLBs, source archives and duplicate glTF buffers remain outside Git.
 
 - Helsinki: City of Helsinki 3D Mesh 2017, CC BY 4.0.
 - US packs: USGS / USDA NAIP terrain and imagery; OpenStreetMap contributors,
   ODbL, for mapped footprints. Height estimates are explicitly recorded.
 - Historic/international model archives: the linked creators on Zenodo and
-  Sketchfab. Licenses vary, including attribution, noncommercial and share-alike
-  terms. They are not replaced by this repository's MIT code license.
+  Sketchfab, as identified in the catalog and inventory:
+  - Machu Picchu: Ministerio de Cultura Peru / original SketchUp contributor;
+    Great Wall: Lionel; Giza: gabriele.l; Colosseum and Tokyo: CMBC;
+    Shanghai: beyond.zht; Berlin: shahriyarshahrabi; Moscow: neominigan.
+    These sources declare [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+  - Montreal: archeomatique, archive-declared CC BY-NC 1.0; noncommercial use.
+  - Mexico City: agisoft, [CC BY-NC-SA 2.0](https://creativecommons.org/licenses/by-nc-sa/2.0/).
+    The included derived tiles retain that same license, including noncommercial
+    and share-alike requirements.
+
+US packs are produced scenery from the credited terrain/imagery and mapped
+footprints, not an MIT relicensing of the source data. Retain the catalog's
+[OpenStreetMap attribution](https://www.openstreetmap.org/copyright) and source
+links. Scenery and White's noncommercial terms mean this bundled asset set must
+not be treated as an unrestricted commercial MIT asset pack.
 
 ## Tools
 

@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import re
 import subprocess
+from runtime_assets import MANIFEST,read_manifest,verify
 
 ROOT=Path(__file__).resolve().parents[1]
 EXCLUDED={".git",".godot",".local","state","tools","outputs","backups","__pycache__",".pytest_cache","build","install","log"}
@@ -11,12 +12,18 @@ EXCLUDED={".git",".godot",".local","state","tools","outputs","backups","__pycach
 def main():
     files=subprocess.check_output(["git","ls-files","--cached","--others","--exclude-standard"],cwd=ROOT,text=True).splitlines()
     errors=[]
+    bundled=set()
+    if (ROOT/MANIFEST).is_file():
+        try:
+            bundled={'game/'+entry['path'] for entry in read_manifest(ROOT)['files']}
+            verify(ROOT)
+        except (ValueError,OSError,KeyError) as error:errors.append('Runtime inventory: '+str(error))
     for name in files:
         path=ROOT/name
         if not path.is_file():continue
         if EXCLUDED.intersection(Path(name).parts):errors.append("Generated/private path: "+name)
-        if name.startswith(("game/assets/frogs/","game/assets/worlds/")) and path.name!="README.md":errors.append("External asset in Git candidates: "+name)
-        if path.stat().st_size>10*1024*1024:errors.append("Large file in source repository: "+name)
+        if name.startswith(("game/assets/frogs/","game/assets/worlds/")) and path.name!="README.md" and name not in bundled:errors.append("Unreviewed asset in Git candidates: "+name)
+        if path.stat().st_size>10*1024*1024 and name not in bundled:errors.append("Large file in source repository: "+name)
         if path.suffix in [".py",".gd",".gdshader",".ps1",".sh",".md",".json",".txt",".xml"] or path.name in ["LICENSE",".gitignore",".gitattributes",".editorconfig"]:
             raw=path.read_bytes()
             try:text=raw.decode("utf-8")

@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "source_scene": "res://assets/worlds/montreal_sainte_elisabeth/city.glb",
+  "source_sha256": "26367df0193714fa62c4ed83ee2e5c7a48b6d3f90be651446b44edc30423b878",
+  "pipeline_sha256": "09ae8420ed8973a8ee41d138cb70dceb933d30acdefb1d63df351a166fcf1246",
+  "tile_size": 16,
+  "bounds": [
+    -11.826770782470703,
+    -1.7350977659225464,
+    11.826674461364746,
+    1.734481692314148
+  ],
+  "overview_scene": "overview.tscn",
+  "detail_radius": 20.0,
+  "tiles": [
+    {
+      "id": "x-1_z-1",
+      "cell": [
+        -1,
+        -1
+      ],
+      "origin": [
+        -16.0,
+        0,
+        -16.0
+      ],
+      "scene": "detail/x-1_z-1.tscn",
+      "triangles": 107646,
+      "materials": [
+        0
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-1_z0",
+      "cell": [
+        -1,
+        0
+      ],
+      "origin": [
+        -16.0,
+        0,
+        0.0
+      ],
+      "scene": "detail/x-1_z0.tscn",
+      "triangles": 11892,
+      "materials": [
+        0
+      ],
+      "overview": true
+    },
+    {
+      "id": "x0_z-1",
+      "cell": [
+        0,
+        -1
+      ],
+      "origin": [
+        0.0,
+        0,
+        -16.0
+      ],
+      "scene": "detail/x0_z-1.tscn",
+      "triangles": 162760,
+      "materials": [
+        0
+      ],
+      "overview": true
+    },
+    {
+      "id": "x0_z0",
+      "cell": [
+        0,
+        0
+      ],
+      "origin": [
+        0.0,
+        0,
+        0.0
+      ],
+      "scene": "detail/x0_z0.tscn",
+      "triangles": 44779,
+      "materials": [
+        0
+      ],
+      "overview": true
+    }
+  ],
+  "overview_triangles": 4794,
+  "source_triangles": 319961,
+  "source_surfaces": 1,
+  "source_materials": 1,
+  "attribution": "archeomatique \u00b7 cc-by-nc-1.0 \u00b7 archived via Objaverse / Zenodo",
+  "source_urls": [
+    "https://sketchfab.com/3d-models/d84d190a3bf94fc08a7ec897b8402f96",
+    "https://zenodo.org/records/10316577"
+  ],
+  "license": {
+    "id": "cc-by-nc-1.0"
+  },
+  "files": {
+    "detail/x-1_z-1.tscn": "a7a9004541905d0444660acf8b0b74c88bece5260424e6b644443766172b3c3f",
+    "detail/x-1_z-1_1.res": "c3b1fa2082f552474b1f3ee1b062fb95680e09dca3077a37fcb241d00d0c73b9",
+    "detail/x-1_z-1_mesh_0.res": "bdc4bdd49ddbd6cc93389373f6df810afccf02a7e564f8f7157b0abcb7d0986e",
+    "detail/x-1_z0.tscn": "0e6c6ebb11aa5b8139ea146b6e115410b0519c1c2816cd12809ce9c29e779cc7",
+    "detail/x-1_z0_1.res": "d125027480779988b12447995539f25aad389c133093d528f683f324ccda059c",
+    "detail/x-1_z0_mesh_0.res": "9c48dad998a761b64d305fdf2ad7d03147f3a88c7382e65f9ba06307d413c740",
+    "detail/x0_z-1.tscn": "9a3d91e46ffc6508e4695627d7d28cb3a57f6d4ee9d67cd34f6d4ab89fe7145c",
+    "detail/x0_z-1_1.res": "250cb61d573ceccc4a6311adc8d2e186d277cca6fa9b43a5cb4d2bd40dbca23d",
+    "detail/x0_z-1_mesh_0.res": "d6140221ef25fa172e071c9e44b5987f1b82c2e982ced3e8ed30b05b1d4c2fb2",
+    "detail/x0_z0.tscn": "f91ac81b11e3e5c65bb2bdb583bfe811c59196d1a6ce60785f70fcce790abd46",
+    "detail/x0_z0_1.res": "7418224612e9ce28c085b28b0a22ba8080d678cdb81dfcb08241289507f910f7",
+    "detail/x0_z0_mesh_0.res": "6f40c1d43e4c4bdd6c8b2a737d718d10cd8f8f1f16300d0d50c04a7f0370c3d3",
+    "overview/x-1_z-1_mesh_0.res": "ce1dd332c10d563e85787f1426f7f753e83dbd4eb0cce211cd57fd061738c245",
+    "overview/x-1_z0_mesh_0.res": "6c00a8fbd417375c882a269f7f1f9e70d26fb4fca123e3bd5242a75d606f2c66",
+    "overview/x0_z-1_mesh_0.res": "823ff7ba9b0b15817a1c0244a196bb2f760945c346ec73be37662509cb65f1ef",
+    "overview/x0_z0_mesh_0.res": "90d47a0c6215dd3bba0abef4c5290db85a864665f8ba70077237c76ae51aa7e3",
+    "overview.tscn": "f60d726a73af65541bc13618a6fccbef15c390d303774215c62fd5476468358b",
+    "shared/FrogExplorerMaterial_0000.tres": "3985d14288bb79c7c3d41830f3ad1e58dd6626ef1bd9351dbd132d25df44a64a",
+    "shared/image_0.jpg": "c6629fc08949a9ce8a3be3f27eb3103b6195c86218b100be77fc3069dcda9319"
+  }
+}

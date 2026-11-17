@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/detail/x2_z-3_mesh_0.res" id="1_qwx8x"]
+[ext_resource type="Shape3D" path="res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/detail/x2_z-3_1.res" id="2_qpuyg"]
+
+[node name="x2_z-3" type="Node3D" unique_id=1731084474]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 0, -48)
+
+[node name="@MeshInstance3D@66" type="MeshInstance3D" parent="." unique_id=1158143955]
+mesh = ExtResource("1_qwx8x")
+
+[node name="@StaticBody3D@67" type="StaticBody3D" parent="." unique_id=735493144]
+collision_layer = 2
+collision_mask = 0
+
+[node name="@CollisionShape3D@68" type="CollisionShape3D" parent="@StaticBody3D@67" unique_id=1684014047]
+shape = ExtResource("2_qpuyg")

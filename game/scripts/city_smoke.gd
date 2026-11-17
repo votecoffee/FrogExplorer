@@ -53,7 +53,7 @@ func run():
   if t.current_id!=id:continue
   check(is_equal_approx(p.metrics.factor,1) and p.species==original_species,id+": arrival resets size and preserves frog")
   check(p.is_on_floor() and p.position.is_finite(),id+": capsule settles on actual terrain collision")
-  check(game.woodland is LocalMeshWorld and game.woodland.collision_count==6,id+": terrain and five building groups have collision")
+  check(game.woodland is LocalMeshWorld and game.woodland.collision_count>0,id+": loaded terrain and building geometry have collision")
   check(t.state().geographic_anchor.horizontal_crs.begins_with("EPSG:326"),id+": UTM geographic anchor is published")
   check(game.woodland.travel_bounds.size.x>=950,id+": city movement extends beyond the pond bounds")
   var origin=p.position
@@ -87,18 +87,20 @@ func run():
    p.request_action("jump");await wait(.05)
    check(rides.kind=="COAST",id+": jumping removes car and retains momentum")
   await recover()
-  # Reference source footprint edges so intervening hills cannot mask the wall.
+  # Public, source-derived footprint probes are independent of tile output.
   var facade=false
-  var prepared=JSON.parse_string(FileAccess.get_file_as_string("res://../data/world_sources/"+id+"/prepared.json"))
-  for building in prepared.buildings.slice(0,20):
-   var a=building.rings[0][0];var b=building.rings[0][1]
-   var midpoint=Vector3((a[0]+b[0])/2,(building.base+building.roof-building.roof_height)/2,-(a[1]+b[1])/2)
-   var direction=Vector3(-(b[1]-a[1]),0,-(b[0]-a[0])).normalized()
+  var probes=JSON.parse_string(FileAccess.get_file_as_string("res://data/city_facade_probes.json"))
+  for probe in probes.cities[id]:
+   var midpoint=Vector3(probe.point[0],probe.point[1],probe.point[2])
+   var direction=Vector3(probe.normal[0],probe.normal[1],probe.normal[2])
+   var deadline=Time.get_ticks_msec()+10000
+   while not game.woodland.surface_ready(midpoint,2) and Time.get_ticks_msec()<deadline:await process_frame
    var query=PhysicsRayQueryParameters3D.create(midpoint+direction,midpoint-direction,1)
    var hit=game.woodland.get_world_3d().direct_space_state.intersect_ray(query)
    if not hit.is_empty() and absf(hit.normal.y)<.1:facade=true;break
   check(facade,id+": actual building facades block physics rays")
-  measurements.append({"id":id,"spawn":str(p.position),"collision_groups":game.woodland.collision_count,"facade_hit":facade,"scene_sha256":FileAccess.get_sha256(item.scene),"anchor":item.anchor})
+  var source_hash=FileAccess.get_sha256(item.scene) if FileAccess.file_exists(item.scene) else WorldTiles.manifest(item).source_sha256
+  measurements.append({"id":id,"spawn":str(p.position),"collision_groups":game.woodland.collision_count,"facade_hit":facade,"scene_sha256":source_hash,"anchor":item.anchor})
   p.try_resize(2)
   # Travel must discard any current ride and restore default size in the next pack.
   rides.request("BALLOON");await wait(.05)

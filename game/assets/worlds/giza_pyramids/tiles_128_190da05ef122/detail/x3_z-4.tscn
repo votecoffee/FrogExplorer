@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/worlds/giza_pyramids/tiles_128_190da05ef122/detail/x3_z-4_mesh_0.res" id="1_n0qr0"]
+[ext_resource type="Shape3D" path="res://assets/worlds/giza_pyramids/tiles_128_190da05ef122/detail/x3_z-4_1.res" id="2_lpx4t"]
+
+[node name="x3_z-4" type="Node3D" unique_id=374422202]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 384, 0, -512)
+
+[node name="@MeshInstance3D@274" type="MeshInstance3D" parent="." unique_id=907304450]
+mesh = ExtResource("1_n0qr0")
+
+[node name="@StaticBody3D@275" type="StaticBody3D" parent="." unique_id=1265926271]
+collision_layer = 2
+collision_mask = 0
+
+[node name="@CollisionShape3D@276" type="CollisionShape3D" parent="@StaticBody3D@275" unique_id=875528819]
+shape = ExtResource("2_lpx4t")

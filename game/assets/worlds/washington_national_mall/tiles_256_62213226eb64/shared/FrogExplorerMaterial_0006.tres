@@ -1,0 +1,7 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[resource]
+resource_name = "FrogExplorerMaterial_0006"
+cull_mode = 2
+albedo_color = Color(0.6872172, 0.7014107, 0.7014107, 1)
+roughness = 0.9

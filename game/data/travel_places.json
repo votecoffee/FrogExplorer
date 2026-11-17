@@ -44,6 +44,7 @@
         "windows"
       ],
       "random_eligible": true,
+      "tile_manifest": "res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/manifest.json",
       "scene": "res://assets/worlds/helsinki_senate_square/senate_square.glb",
       "spawn": [
         0,
@@ -116,6 +117,7 @@
         "windows"
       ],
       "random_eligible": true,
+      "tile_manifest": "res://assets/worlds/rochester_high_falls/tiles_128_9582da8aecd0/manifest.json",
       "scene": "res://assets/worlds/rochester_high_falls/city.glb",
       "spawn": [
         -78.23350284490999,
@@ -241,6 +243,7 @@
         "windows"
       ],
       "random_eligible": true,
+      "tile_manifest": "res://assets/worlds/washington_national_mall/tiles_256_62213226eb64/manifest.json",
       "scene": "res://assets/worlds/washington_national_mall/city.glb",
       "spawn": [
         -20.745521860924075,
@@ -366,6 +369,7 @@
         "windows"
       ],
       "random_eligible": true,
+      "tile_manifest": "res://assets/worlds/holland_downtown/tiles_128_df0f3e720b90/manifest.json",
       "scene": "res://assets/worlds/holland_downtown/city.glb",
       "spawn": [
         -0.6905286145054573,
@@ -491,6 +495,7 @@
         "windows"
       ],
       "random_eligible": true,
+      "tile_manifest": "res://assets/worlds/norfolk_waterfront/tiles_128_18dd4e31f2e7/manifest.json",
       "scene": "res://assets/worlds/norfolk_waterfront/city.glb",
       "spawn": [
         -15.464133010161625,
@@ -616,6 +621,7 @@
         "windows"
       ],
       "random_eligible": true,
+      "tile_manifest": "res://assets/worlds/lynchburg_riverfront/tiles_128_e464fc0c052f/manifest.json",
       "scene": "res://assets/worlds/lynchburg_riverfront/city.glb",
       "spawn": [
         -0.6670241836232407,
@@ -741,6 +747,7 @@
         "windows"
       ],
       "random_eligible": true,
+      "tile_manifest": "res://assets/worlds/machu_picchu/tiles_64_b0c80c66bac6/manifest.json",
       "scene": "res://assets/worlds/machu_picchu/landmark.glb",
       "spawn": [
         4.157968521118164,
@@ -883,6 +890,7 @@
         "windows"
       ],
       "random_eligible": true,
+      "tile_manifest": "res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/manifest.json",
       "scene": "res://assets/worlds/great_wall_china/landmark.glb",
       "spawn": [
         41.77949523925781,
@@ -955,6 +963,7 @@
         "windows"
       ],
       "random_eligible": true,
+      "tile_manifest": "res://assets/worlds/giza_pyramids/tiles_128_190da05ef122/manifest.json",
       "scene": "res://assets/worlds/giza_pyramids/landmark.glb",
       "spawn": [
         16.35936737060547,
@@ -1097,7 +1106,7 @@
         "windows"
       ],
       "random_eligible": true,
-      "tile_manifest": "res://assets/worlds/rome_colosseum/tiles_64_ad37b3622177/manifest.json",
+      "tile_manifest": "res://assets/worlds/rome_colosseum/tiles_64_153c99f1269e/manifest.json",
       "scene": "res://assets/worlds/rome_colosseum/landmark.glb",
       "spawn": [
         -138.4025115966797,
@@ -1240,7 +1249,7 @@
         "windows"
       ],
       "random_eligible": true,
-      "tile_manifest": "res://assets/worlds/tokyo_imperial_palace/tiles_128_9ced8684a934/manifest.json",
+      "tile_manifest": "res://assets/worlds/tokyo_imperial_palace/tiles_128_1b721845d5d9/manifest.json",
       "scene": "res://assets/worlds/tokyo_imperial_palace/city.glb",
       "spawn": [
         406.7393798828125,
@@ -1387,6 +1396,7 @@
         "windows"
       ],
       "random_eligible": true,
+      "tile_manifest": "res://assets/worlds/shanghai_lujiazui/tiles_256_4a71cdd3bd1a/manifest.json",
       "scene": "res://assets/worlds/shanghai_lujiazui/city.glb",
       "spawn": [
         880.87841796875,
@@ -1533,6 +1543,7 @@
         "windows"
       ],
       "random_eligible": true,
+      "tile_manifest": "res://assets/worlds/berlin_teufelsberg/tiles_32_3481b92694d7/manifest.json",
       "scene": "res://assets/worlds/berlin_teufelsberg/city.glb",
       "spawn": [
         -11.354911804199219,
@@ -1679,6 +1690,7 @@
         "windows"
       ],
       "random_eligible": true,
+      "tile_manifest": "res://assets/worlds/moscow_andronikov/tiles_16_79739a20b20f/manifest.json",
       "scene": "res://assets/worlds/moscow_andronikov/city.glb",
       "spawn": [
         -22.91375732421875,
@@ -1760,6 +1772,7 @@
         "windows"
       ],
       "random_eligible": true,
+      "tile_manifest": "res://assets/worlds/montreal_sainte_elisabeth/tiles_16_2e4c9cb1d48d/manifest.json",
       "scene": "res://assets/worlds/montreal_sainte_elisabeth/city.glb",
       "spawn": [
         0.15565109252929688,
@@ -1861,6 +1874,7 @@
         "windows"
       ],
       "random_eligible": true,
+      "tile_manifest": "res://assets/worlds/mexico_city_cathedral/tiles_32_3720774078ab/manifest.json",
       "scene": "res://assets/worlds/mexico_city_cathedral/city.glb",
       "spawn": [
         -58.061622619628906,

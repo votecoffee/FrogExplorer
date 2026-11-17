@@ -2,7 +2,7 @@
 
 A Godot frog exploration game with an optional ROS 2 Lyrical bridge. Walk around a woodland pond, jump, catch flies, croak, climb trees, swim, grow or shrink, fly under a helium balloon, and drive a convertible.
 
-The ROS package is named `frog_explorer`. This repository contains its source, the Godot project, asset-building tools and installation scripts. ROS itself, downloaded tools, generated workspaces and optional third-party models live outside Git.
+The ROS package is named `frog_explorer`. This repository contains its source, the Godot project, reviewed runtime assets, asset-building tools and installation scripts. ROS itself, downloaded tools, generated workspaces and original asset downloads live outside Git.
 
 ## Table of Contents
 
@@ -38,7 +38,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install_windows.ps1 
 
 The installer downloads **Godot 4.7.2** from its official GitHub release, verifies the pinned SHA-256, unpacks it under ignored `tools/`, imports the project, and optionally runs a headless gameplay check. Settings go in ignored `.local/settings.json`; logs and test reports go in ignored `state/`. No administrator rights, global Python packages or global execution-policy changes are required.
 
-A fresh clone runs with **original procedural starter frogs**, synthesized audio, the authored vehicles and the woodland pond. Starter models provide simple original motions for all 28 animation names. They are visual stand-ins for the optional realistic models.
+A fresh clone includes five realistic frogs, all 16 city/landmark tile packs, synthesized audio, the authored vehicles and the woodland pond. Procedural starter frogs supply all 28 animation names when a model is absent, including the optional red-eyed tree frog.
 
 To use an existing engine or install offline:
 
@@ -46,15 +46,17 @@ To use an existing engine or install offline:
 .\scripts\install_windows.ps1 -GodotPath "C:\path\to\godot.exe" -SkipDownload -Test
 ```
 
-### Bring your existing realistic frogs and worlds
+### Included scenery and optional local assets
 
-The earlier realistic frog models and downloaded world packs have separate source terms and are not embedded in this public repository. The importer accepts an existing project directory, its `game/` directory, or its `game/assets/` directory:
+The repository includes **five realistic frogs and all 16 city/landmark tile packs**. The installer verifies their checksums and imports the Godot resources. No separate asset download is needed for those files. The red-eyed tree frog uses an authored starter model until you import your locally licensed model; its extractable GLB is excluded from public Git under its source terms. Models and scenery retain their individual licenses, including noncommercial restrictions for some assets; see [asset credits](ASSET_CREDITS.md).
+
+To add the locally licensed red-eyed model and retain the earlier full-scene reference files for rebuilding, the importer accepts an existing project directory, its `game/` directory, or its `game/assets/` directory:
 
 ```powershell
 .\scripts\install_windows.ps1 -AssetSource "D:\path\to\existing\FrogExplorer" -Test
 ```
 
-It verifies every file against `config/assets.lock.json` before copying anything, preserves differing destination files, and imports the verified files into ignored asset folders. Once imported, realistic models are selected automatically. Your original files remain intact. See [asset import and rebuild procedures](docs/ASSETS.md) and [asset credits](ASSET_CREDITS.md).
+It verifies every file against `config/assets.lock.json` before copying anything and preserves differing destination files. Existing bundled files already match that reference set; additional original scenes, texture sources and the restricted model remain ignored. Locally imported realistic models are selected automatically. Your originals remain intact. See [asset import and rebuild procedures](docs/ASSETS.md) and [asset credits](ASSET_CREDITS.md).
 
 ### Enable ROS 2 Lyrical on Windows
 
@@ -98,7 +100,7 @@ The pond is available on every supported platform. Real-world packs currently re
 .\scripts\run_windows.ps1 -WithoutRos
 .\scripts\run_windows.ps1 -WithRos
 .\scripts\run_windows.ps1 -Editor
-# An optional installed world pack:
+# Start in an included world pack:
 .\scripts\run_windows.ps1 -Place helsinki_senate_square
 ```
 
@@ -150,11 +152,11 @@ Size ranges from **0.25× to 16×**, subject to physical clearance. Movement spe
 
 ## World travel
 
-The catalog describes **12 city areas and four historic destinations**. Optional packs include Helsinki, five US cities, Tokyo, Shanghai, Berlin, Moscow, Montréal, Mexico City, Machu Picchu, a Great Wall section, Giza and the Colosseum. A fresh clone includes the pond; only present, device-qualified packs appear in the places list.
+The catalog includes **12 city areas and four historic destinations**: Helsinki, five US cities, Tokyo, Shanghai, Berlin, Moscow, Montréal, Mexico City, Machu Picchu, a Great Wall section, Giza and the Colosseum. A fresh clone includes their runtime tiles and the pond; only present, device-qualified packs appear in the places list.
 
 Worlds have bounded coverage and varying detail. Montréal is a short sidewalk scan; Shanghai is simplified architecture. Water and trees in imported scenes do not gain swimming or climbing volumes automatically. Travel restores every frog to default size and clears vehicles; failed or cancelled travel preserves the old world. City/history category preferences and recent visits influence random selection.
 
-Tokyo and the Colosseum support optional **streamed tiles**: full detail and collision near each frog, a coarse distant overview for balloon exploration, and unloading outside the group's active regions. Original scene imports remain compatible. Build or copy the derived packs using [the tiling guide](docs/TILING.md); they are local assets and are not included in Git. **F2** shows tile residency diagnostics.
+All 16 city/landmark packs use **streamed tiles**: full detail and collision near each frog, a coarse distant overview for balloon exploration, and unloading outside the group's active regions. Tile size follows the area's scale, from 16 m for short scans to 256 m for wide city cuts. Small scans can fit entirely in the nearby region. Original scene imports remain compatible. See [the tiling guide](docs/TILING.md); **F2** shows tile residency diagnostics.
 
 ## ROS interface
 
@@ -199,13 +201,13 @@ python scripts/repo_check.py
 .\scripts\build_windows.ps1 -Test
 ```
 
-The first three commands support the public starter installation. Building ROS requires its configured underlay. Full city/travel/asset regressions additionally require the optional reference asset set. Native scripts and world/vehicle exporters are in `scripts/`; world-data Python dependencies are pinned in `scripts/worlds/requirements.txt`. See [asset tooling](docs/ASSETS.md).
+The first three commands support the public installation. Building ROS requires its configured underlay. The bundled packs support the city/travel/tiling regressions; source-GLB comparisons and rebuilding scenery require the optional original reference files. Native scripts and world/vehicle exporters are in `scripts/`; world-data Python dependencies are pinned in `scripts/worlds/requirements.txt`. See [asset tooling](docs/ASSETS.md).
 
 The public source has Windows headless and ROS checks. Physical controllers, rendered frame rate, Linux/Pi operation and separate physical LAN computers require native acceptance. Generated validation reports stay local; no automated GitHub Actions jobs consume build minutes.
 
 | Path | Contents |
 |---|---|
-| `game/` | Godot project, gameplay, starter geometry and original small assets |
+| `game/` | Godot gameplay, starter geometry, five realistic frogs and 16 runtime tile packs |
 | `ros2_ws/src/frog_explorer/` | Custom ROS bridge, launch and package source |
 | `scripts/` | Installers, launchers, exporters and validation tools |
 | `config/` | Engine checksums, optional-asset identities and world recipes |
@@ -217,7 +219,7 @@ The public source has Windows headless and ROS checks. Physical controllers, ren
 
 ## Contributing
 
-Open an [issue](https://github.com/votecoffee/FrogExplorer/issues) or pull request with the problem, expected behavior and relevant local checks. Keep personal paths, credentials, raw captures, downloaded models and generated workspaces outside Git. Preserve third-party credits and keep native hardware validation separate from injected/headless results.
+Open an [issue](https://github.com/votecoffee/FrogExplorer/issues) or pull request with the problem, expected behavior and relevant local checks. Keep personal paths, credentials, raw captures, original downloads and generated workspaces outside Git. Runtime assets must match the reviewed inventory and retain their source credits. Keep native hardware validation separate from injected/headless results.
 
 ## License
 

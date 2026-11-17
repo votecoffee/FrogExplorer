@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/worlds/rome_colosseum/tiles_64_153c99f1269e/detail/x2_z-2_mesh_0.res" id="1_cm5te"]
+[ext_resource type="Shape3D" path="res://assets/worlds/rome_colosseum/tiles_64_153c99f1269e/detail/x2_z-2_1.res" id="2_1h8hf"]
+
+[node name="x2_z-2" type="Node3D" unique_id=100871330]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 128, 0, -128)
+
+[node name="@MeshInstance3D@198" type="MeshInstance3D" parent="." unique_id=1591327844]
+mesh = ExtResource("1_cm5te")
+
+[node name="@StaticBody3D@199" type="StaticBody3D" parent="." unique_id=233212625]
+collision_layer = 2
+collision_mask = 0
+
+[node name="@CollisionShape3D@200" type="CollisionShape3D" parent="@StaticBody3D@199" unique_id=1533604316]
+shape = ExtResource("2_1h8hf")

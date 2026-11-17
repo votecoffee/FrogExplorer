@@ -1,0 +1,318 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x-2_z-5_mesh_0.res" id="1_qts05"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x-2_z-4_mesh_0.res" id="2_rh2n7"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x-2_z-3_mesh_0.res" id="3_ofhxk"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x-2_z-2_mesh_0.res" id="4_l05ci"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x-2_z-1_mesh_0.res" id="5_tyxks"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x-2_z0_mesh_0.res" id="6_dcglf"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x-2_z1_mesh_0.res" id="7_k552y"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x-2_z2_mesh_0.res" id="8_ujjjd"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x-2_z3_mesh_0.res" id="9_5s424"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x-1_z-5_mesh_0.res" id="10_hv4d5"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x-1_z-4_mesh_0.res" id="11_orxu0"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x-1_z-3_mesh_0.res" id="12_wuif1"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x-1_z-2_mesh_0.res" id="13_14l22"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x-1_z-1_mesh_0.res" id="14_wmnhc"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x-1_z0_mesh_0.res" id="15_8div0"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x-1_z1_mesh_0.res" id="16_gmje0"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x-1_z2_mesh_0.res" id="17_hwevx"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x-1_z3_mesh_0.res" id="18_rrthi"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x0_z-5_mesh_0.res" id="19_vav3h"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x0_z-4_mesh_0.res" id="20_s5u2n"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x0_z-3_mesh_0.res" id="21_5qvgt"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x0_z-2_mesh_0.res" id="22_0ife2"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x0_z-1_mesh_0.res" id="23_p4608"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x0_z0_mesh_0.res" id="24_wagng"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x0_z1_mesh_0.res" id="25_7qkk5"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x0_z2_mesh_0.res" id="26_6mkdu"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x0_z3_mesh_0.res" id="27_881c1"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x1_z-5_mesh_0.res" id="28_gmbor"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x1_z-4_mesh_0.res" id="29_dls5q"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x1_z-3_mesh_0.res" id="30_2pt0l"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x1_z-2_mesh_0.res" id="31_2orpr"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x1_z-1_mesh_0.res" id="32_gr7wn"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x1_z0_mesh_0.res" id="33_1jgru"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x1_z1_mesh_0.res" id="34_40gp8"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x1_z2_mesh_0.res" id="35_lvt8b"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x1_z3_mesh_0.res" id="36_je22y"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x2_z-5_mesh_0.res" id="37_b7jvw"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x2_z-4_mesh_0.res" id="38_xvys7"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x2_z-3_mesh_0.res" id="39_3t4mi"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x2_z-2_mesh_0.res" id="40_qcv2s"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x2_z-1_mesh_0.res" id="41_jnyc1"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x2_z0_mesh_0.res" id="42_m7mds"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x2_z1_mesh_0.res" id="43_8a02g"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x2_z2_mesh_0.res" id="44_ivr1s"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/overview/x2_z3_mesh_0.res" id="45_2wmkc"]
+
+[node name="Overview" type="Node3D" unique_id=1681694904]
+
+[node name="x-2_z-5" type="Node3D" parent="." unique_id=2115454425]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -128, 0, -320)
+
+[node name="@MeshInstance3D@5" type="MeshInstance3D" parent="x-2_z-5" unique_id=1257094520]
+mesh = ExtResource("1_qts05")
+
+[node name="x-2_z-4" type="Node3D" parent="." unique_id=1629421298]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -128, 0, -256)
+
+[node name="@MeshInstance3D@9" type="MeshInstance3D" parent="x-2_z-4" unique_id=1301434636]
+mesh = ExtResource("2_rh2n7")
+
+[node name="x-2_z-3" type="Node3D" parent="." unique_id=867174398]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -128, 0, -192)
+
+[node name="@MeshInstance3D@13" type="MeshInstance3D" parent="x-2_z-3" unique_id=1404177337]
+mesh = ExtResource("3_ofhxk")
+
+[node name="x-2_z-2" type="Node3D" parent="." unique_id=1330217944]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -128, 0, -128)
+
+[node name="@MeshInstance3D@17" type="MeshInstance3D" parent="x-2_z-2" unique_id=1481883000]
+mesh = ExtResource("4_l05ci")
+
+[node name="x-2_z-1" type="Node3D" parent="." unique_id=954140153]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -128, 0, -64)
+
+[node name="@MeshInstance3D@21" type="MeshInstance3D" parent="x-2_z-1" unique_id=739030958]
+mesh = ExtResource("5_tyxks")
+
+[node name="x-2_z0" type="Node3D" parent="." unique_id=911281357]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -128, 0, 0)
+
+[node name="@MeshInstance3D@25" type="MeshInstance3D" parent="x-2_z0" unique_id=1857724797]
+mesh = ExtResource("6_dcglf")
+
+[node name="x-2_z1" type="Node3D" parent="." unique_id=450498250]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -128, 0, 64)
+
+[node name="@MeshInstance3D@29" type="MeshInstance3D" parent="x-2_z1" unique_id=1222233397]
+mesh = ExtResource("7_k552y")
+
+[node name="x-2_z2" type="Node3D" parent="." unique_id=94758020]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -128, 0, 128)
+
+[node name="@MeshInstance3D@33" type="MeshInstance3D" parent="x-2_z2" unique_id=977837959]
+mesh = ExtResource("8_ujjjd")
+
+[node name="x-2_z3" type="Node3D" parent="." unique_id=999447581]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -128, 0, 192)
+
+[node name="@MeshInstance3D@37" type="MeshInstance3D" parent="x-2_z3" unique_id=669591752]
+mesh = ExtResource("9_5s424")
+
+[node name="x-1_z-5" type="Node3D" parent="." unique_id=182399706]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64, 0, -320)
+
+[node name="@MeshInstance3D@41" type="MeshInstance3D" parent="x-1_z-5" unique_id=1516232505]
+mesh = ExtResource("10_hv4d5")
+
+[node name="x-1_z-4" type="Node3D" parent="." unique_id=1356727258]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64, 0, -256)
+
+[node name="@MeshInstance3D@45" type="MeshInstance3D" parent="x-1_z-4" unique_id=1682808183]
+mesh = ExtResource("11_orxu0")
+
+[node name="x-1_z-3" type="Node3D" parent="." unique_id=2086813007]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64, 0, -192)
+
+[node name="@MeshInstance3D@49" type="MeshInstance3D" parent="x-1_z-3" unique_id=1188931482]
+mesh = ExtResource("12_wuif1")
+
+[node name="x-1_z-2" type="Node3D" parent="." unique_id=1987532960]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64, 0, -128)
+
+[node name="@MeshInstance3D@53" type="MeshInstance3D" parent="x-1_z-2" unique_id=1048958081]
+mesh = ExtResource("13_14l22")
+
+[node name="x-1_z-1" type="Node3D" parent="." unique_id=1397973031]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64, 0, -64)
+
+[node name="@MeshInstance3D@57" type="MeshInstance3D" parent="x-1_z-1" unique_id=455327451]
+mesh = ExtResource("14_wmnhc")
+
+[node name="x-1_z0" type="Node3D" parent="." unique_id=655092623]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64, 0, 0)
+
+[node name="@MeshInstance3D@61" type="MeshInstance3D" parent="x-1_z0" unique_id=1992268553]
+mesh = ExtResource("15_8div0")
+
+[node name="x-1_z1" type="Node3D" parent="." unique_id=1870276253]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64, 0, 64)
+
+[node name="@MeshInstance3D@65" type="MeshInstance3D" parent="x-1_z1" unique_id=2002961803]
+mesh = ExtResource("16_gmje0")
+
+[node name="x-1_z2" type="Node3D" parent="." unique_id=817967333]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64, 0, 128)
+
+[node name="@MeshInstance3D@69" type="MeshInstance3D" parent="x-1_z2" unique_id=1650321318]
+mesh = ExtResource("17_hwevx")
+
+[node name="x-1_z3" type="Node3D" parent="." unique_id=539456954]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64, 0, 192)
+
+[node name="@MeshInstance3D@73" type="MeshInstance3D" parent="x-1_z3" unique_id=642086688]
+mesh = ExtResource("18_rrthi")
+
+[node name="x0_z-5" type="Node3D" parent="." unique_id=1159513802]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -320)
+
+[node name="@MeshInstance3D@77" type="MeshInstance3D" parent="x0_z-5" unique_id=1146544895]
+mesh = ExtResource("19_vav3h")
+
+[node name="x0_z-4" type="Node3D" parent="." unique_id=1479048883]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -256)
+
+[node name="@MeshInstance3D@81" type="MeshInstance3D" parent="x0_z-4" unique_id=231168394]
+mesh = ExtResource("20_s5u2n")
+
+[node name="x0_z-3" type="Node3D" parent="." unique_id=263794535]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -192)
+
+[node name="@MeshInstance3D@85" type="MeshInstance3D" parent="x0_z-3" unique_id=2050738474]
+mesh = ExtResource("21_5qvgt")
+
+[node name="x0_z-2" type="Node3D" parent="." unique_id=1084308524]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -128)
+
+[node name="@MeshInstance3D@89" type="MeshInstance3D" parent="x0_z-2" unique_id=1167658294]
+mesh = ExtResource("22_0ife2")
+
+[node name="x0_z-1" type="Node3D" parent="." unique_id=152090302]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -64)
+
+[node name="@MeshInstance3D@93" type="MeshInstance3D" parent="x0_z-1" unique_id=1523576707]
+mesh = ExtResource("23_p4608")
+
+[node name="x0_z0" type="Node3D" parent="." unique_id=1781201603]
+
+[node name="@MeshInstance3D@97" type="MeshInstance3D" parent="x0_z0" unique_id=1748982907]
+mesh = ExtResource("24_wagng")
+
+[node name="x0_z1" type="Node3D" parent="." unique_id=1697601882]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 64)
+
+[node name="@MeshInstance3D@101" type="MeshInstance3D" parent="x0_z1" unique_id=1732075980]
+mesh = ExtResource("25_7qkk5")
+
+[node name="x0_z2" type="Node3D" parent="." unique_id=2070231786]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 128)
+
+[node name="@MeshInstance3D@105" type="MeshInstance3D" parent="x0_z2" unique_id=1113811336]
+mesh = ExtResource("26_6mkdu")
+
+[node name="x0_z3" type="Node3D" parent="." unique_id=1691156708]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 192)
+
+[node name="@MeshInstance3D@109" type="MeshInstance3D" parent="x0_z3" unique_id=1084074392]
+mesh = ExtResource("27_881c1")
+
+[node name="x1_z-5" type="Node3D" parent="." unique_id=110670185]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 0, -320)
+
+[node name="@MeshInstance3D@113" type="MeshInstance3D" parent="x1_z-5" unique_id=410728506]
+mesh = ExtResource("28_gmbor")
+
+[node name="x1_z-4" type="Node3D" parent="." unique_id=2088130491]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 0, -256)
+
+[node name="@MeshInstance3D@117" type="MeshInstance3D" parent="x1_z-4" unique_id=1280725383]
+mesh = ExtResource("29_dls5q")
+
+[node name="x1_z-3" type="Node3D" parent="." unique_id=19105635]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 0, -192)
+
+[node name="@MeshInstance3D@121" type="MeshInstance3D" parent="x1_z-3" unique_id=468091910]
+mesh = ExtResource("30_2pt0l")
+
+[node name="x1_z-2" type="Node3D" parent="." unique_id=63287013]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 0, -128)
+
+[node name="@MeshInstance3D@125" type="MeshInstance3D" parent="x1_z-2" unique_id=39201635]
+mesh = ExtResource("31_2orpr")
+
+[node name="x1_z-1" type="Node3D" parent="." unique_id=527084700]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 0, -64)
+
+[node name="@MeshInstance3D@129" type="MeshInstance3D" parent="x1_z-1" unique_id=1944541485]
+mesh = ExtResource("32_gr7wn")
+
+[node name="x1_z0" type="Node3D" parent="." unique_id=1161079642]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 0, 0)
+
+[node name="@MeshInstance3D@133" type="MeshInstance3D" parent="x1_z0" unique_id=283708493]
+mesh = ExtResource("33_1jgru")
+
+[node name="x1_z1" type="Node3D" parent="." unique_id=385484911]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 0, 64)
+
+[node name="@MeshInstance3D@137" type="MeshInstance3D" parent="x1_z1" unique_id=1675223048]
+mesh = ExtResource("34_40gp8")
+
+[node name="x1_z2" type="Node3D" parent="." unique_id=259376453]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 0, 128)
+
+[node name="@MeshInstance3D@141" type="MeshInstance3D" parent="x1_z2" unique_id=1347696352]
+mesh = ExtResource("35_lvt8b")
+
+[node name="x1_z3" type="Node3D" parent="." unique_id=491660758]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 0, 192)
+
+[node name="@MeshInstance3D@145" type="MeshInstance3D" parent="x1_z3" unique_id=1564413146]
+mesh = ExtResource("36_je22y")
+
+[node name="x2_z-5" type="Node3D" parent="." unique_id=1359244629]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 128, 0, -320)
+
+[node name="@MeshInstance3D@149" type="MeshInstance3D" parent="x2_z-5" unique_id=1448077417]
+mesh = ExtResource("37_b7jvw")
+
+[node name="x2_z-4" type="Node3D" parent="." unique_id=139808769]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 128, 0, -256)
+
+[node name="@MeshInstance3D@153" type="MeshInstance3D" parent="x2_z-4" unique_id=991121629]
+mesh = ExtResource("38_xvys7")
+
+[node name="x2_z-3" type="Node3D" parent="." unique_id=2098053907]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 128, 0, -192)
+
+[node name="@MeshInstance3D@157" type="MeshInstance3D" parent="x2_z-3" unique_id=1818172348]
+mesh = ExtResource("39_3t4mi")
+
+[node name="x2_z-2" type="Node3D" parent="." unique_id=2135467731]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 128, 0, -128)
+
+[node name="@MeshInstance3D@161" type="MeshInstance3D" parent="x2_z-2" unique_id=143879116]
+mesh = ExtResource("40_qcv2s")
+
+[node name="x2_z-1" type="Node3D" parent="." unique_id=596430481]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 128, 0, -64)
+
+[node name="@MeshInstance3D@165" type="MeshInstance3D" parent="x2_z-1" unique_id=450719173]
+mesh = ExtResource("41_jnyc1")
+
+[node name="x2_z0" type="Node3D" parent="." unique_id=819005955]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 128, 0, 0)
+
+[node name="@MeshInstance3D@169" type="MeshInstance3D" parent="x2_z0" unique_id=877070662]
+mesh = ExtResource("42_m7mds")
+
+[node name="x2_z1" type="Node3D" parent="." unique_id=1330004587]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 128, 0, 64)
+
+[node name="@MeshInstance3D@173" type="MeshInstance3D" parent="x2_z1" unique_id=818367703]
+mesh = ExtResource("43_8a02g")
+
+[node name="x2_z2" type="Node3D" parent="." unique_id=1849788165]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 128, 0, 128)
+
+[node name="@MeshInstance3D@177" type="MeshInstance3D" parent="x2_z2" unique_id=639206406]
+mesh = ExtResource("44_ivr1s")
+
+[node name="x2_z3" type="Node3D" parent="." unique_id=1984314728]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 128, 0, 192)
+
+[node name="@MeshInstance3D@181" type="MeshInstance3D" parent="x2_z3" unique_id=1328119100]
+mesh = ExtResource("45_2wmkc")

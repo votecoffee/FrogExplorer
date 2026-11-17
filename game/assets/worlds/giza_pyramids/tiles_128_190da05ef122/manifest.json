@@ -1,0 +1,1829 @@
+{
+  "version": 1,
+  "source_scene": "res://assets/worlds/giza_pyramids/landmark.glb",
+  "source_sha256": "644b0cbcb7646288060c4f4c7fc71325f70cb97e5fc7664fce51fec3436c0437",
+  "pipeline_sha256": "09ae8420ed8973a8ee41d138cb70dceb933d30acdefb1d63df351a166fcf1246",
+  "tile_size": 128,
+  "bounds": [
+    -470.0250549316406,
+    -619.9236450195312,
+    470.0250244140625,
+    619.9236450195312
+  ],
+  "overview_scene": "overview.tscn",
+  "detail_radius": 160.0,
+  "tiles": [
+    {
+      "id": "x-4_z-5",
+      "cell": [
+        -4,
+        -5
+      ],
+      "origin": [
+        -512.0,
+        0,
+        -640.0
+      ],
+      "scene": "detail/x-4_z-5.tscn",
+      "triangles": 38,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-4_z-4",
+      "cell": [
+        -4,
+        -4
+      ],
+      "origin": [
+        -512.0,
+        0,
+        -512.0
+      ],
+      "scene": "detail/x-4_z-4.tscn",
+      "triangles": 293,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-4_z-3",
+      "cell": [
+        -4,
+        -3
+      ],
+      "origin": [
+        -512.0,
+        0,
+        -384.0
+      ],
+      "scene": "detail/x-4_z-3.tscn",
+      "triangles": 292,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-4_z-2",
+      "cell": [
+        -4,
+        -2
+      ],
+      "origin": [
+        -512.0,
+        0,
+        -256.0
+      ],
+      "scene": "detail/x-4_z-2.tscn",
+      "triangles": 395,
+      "materials": [
+        0,
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-4_z-1",
+      "cell": [
+        -4,
+        -1
+      ],
+      "origin": [
+        -512.0,
+        0,
+        -128.0
+      ],
+      "scene": "detail/x-4_z-1.tscn",
+      "triangles": 501,
+      "materials": [
+        0,
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-4_z0",
+      "cell": [
+        -4,
+        0
+      ],
+      "origin": [
+        -512.0,
+        0,
+        0.0
+      ],
+      "scene": "detail/x-4_z0.tscn",
+      "triangles": 995,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-4_z1",
+      "cell": [
+        -4,
+        1
+      ],
+      "origin": [
+        -512.0,
+        0,
+        128.0
+      ],
+      "scene": "detail/x-4_z1.tscn",
+      "triangles": 777,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-4_z2",
+      "cell": [
+        -4,
+        2
+      ],
+      "origin": [
+        -512.0,
+        0,
+        256.0
+      ],
+      "scene": "detail/x-4_z2.tscn",
+      "triangles": 641,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-3_z-5",
+      "cell": [
+        -3,
+        -5
+      ],
+      "origin": [
+        -384.0,
+        0,
+        -640.0
+      ],
+      "scene": "detail/x-3_z-5.tscn",
+      "triangles": 170,
+      "materials": [
+        0,
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-3_z-4",
+      "cell": [
+        -3,
+        -4
+      ],
+      "origin": [
+        -384.0,
+        0,
+        -512.0
+      ],
+      "scene": "detail/x-3_z-4.tscn",
+      "triangles": 646,
+      "materials": [
+        0,
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-3_z-3",
+      "cell": [
+        -3,
+        -3
+      ],
+      "origin": [
+        -384.0,
+        0,
+        -384.0
+      ],
+      "scene": "detail/x-3_z-3.tscn",
+      "triangles": 963,
+      "materials": [
+        0,
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-3_z-2",
+      "cell": [
+        -3,
+        -2
+      ],
+      "origin": [
+        -384.0,
+        0,
+        -256.0
+      ],
+      "scene": "detail/x-3_z-2.tscn",
+      "triangles": 812,
+      "materials": [
+        0,
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-3_z-1",
+      "cell": [
+        -3,
+        -1
+      ],
+      "origin": [
+        -384.0,
+        0,
+        -128.0
+      ],
+      "scene": "detail/x-3_z-1.tscn",
+      "triangles": 987,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-3_z0",
+      "cell": [
+        -3,
+        0
+      ],
+      "origin": [
+        -384.0,
+        0,
+        0.0
+      ],
+      "scene": "detail/x-3_z0.tscn",
+      "triangles": 1605,
+      "materials": [
+        0,
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-3_z1",
+      "cell": [
+        -3,
+        1
+      ],
+      "origin": [
+        -384.0,
+        0,
+        128.0
+      ],
+      "scene": "detail/x-3_z1.tscn",
+      "triangles": 1290,
+      "materials": [
+        0,
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-3_z2",
+      "cell": [
+        -3,
+        2
+      ],
+      "origin": [
+        -384.0,
+        0,
+        256.0
+      ],
+      "scene": "detail/x-3_z2.tscn",
+      "triangles": 1222,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-3_z3",
+      "cell": [
+        -3,
+        3
+      ],
+      "origin": [
+        -384.0,
+        0,
+        384.0
+      ],
+      "scene": "detail/x-3_z3.tscn",
+      "triangles": 698,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-3_z4",
+      "cell": [
+        -3,
+        4
+      ],
+      "origin": [
+        -384.0,
+        0,
+        512.0
+      ],
+      "scene": "detail/x-3_z4.tscn",
+      "triangles": 644,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-2_z-5",
+      "cell": [
+        -2,
+        -5
+      ],
+      "origin": [
+        -256.0,
+        0,
+        -640.0
+      ],
+      "scene": "detail/x-2_z-5.tscn",
+      "triangles": 227,
+      "materials": [
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-2_z-4",
+      "cell": [
+        -2,
+        -4
+      ],
+      "origin": [
+        -256.0,
+        0,
+        -512.0
+      ],
+      "scene": "detail/x-2_z-4.tscn",
+      "triangles": 526,
+      "materials": [
+        0,
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-2_z-3",
+      "cell": [
+        -2,
+        -3
+      ],
+      "origin": [
+        -256.0,
+        0,
+        -384.0
+      ],
+      "scene": "detail/x-2_z-3.tscn",
+      "triangles": 1331,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-2_z-2",
+      "cell": [
+        -2,
+        -2
+      ],
+      "origin": [
+        -256.0,
+        0,
+        -256.0
+      ],
+      "scene": "detail/x-2_z-2.tscn",
+      "triangles": 2893,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-2_z-1",
+      "cell": [
+        -2,
+        -1
+      ],
+      "origin": [
+        -256.0,
+        0,
+        -128.0
+      ],
+      "scene": "detail/x-2_z-1.tscn",
+      "triangles": 2024,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-2_z0",
+      "cell": [
+        -2,
+        0
+      ],
+      "origin": [
+        -256.0,
+        0,
+        0.0
+      ],
+      "scene": "detail/x-2_z0.tscn",
+      "triangles": 1453,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-2_z1",
+      "cell": [
+        -2,
+        1
+      ],
+      "origin": [
+        -256.0,
+        0,
+        128.0
+      ],
+      "scene": "detail/x-2_z1.tscn",
+      "triangles": 1490,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-2_z2",
+      "cell": [
+        -2,
+        2
+      ],
+      "origin": [
+        -256.0,
+        0,
+        256.0
+      ],
+      "scene": "detail/x-2_z2.tscn",
+      "triangles": 1432,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-2_z3",
+      "cell": [
+        -2,
+        3
+      ],
+      "origin": [
+        -256.0,
+        0,
+        384.0
+      ],
+      "scene": "detail/x-2_z3.tscn",
+      "triangles": 1831,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-2_z4",
+      "cell": [
+        -2,
+        4
+      ],
+      "origin": [
+        -256.0,
+        0,
+        512.0
+      ],
+      "scene": "detail/x-2_z4.tscn",
+      "triangles": 1160,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-1_z-5",
+      "cell": [
+        -1,
+        -5
+      ],
+      "origin": [
+        -128.0,
+        0,
+        -640.0
+      ],
+      "scene": "detail/x-1_z-5.tscn",
+      "triangles": 287,
+      "materials": [
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-1_z-4",
+      "cell": [
+        -1,
+        -4
+      ],
+      "origin": [
+        -128.0,
+        0,
+        -512.0
+      ],
+      "scene": "detail/x-1_z-4.tscn",
+      "triangles": 815,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-1_z-3",
+      "cell": [
+        -1,
+        -3
+      ],
+      "origin": [
+        -128.0,
+        0,
+        -384.0
+      ],
+      "scene": "detail/x-1_z-3.tscn",
+      "triangles": 1953,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-1_z-2",
+      "cell": [
+        -1,
+        -2
+      ],
+      "origin": [
+        -128.0,
+        0,
+        -256.0
+      ],
+      "scene": "detail/x-1_z-2.tscn",
+      "triangles": 2269,
+      "materials": [
+        0,
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-1_z-1",
+      "cell": [
+        -1,
+        -1
+      ],
+      "origin": [
+        -128.0,
+        0,
+        -128.0
+      ],
+      "scene": "detail/x-1_z-1.tscn",
+      "triangles": 2405,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-1_z0",
+      "cell": [
+        -1,
+        0
+      ],
+      "origin": [
+        -128.0,
+        0,
+        0.0
+      ],
+      "scene": "detail/x-1_z0.tscn",
+      "triangles": 1485,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-1_z1",
+      "cell": [
+        -1,
+        1
+      ],
+      "origin": [
+        -128.0,
+        0,
+        128.0
+      ],
+      "scene": "detail/x-1_z1.tscn",
+      "triangles": 1312,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-1_z2",
+      "cell": [
+        -1,
+        2
+      ],
+      "origin": [
+        -128.0,
+        0,
+        256.0
+      ],
+      "scene": "detail/x-1_z2.tscn",
+      "triangles": 1493,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-1_z3",
+      "cell": [
+        -1,
+        3
+      ],
+      "origin": [
+        -128.0,
+        0,
+        384.0
+      ],
+      "scene": "detail/x-1_z3.tscn",
+      "triangles": 1269,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x-1_z4",
+      "cell": [
+        -1,
+        4
+      ],
+      "origin": [
+        -128.0,
+        0,
+        512.0
+      ],
+      "scene": "detail/x-1_z4.tscn",
+      "triangles": 1204,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x0_z-5",
+      "cell": [
+        0,
+        -5
+      ],
+      "origin": [
+        0.0,
+        0,
+        -640.0
+      ],
+      "scene": "detail/x0_z-5.tscn",
+      "triangles": 557,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x0_z-4",
+      "cell": [
+        0,
+        -4
+      ],
+      "origin": [
+        0.0,
+        0,
+        -512.0
+      ],
+      "scene": "detail/x0_z-4.tscn",
+      "triangles": 1135,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x0_z-3",
+      "cell": [
+        0,
+        -3
+      ],
+      "origin": [
+        0.0,
+        0,
+        -384.0
+      ],
+      "scene": "detail/x0_z-3.tscn",
+      "triangles": 1656,
+      "materials": [
+        0,
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x0_z-2",
+      "cell": [
+        0,
+        -2
+      ],
+      "origin": [
+        0.0,
+        0,
+        -256.0
+      ],
+      "scene": "detail/x0_z-2.tscn",
+      "triangles": 1689,
+      "materials": [
+        0,
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x0_z-1",
+      "cell": [
+        0,
+        -1
+      ],
+      "origin": [
+        0.0,
+        0,
+        -128.0
+      ],
+      "scene": "detail/x0_z-1.tscn",
+      "triangles": 1904,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x0_z0",
+      "cell": [
+        0,
+        0
+      ],
+      "origin": [
+        0.0,
+        0,
+        0.0
+      ],
+      "scene": "detail/x0_z0.tscn",
+      "triangles": 1892,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x0_z1",
+      "cell": [
+        0,
+        1
+      ],
+      "origin": [
+        0.0,
+        0,
+        128.0
+      ],
+      "scene": "detail/x0_z1.tscn",
+      "triangles": 2367,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x0_z2",
+      "cell": [
+        0,
+        2
+      ],
+      "origin": [
+        0.0,
+        0,
+        256.0
+      ],
+      "scene": "detail/x0_z2.tscn",
+      "triangles": 2498,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x0_z3",
+      "cell": [
+        0,
+        3
+      ],
+      "origin": [
+        0.0,
+        0,
+        384.0
+      ],
+      "scene": "detail/x0_z3.tscn",
+      "triangles": 2214,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x0_z4",
+      "cell": [
+        0,
+        4
+      ],
+      "origin": [
+        0.0,
+        0,
+        512.0
+      ],
+      "scene": "detail/x0_z4.tscn",
+      "triangles": 1668,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x1_z-5",
+      "cell": [
+        1,
+        -5
+      ],
+      "origin": [
+        128.0,
+        0,
+        -640.0
+      ],
+      "scene": "detail/x1_z-5.tscn",
+      "triangles": 610,
+      "materials": [
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x1_z-4",
+      "cell": [
+        1,
+        -4
+      ],
+      "origin": [
+        128.0,
+        0,
+        -512.0
+      ],
+      "scene": "detail/x1_z-4.tscn",
+      "triangles": 942,
+      "materials": [
+        0,
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x1_z-3",
+      "cell": [
+        1,
+        -3
+      ],
+      "origin": [
+        128.0,
+        0,
+        -384.0
+      ],
+      "scene": "detail/x1_z-3.tscn",
+      "triangles": 1318,
+      "materials": [
+        0,
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x1_z-2",
+      "cell": [
+        1,
+        -2
+      ],
+      "origin": [
+        128.0,
+        0,
+        -256.0
+      ],
+      "scene": "detail/x1_z-2.tscn",
+      "triangles": 1277,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x1_z-1",
+      "cell": [
+        1,
+        -1
+      ],
+      "origin": [
+        128.0,
+        0,
+        -128.0
+      ],
+      "scene": "detail/x1_z-1.tscn",
+      "triangles": 1770,
+      "materials": [
+        0,
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x1_z0",
+      "cell": [
+        1,
+        0
+      ],
+      "origin": [
+        128.0,
+        0,
+        0.0
+      ],
+      "scene": "detail/x1_z0.tscn",
+      "triangles": 2217,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x1_z1",
+      "cell": [
+        1,
+        1
+      ],
+      "origin": [
+        128.0,
+        0,
+        128.0
+      ],
+      "scene": "detail/x1_z1.tscn",
+      "triangles": 3141,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x1_z2",
+      "cell": [
+        1,
+        2
+      ],
+      "origin": [
+        128.0,
+        0,
+        256.0
+      ],
+      "scene": "detail/x1_z2.tscn",
+      "triangles": 2514,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x1_z3",
+      "cell": [
+        1,
+        3
+      ],
+      "origin": [
+        128.0,
+        0,
+        384.0
+      ],
+      "scene": "detail/x1_z3.tscn",
+      "triangles": 1927,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x1_z4",
+      "cell": [
+        1,
+        4
+      ],
+      "origin": [
+        128.0,
+        0,
+        512.0
+      ],
+      "scene": "detail/x1_z4.tscn",
+      "triangles": 1373,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x2_z-5",
+      "cell": [
+        2,
+        -5
+      ],
+      "origin": [
+        256.0,
+        0,
+        -640.0
+      ],
+      "scene": "detail/x2_z-5.tscn",
+      "triangles": 249,
+      "materials": [
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x2_z-4",
+      "cell": [
+        2,
+        -4
+      ],
+      "origin": [
+        256.0,
+        0,
+        -512.0
+      ],
+      "scene": "detail/x2_z-4.tscn",
+      "triangles": 737,
+      "materials": [
+        0,
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x2_z-3",
+      "cell": [
+        2,
+        -3
+      ],
+      "origin": [
+        256.0,
+        0,
+        -384.0
+      ],
+      "scene": "detail/x2_z-3.tscn",
+      "triangles": 1087,
+      "materials": [
+        0,
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x2_z-2",
+      "cell": [
+        2,
+        -2
+      ],
+      "origin": [
+        256.0,
+        0,
+        -256.0
+      ],
+      "scene": "detail/x2_z-2.tscn",
+      "triangles": 1145,
+      "materials": [
+        0,
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x2_z-1",
+      "cell": [
+        2,
+        -1
+      ],
+      "origin": [
+        256.0,
+        0,
+        -128.0
+      ],
+      "scene": "detail/x2_z-1.tscn",
+      "triangles": 1177,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x2_z0",
+      "cell": [
+        2,
+        0
+      ],
+      "origin": [
+        256.0,
+        0,
+        0.0
+      ],
+      "scene": "detail/x2_z0.tscn",
+      "triangles": 1888,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x2_z1",
+      "cell": [
+        2,
+        1
+      ],
+      "origin": [
+        256.0,
+        0,
+        128.0
+      ],
+      "scene": "detail/x2_z1.tscn",
+      "triangles": 1736,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x2_z2",
+      "cell": [
+        2,
+        2
+      ],
+      "origin": [
+        256.0,
+        0,
+        256.0
+      ],
+      "scene": "detail/x2_z2.tscn",
+      "triangles": 2374,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x2_z3",
+      "cell": [
+        2,
+        3
+      ],
+      "origin": [
+        256.0,
+        0,
+        384.0
+      ],
+      "scene": "detail/x2_z3.tscn",
+      "triangles": 988,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x3_z-5",
+      "cell": [
+        3,
+        -5
+      ],
+      "origin": [
+        384.0,
+        0,
+        -640.0
+      ],
+      "scene": "detail/x3_z-5.tscn",
+      "triangles": 124,
+      "materials": [
+        0,
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x3_z-4",
+      "cell": [
+        3,
+        -4
+      ],
+      "origin": [
+        384.0,
+        0,
+        -512.0
+      ],
+      "scene": "detail/x3_z-4.tscn",
+      "triangles": 301,
+      "materials": [
+        0,
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x3_z-3",
+      "cell": [
+        3,
+        -3
+      ],
+      "origin": [
+        384.0,
+        0,
+        -384.0
+      ],
+      "scene": "detail/x3_z-3.tscn",
+      "triangles": 335,
+      "materials": [
+        0,
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x3_z-2",
+      "cell": [
+        3,
+        -2
+      ],
+      "origin": [
+        384.0,
+        0,
+        -256.0
+      ],
+      "scene": "detail/x3_z-2.tscn",
+      "triangles": 366,
+      "materials": [
+        0,
+        1
+      ],
+      "overview": true
+    },
+    {
+      "id": "x3_z-1",
+      "cell": [
+        3,
+        -1
+      ],
+      "origin": [
+        384.0,
+        0,
+        -128.0
+      ],
+      "scene": "detail/x3_z-1.tscn",
+      "triangles": 450,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x3_z0",
+      "cell": [
+        3,
+        0
+      ],
+      "origin": [
+        384.0,
+        0,
+        0.0
+      ],
+      "scene": "detail/x3_z0.tscn",
+      "triangles": 471,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x3_z1",
+      "cell": [
+        3,
+        1
+      ],
+      "origin": [
+        384.0,
+        0,
+        128.0
+      ],
+      "scene": "detail/x3_z1.tscn",
+      "triangles": 586,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x3_z2",
+      "cell": [
+        3,
+        2
+      ],
+      "origin": [
+        384.0,
+        0,
+        256.0
+      ],
+      "scene": "detail/x3_z2.tscn",
+      "triangles": 374,
+      "materials": [
+        0,
+        1,
+        2
+      ],
+      "overview": true
+    },
+    {
+      "id": "x3_z3",
+      "cell": [
+        3,
+        3
+      ],
+      "origin": [
+        384.0,
+        0,
+        384.0
+      ],
+      "scene": "detail/x3_z3.tscn",
+      "triangles": 50,
+      "materials": [
+        0
+      ],
+      "overview": true
+    }
+  ],
+  "overview_triangles": 45832,
+  "source_triangles": 76965,
+  "source_surfaces": 3,
+  "source_materials": 3,
+  "attribution": "gabriele.l \u00b7 CC BY 4.0 \u00b7 archived via Objaverse / Zenodo",
+  "source_urls": [
+    "https://sketchfab.com/3d-models/20fa1b7c608a43e1814c3744641732a4",
+    "https://zenodo.org/records/10239232"
+  ],
+  "license": {},
+  "files": {
+    "detail/x-1_z-1.tscn": "10b8350f0c6f6c154dc908de9abb3ff30f632ce1ad2cd70f93d5d8c3e6258410",
+    "detail/x-1_z-1_1.res": "a048f10385ea12e774fda7ee4a27308001d3121985d4e2dc68522d1db199f56f",
+    "detail/x-1_z-1_mesh_0.res": "f4d46b941916e6dd60f5cdc04579644705297d54c159138a183424970eca9b49",
+    "detail/x-1_z-2.tscn": "dab890e99972204387aadcbce49744e03a46e61e78c8861bd2aab31b68d071d3",
+    "detail/x-1_z-2_1.res": "617272fb63b70c3924f4d9f9b6a2e8296ae5bbe1b420afc07f10dfe3f17662ca",
+    "detail/x-1_z-2_mesh_0.res": "c68426f5631ff4362232aa2982ff1f2e876b6f30d98a704fdeb1571bd32da966",
+    "detail/x-1_z-3.tscn": "fb9727de33b23d46e1b7a76435ab2272c30f001a091f06689da8526d24576c6f",
+    "detail/x-1_z-3_1.res": "5b27922aa42cda0efe3dcc3b5f4382909541e653255c33405660d90615b18806",
+    "detail/x-1_z-3_mesh_0.res": "6059a8bdda29b66a2a13c9a0d6821f134b80818727cb95708c06d14037f1e351",
+    "detail/x-1_z-4.tscn": "01b9439a7a70526a7c1330ed054c6b27a9106ed461be580e60ec4d2797e85d33",
+    "detail/x-1_z-4_1.res": "a12be423ae7f5099b682e3d4bdd2e2c9ad28bded759c6ee52cd622a9f15e44fa",
+    "detail/x-1_z-4_mesh_0.res": "36c61c493d83b40947384f10554c7413b9041792c286cbe25a283bb3b57a75d1",
+    "detail/x-1_z-5.tscn": "489ba8b1b69f1afab13c37e98a814a632693b9eaf775e23cda1f222810598ec5",
+    "detail/x-1_z-5_1.res": "fc38c4c546f6ebd00c11ecca14971d91841b4a1a106e1e2a37bf7322cbc9705e",
+    "detail/x-1_z-5_mesh_0.res": "a270bf9d107c32d9d84c4260ff4419f1e8e45e0855b51e6a0aee0f65d82eaa73",
+    "detail/x-1_z0.tscn": "bab5d1ec7fb0659560f0d8d65bc8092919b19fe7745e5590432a0d9d046de327",
+    "detail/x-1_z0_1.res": "5f28c2c3404b0354ed9edc90bc45a486efae291da4527240557f000107c206bb",
+    "detail/x-1_z0_mesh_0.res": "47d90795a570d83ef3a0a920dc81df9ca9d00226ee58f35db3d0c4ca2ca72e79",
+    "detail/x-1_z1.tscn": "edb03bba0b0f301710ef284b0516c2838250acb68a025e4903cfbd417d5ad521",
+    "detail/x-1_z1_1.res": "e8607f89a8778253f6b80f5183f5c11e06e42a67961d4c9d1e53d570ba54627d",
+    "detail/x-1_z1_mesh_0.res": "abb61c1a15488ff2a32130d7d6e0083e12b21c0691f25ccef2fd821dae3c97d9",
+    "detail/x-1_z2.tscn": "085d208a65b6bbd54c1bdd2a8a15cbd1f6247dd42516e49b7a43c13b5e7a42b5",
+    "detail/x-1_z2_1.res": "d6dd568aa7c20ecd569fe35302e0e2d477e92ea21a9b0c9ccec96b4d91bf79e9",
+    "detail/x-1_z2_mesh_0.res": "b817ff4bdb95b3096a94f090365b00c52a6c5e054c0bafa5a2f40a8865ecbaa9",
+    "detail/x-1_z3.tscn": "04bc8cf8e61884d5ad88dbec2d54466509fe3779ceae5cf4a31b825fe4cab18e",
+    "detail/x-1_z3_1.res": "8db3cc15551947f12d2de84b3384b6acc348a342f63f803336dae727f85ec683",
+    "detail/x-1_z3_mesh_0.res": "8f4ef282014ffb0c4352d892120dbaee42fa6f2a457e1a05db5c2e107968ff4f",
+    "detail/x-1_z4.tscn": "47d1dee6d88f506dabe5d4d4dcf1df620cf4ae5717f204ec46247fd062659f67",
+    "detail/x-1_z4_1.res": "44443d67060f50e71091761dd50435dfbfc64c44e21065d534f4906a083d025c",
+    "detail/x-1_z4_mesh_0.res": "aeb4f33991b8ef980f3e8fc1686214e879de6b4b77bd248f75941a4a5a2b92fc",
+    "detail/x-2_z-1.tscn": "dbcba696a27b8510cb9ae501b251308967825bdf7242be9586b30768455ebc43",
+    "detail/x-2_z-1_1.res": "6c2bcd4914562b0bb60e7bb7a2fcc75776cc82d033013357a0bbaba4950a052c",
+    "detail/x-2_z-1_mesh_0.res": "ca45bc534938d53e911a0c585265387dad30be867f6644c64cae4d0bd1a29a31",
+    "detail/x-2_z-2.tscn": "c847c3683944a6427a00182b475b72ba879e80c94571c475889e3cbdac5beff1",
+    "detail/x-2_z-2_1.res": "2130af94ff3046561c62d501e164829ec43469d68d6c6912f420b8e423936f07",
+    "detail/x-2_z-2_mesh_0.res": "ff3cdcd0005b2b57cc617160a25af1a2fc044d48b27bb0c4fce78c30a06b179f",
+    "detail/x-2_z-3.tscn": "64840d34dbf1166ab57ab3e4a8275c4d109deb1910df1772ed7e090f359125b6",
+    "detail/x-2_z-3_1.res": "fd9e5ddba8882b4605b336a114fa5a4b88a0c3d3cd623d99c46d0b6fea79b8ba",
+    "detail/x-2_z-3_mesh_0.res": "8b3f2c0ef8bd32991852330d725479878cb28fd84e79b31b306129d4f711e0de",
+    "detail/x-2_z-4.tscn": "793a94f98b562e5d4f3732a124ea2e74aa6b5a79b75109ea8b4990d070b1f103",
+    "detail/x-2_z-4_1.res": "8219aa730d85f33e43de11f18ed15ff83719992b44ca11a276650a1e87a130c8",
+    "detail/x-2_z-4_mesh_0.res": "ee062a036965170f89a44f32af8f1896a3619807203dd6d278c3651eb6302ce2",
+    "detail/x-2_z-5.tscn": "04bb6ab36b3032b6ff9c26695b08d9aec9046b97ce8a71cb1e58f0518441b4d9",
+    "detail/x-2_z-5_1.res": "5941c6703bbf295df836b1b1893e8d29c9d209103a4feb44e0214d378f5e89f3",
+    "detail/x-2_z-5_mesh_0.res": "905e63b29779a54306edb95ff091e4a530f5be3f6d78ffe6fe8e5fe6ba3185c8",
+    "detail/x-2_z0.tscn": "a059ed79544c03cc3ab59cda3d9e923f71fbbef364c57708ded836915c876018",
+    "detail/x-2_z0_1.res": "19c5f5b18396aecfc536d90a33a37c06158dc2ad21f38ba98a6cbe1001a8e55c",
+    "detail/x-2_z0_mesh_0.res": "acb1ae1f11075bcb37810f948952f71d97dd2b8d527dc666a72963b1f2d81a75",
+    "detail/x-2_z1.tscn": "7a9d785f59ed5f9ce5b713a6589bb107a0da8564f97c461a82108fbfe87efb21",
+    "detail/x-2_z1_1.res": "a44f9389f523b835b4d206e7cd95cdeaf59bfe581360c87025566bc36c601d6c",
+    "detail/x-2_z1_mesh_0.res": "7d4695ab70fc022d2ba606fb0437ecba0ebecc60782b52d83b963ded5f890869",
+    "detail/x-2_z2.tscn": "83da512d56d5d2525cfa5be19606cb17c21075bd0d077d4131025a67519879ed",
+    "detail/x-2_z2_1.res": "da80eb0605e1f685e1d4b357cc767416e56ece5cc6f14d511e5347d53ad93c05",
+    "detail/x-2_z2_mesh_0.res": "dbbeb5e0c09e70a6ef95ff8fbcfe39d0fb4cf60d10619f4b983c9e1fd8f61698",
+    "detail/x-2_z3.tscn": "8892818bb35435ed6fbc5165e79f71b9bb1f2387446fe0bc0e507e34613bbfa6",
+    "detail/x-2_z3_1.res": "4deb665e63b846e05b71e3d1f932c07ac8a004833f778935421a44d0c1013d8d",
+    "detail/x-2_z3_mesh_0.res": "4aad17acb87f73dd52802f90a2c7d8039916cbc77679af2f9f8a6842adcaf9e2",
+    "detail/x-2_z4.tscn": "48398b99ff48a53231cec99b9aea9516353f6d483711a2d2a9603a56c8d67932",
+    "detail/x-2_z4_1.res": "9f3c3308fe045f1451f90f74b902f2248763e96a2a1f351e730a35442b28b6f3",
+    "detail/x-2_z4_mesh_0.res": "ee3162f33da92a6b99227ec15a1abe8d57fb02d0b33f6d4d8831a8e6e88cddcb",
+    "detail/x-3_z-1.tscn": "a43a496f979c8778d0afc062addd68e40d5dcfef334e8e876677b095044a75db",
+    "detail/x-3_z-1_1.res": "13166f690fa9ea8617ee599ebdc24a2fa8888a9f977459688241a91c883879c6",
+    "detail/x-3_z-1_mesh_0.res": "d9dbc8d8ca43380b2fe29e3b2cc7efdfffe042b96a46d97693df8e402491ab1c",
+    "detail/x-3_z-2.tscn": "ac7c34b8b1e62e4e9e919425e289082489487c9c02725befb0474077e64a6b72",
+    "detail/x-3_z-2_1.res": "dd565c64b8f3b7f27cc792ea5ae31d305aafd066975b52ca087b5f597216a865",
+    "detail/x-3_z-2_mesh_0.res": "33ae656a5373ff0dde028d1866aef12cccfb037eff1d38d8c2b8efefe568a967",
+    "detail/x-3_z-3.tscn": "bdde1d68be50f46da39c8ff37149a3b7ff21e3e49843c224a92b8546cb6b7eb8",
+    "detail/x-3_z-3_1.res": "8141a8459c1ff0a49ae92f939e5ce06c903de7148cc77f80470842205377bded",
+    "detail/x-3_z-3_mesh_0.res": "a4210e2ba8d464cc236a5f31c12cdf88bc8a88bebfc831702f4571c971ab587c",
+    "detail/x-3_z-4.tscn": "5638895e8aee6c8e7f94fcf2ffa132ef6654fda0cb05babaebbc331ea8fa0511",
+    "detail/x-3_z-4_1.res": "eea8be98a058a3832fcb29f66ec0f89655940ee54b617f1f1e3048e484c0a6bc",
+    "detail/x-3_z-4_mesh_0.res": "4181b55034e95c400f12b95e93fd28e75f1ae3fc2ffe18f6ddf1df78e787d372",
+    "detail/x-3_z-5.tscn": "fa57908add270e0107240ade0ab7b77a2d42780f7fed1cb5f6512ba1150b616c",
+    "detail/x-3_z-5_1.res": "983035172774f62db81bd388fcccbcb54ff74288e07c7431eb9f227a61ca381a",
+    "detail/x-3_z-5_mesh_0.res": "f952bf8d7923731b010821b06d523d8c3847e489b921a63a3ba36a7792152de5",
+    "detail/x-3_z0.tscn": "e20439437135dc61fe2f376898b050d4f3056709b97c8689294dfd8041d69801",
+    "detail/x-3_z0_1.res": "656aee1c41444f0d761587549fdfa88d64fe96aae4a85ac1abb6e6d5752b9c77",
+    "detail/x-3_z0_mesh_0.res": "a13845ddcaf14002e8e7060a75dd071180b61b09d46edce67c8a6d5e6b1626c7",
+    "detail/x-3_z1.tscn": "3701aab1f7c9764844a256e33c3b3a43950fb72d3cd4d0c4975f991c641d06ab",
+    "detail/x-3_z1_1.res": "f9c6d4f4bf169402467b7e754da1bf9fdab9056df6bef2ecb6772c0dddc3f920",
+    "detail/x-3_z1_mesh_0.res": "51e102a32eeba1ea5ed6561e45bbe23c9c2da4fd73685f0614ad1ff34f676339",
+    "detail/x-3_z2.tscn": "5c9aa4544dad2a9eb5b5bb594b38f002f0f143c950db3558e721e15aa7d225a2",
+    "detail/x-3_z2_1.res": "a1815b06e42751ee6476b7decd828da48f39249ce620cf1dd2110645a046e224",
+    "detail/x-3_z2_mesh_0.res": "94917d2ee35c554783d7463c4a3fccccdc6fbb100dbc7a6f942d3ca2e62a8953",
+    "detail/x-3_z3.tscn": "3740a54f106505b633cfcea89977cc2054c39de211a8c6eecf8a923ba132934a",
+    "detail/x-3_z3_1.res": "6deee2e88364b73065cb4c4289dc4092ae44f5879661d97097d6bc72a6f685b2",
+    "detail/x-3_z3_mesh_0.res": "79244ac8271290b449b44762a6914f0f06302b887d6c843e5a8951742a5c1afc",
+    "detail/x-3_z4.tscn": "372efaae69e9e8233293d95840e9cef30705a7c4793146b79824730fce2cf39f",
+    "detail/x-3_z4_1.res": "1b692f595213444287a9ef29ba6e5458e066cd9c49ba0981c4ad4860b1768435",
+    "detail/x-3_z4_mesh_0.res": "a4060fcf038f98bd1fe587293b7cb960835c587956ab1c389e6cb59163d1f833",
+    "detail/x-4_z-1.tscn": "275bdea56251887e4db90a9f2af3b2a06cee78fa41c36e704920b5a7cde61f12",
+    "detail/x-4_z-1_1.res": "6b64b974df9590acbde10b00a4f69c998bc4805522aad7cdbf42dd0bc27b660d",
+    "detail/x-4_z-1_mesh_0.res": "00dc24ce0bc0ab0d75f0a06ef6c605face333a4c28159becb23d456964d64647",
+    "detail/x-4_z-2.tscn": "75cb32ad2c66541fd4e1e4fbeb3c8ff53d981ce506ba9a3850a152c812f89a8e",
+    "detail/x-4_z-2_1.res": "47ac043c67b81ccb3667162ce3b43b3adc1f5248e7d1b80ad52dc9cfa24a0a15",
+    "detail/x-4_z-2_mesh_0.res": "946fb42c944b500647831d7d9bd090a00dffb1d56c5c214ccee28acfb88322e9",
+    "detail/x-4_z-3.tscn": "58d5b4414afa87941520d4963cbfe01d7585042ed82bf7ca4aced65574fbd443",
+    "detail/x-4_z-3_1.res": "d05c93eb4fc6f4644be414193f9de09d66e671a5d7606e3551d1c9b9636ce1f4",
+    "detail/x-4_z-3_mesh_0.res": "ea196000a364c46917f2240023d98b67d425ac13eec324fb32fc2098c0031745",
+    "detail/x-4_z-4.tscn": "78be1ffefe6345ddda244a6418bfec54445c15702709e0f30bffff6179b7770f",
+    "detail/x-4_z-4_1.res": "c22aaa82337d03886785894448a4d0c4d0ddad523383f1155c91a75ec05acc08",
+    "detail/x-4_z-4_mesh_0.res": "950565423209b5b0ffa75f1555f58744d005e5d65220cd1dde3e343f5eb4c006",
+    "detail/x-4_z-5.tscn": "334c0a6f957e50bc85df039c4702d21465b50104ecd7bc704d630744d51bcf0e",
+    "detail/x-4_z-5_1.res": "780dce396c8c42724853f6a1b489e4f66f390eb733d55e6f3b672b2965fe461e",
+    "detail/x-4_z-5_mesh_0.res": "fb01710a65a91f31922e15241ab47f01eb287f3c7cc3ba8c509aa1a810c11e49",
+    "detail/x-4_z0.tscn": "7164e0ba5ba10c3e2d6346149e6bc34422c4218d91d910859260edeeb57a90ad",
+    "detail/x-4_z0_1.res": "105207d76dadc118fc2dc1ed75f1b2d6796f249cf36adb3fdd124618a2a9e706",
+    "detail/x-4_z0_mesh_0.res": "7b7a5804961aa0e8183f1d13b13e0e991a92fe5bb8f7fb4110adb1f0691e644e",
+    "detail/x-4_z1.tscn": "266d3df800af400e7b76d291d55cfecd836df9629efa124dfedc05240e677c55",
+    "detail/x-4_z1_1.res": "8bdfeddb6d7e8a4728b727265f1e87d1857f22d95056389d98a5aa6d26e855e7",
+    "detail/x-4_z1_mesh_0.res": "18762034ca2c824daaa0d0dc1eb5ecc3626b5960641f06c48657c9592c63f922",
+    "detail/x-4_z2.tscn": "eefd568bb64ebd870312520149f5fe7b7b1d54981af2e716eb91e7ed04a7b644",
+    "detail/x-4_z2_1.res": "432615c511ee12f14ff5d20691c50edc46980fc09c9005f5d58eb8421912e186",
+    "detail/x-4_z2_mesh_0.res": "a3b16827fce0cd22eb6ca710cfbdabedb3d98d4e8de4a8b00a035dc08313c7dc",
+    "detail/x0_z-1.tscn": "619dda1ab1d82e51957effdd653343646fe88fac04bf3f3ea5c57068055c58ee",
+    "detail/x0_z-1_1.res": "f820f4ec1b0509fcfee81f793a7b70e89037b96baa30f623c11447055119c85e",
+    "detail/x0_z-1_mesh_0.res": "10b083a70374ac76dcfd5282bb2a847cc38436fda33864e67903a6700d165c83",
+    "detail/x0_z-2.tscn": "521131d6a1c1e37c9ff885ca53b4b01058eee1defc8a5b9d65dbdfa48705bac2",
+    "detail/x0_z-2_1.res": "06f163ae063217605fc1eedec529222b6bdd0b7cd209cfc8758f1ac65a317c39",
+    "detail/x0_z-2_mesh_0.res": "d88c2af6b27322133d1c68e3cb4b0d1d9572b02225c1cedee9034dba93f105ff",
+    "detail/x0_z-3.tscn": "30d2bd6ab3f25be6e25df5b85b2d77a179f5ecfd1ba4d5c977b270a9cb5ed9f1",
+    "detail/x0_z-3_1.res": "1be81d5daf63c91fcc515e67cb455c05943b8417e5fb2197c598addad232acae",
+    "detail/x0_z-3_mesh_0.res": "c536616df1c5c4e5e25f6160ecc4099651adacb77274d6177bfe00d0ca416be3",
+    "detail/x0_z-4.tscn": "d5d700b3e55811c601fa3942fb50b074b1bcc4287b025a49979a7b3b15085813",
+    "detail/x0_z-4_1.res": "14b6f979525c07e3f18866cb897e65014acdf5bb216f8aa0c9433b1cefeebce4",
+    "detail/x0_z-4_mesh_0.res": "2de3d343d6bfcd65a0f7e7224c7ff397e43e36756cec2d083d34b9da685f620f",
+    "detail/x0_z-5.tscn": "24978d8973d667809efcd45ff609d2d109a6c789346e97a223c804757ed4e05b",
+    "detail/x0_z-5_1.res": "f211e6e5b6ce9e217fc0468231ea4497b6a55967e2068d88b212c2b464fe743a",
+    "detail/x0_z-5_mesh_0.res": "a42e856ffb1a8c8f57a64127baae4f9ff99c9f01dcd2b20127def28afb35954e",
+    "detail/x0_z0.tscn": "29bf805678e43eb5032de0fd46d63e8bf44a9780154a9f9caccb2cb650ae10d5",
+    "detail/x0_z0_1.res": "82bb5404d4a3d91d17b1090f6973736c1ec0899053b83aeb096bc6725f6d0969",
+    "detail/x0_z0_mesh_0.res": "b72c68282a96fcc3868ebca009036c71b3277bccd4da152269e5693a109f0a17",
+    "detail/x0_z1.tscn": "294191abf77af1db14d0fea7f05df73b04adbfd3676d26daa4c0ceae6b19fcf3",
+    "detail/x0_z1_1.res": "9c60b363b5c4f91034f3ee5bac8e7f03435968274f08ff90cda35fa61c8a98fe",
+    "detail/x0_z1_mesh_0.res": "61bc0d3b997b5637373ad05e38740f54de1e9ae214f6c67f77caa702392f6afd",
+    "detail/x0_z2.tscn": "362f21193ced682a71cf5c13d43c80f8c0cd833584855d3b55c17603d7ec1232",
+    "detail/x0_z2_1.res": "03985c0e01e8cef77fba2c6ce78ca079406bf13a065ba513955953e1c07230b6",
+    "detail/x0_z2_mesh_0.res": "4d20fa33d6cebc027dbc3aefcacb38c5d0164da502076c981b8578bd7a0ed5da",
+    "detail/x0_z3.tscn": "c35c36ca01d0ab1ce941bd3c0053cbb858bf4886205da5fafccb3df9cc5889aa",
+    "detail/x0_z3_1.res": "4c580957276ddaf9c32fd8ea62939a2bd47a8e7163227226095c853ed350aef8",
+    "detail/x0_z3_mesh_0.res": "ea1892b70da877c0081bab41bf39ac23f761709c490566b4c9928d8204e16f28",
+    "detail/x0_z4.tscn": "94dcaccc2302aed7e1cc8d3eeba0a5f335e6786f163d57d91396768316941315",
+    "detail/x0_z4_1.res": "70a57fdc8ef6872439baf64c9ce99a6905841fcd622b3f520f4f5eb2391df484",
+    "detail/x0_z4_mesh_0.res": "3e29ca78284ea44e051bd00e557bfc25f92fa29ad5c7570e9e766c0f2d1a5358",
+    "detail/x1_z-1.tscn": "461e0b7974be1fe7c0500540e0ed06536e82ac8cc1bcea99de091c02609af29f",
+    "detail/x1_z-1_1.res": "f8d5173711ce549f1da456830efcccc5727d403f64f1a3601379dfbe9c8ab546",
+    "detail/x1_z-1_mesh_0.res": "7862580935926a95180ef561f71ac0c7d25d61e18aa3927858c0bdf4a0fd4950",
+    "detail/x1_z-2.tscn": "65ab145bc954ec3cc35b440dddbdc38a628cd7bb6232b54e3734214fc1220620",
+    "detail/x1_z-2_1.res": "db7f34c740676a2c0f6c8289eace6940069ff6b3e66b73041241299f6e0d36da",
+    "detail/x1_z-2_mesh_0.res": "df372f45b9ffd958f1b9ed8d366ee884a5d3d32236eeb713b0a6448d2ceda797",
+    "detail/x1_z-3.tscn": "3d178516e40e57c12ec5d0cec4ded8afe34a33e2b2fe5f6bed523918fd5cbd02",
+    "detail/x1_z-3_1.res": "c02182547332fe66ca8020ddc8c4d4aa989106ae195a2e4be2d7b3848f0cb7e9",
+    "detail/x1_z-3_mesh_0.res": "ce7de717e74f5a006b2ff11094885e3d22115eed41649e598e82222e571861dc",
+    "detail/x1_z-4.tscn": "aa8b2827debeba79de0478f1787aadbfc3f49e74add26820df6ad6842be7bf1b",
+    "detail/x1_z-4_1.res": "3b3ac754dcc445658b7bbce19a65ec244ff2a9fda006150f2e5f91bef5afd48e",
+    "detail/x1_z-4_mesh_0.res": "c151162a1670193295a54ecd6b2c28f399510e46956dda1a61575beeef5f8b15",
+    "detail/x1_z-5.tscn": "a82f42bc0e1b97380822226ff3a21be772f7a16c9bb7f814257e685634da14b3",
+    "detail/x1_z-5_1.res": "d8a9933a1dca672d7cf0809adcbaf710b735bc792465eefbcb0406fbc8b9a760",
+    "detail/x1_z-5_mesh_0.res": "d4c883b28c4b1de5ebda84188bf14337b327599b847c8c90c0ca512f3e4b517e",
+    "detail/x1_z0.tscn": "e2758a2a1642227242cd22abd448430c56bcf47f627c311730cc7d5ee12391c1",
+    "detail/x1_z0_1.res": "9c81bad07c59dc2592f71185ed56e4610f197d474e9007b1e478ed4536690a6b",
+    "detail/x1_z0_mesh_0.res": "5cd175dea9ec869902da38732bdbd1147e4974953fea0d977e057c58cf9837ff",
+    "detail/x1_z1.tscn": "d2384db684ad87377898a9f2693914cc4a9dab9f8ff01b93515f25baa7f1eb64",
+    "detail/x1_z1_1.res": "4681ca77b96ba00aeb6ca283c59d085d3d3ff7886fc5ced21160dea7482b1a56",
+    "detail/x1_z1_mesh_0.res": "d2a06856aa0bde0c8df8f7a73f84172f9f190310ae8ad35a5ff5588833b93916",
+    "detail/x1_z2.tscn": "dbdab8e4818774d7bd6bdeba07ae3ef8085161a662b171e42b0d2f387679014a",
+    "detail/x1_z2_1.res": "0ca01e4d100a0fd120ee74ee766cf640b23dc44eabe69c16b564f9b1a1ff4670",
+    "detail/x1_z2_mesh_0.res": "79af0acea9242a9aa18a674d87d68661c0ac2d6edc575685d1fd84b31511cb8a",
+    "detail/x1_z3.tscn": "b92326d34875ebbade95dec84d392a51968c61dd7155594ff7abdbb3d7953026",
+    "detail/x1_z3_1.res": "e37ca0877ac4729fa99398fb74bff4c11c5f7b1c8b3433a34c258efc7b3657dc",
+    "detail/x1_z3_mesh_0.res": "90e80ed1bd46324e15933ac3022c08daf698ece5c6aa2d2544a2b3e834b470a4",
+    "detail/x1_z4.tscn": "778cccd8d35bf7f18ec24d3bb892be04c364ef400779b5e4e00a6524b89ce884",
+    "detail/x1_z4_1.res": "ee802d0fdf7bc70d4e0c5911cbc45c493dd018893267a093548565d8a371e19a",
+    "detail/x1_z4_mesh_0.res": "e43ccc91609c756b3aa26bbf71e138d73fd4937c4a0e2cf538519f74bf0ac3af",
+    "detail/x2_z-1.tscn": "19765c5c7c300c8e5cc6953064dc513cfd246f9320edea8de11602b3b980f9ed",
+    "detail/x2_z-1_1.res": "f70907dda180bb8b65b2cbd6bc76af26f5a0400126f2e01f798993783b4ea41d",
+    "detail/x2_z-1_mesh_0.res": "475fe395e867c7a13bd770d5e835dd1c964347e5dbde3b6a32556fd10a348108",
+    "detail/x2_z-2.tscn": "f81d8ef3bbd913328a0468cd886ec6b66a648b0a97fcc111330a82456f2fbbd4",
+    "detail/x2_z-2_1.res": "2a7c628ed867fcab610e71ad46505ce62bb7be7a5dffba3ed977c59a308ba95c",
+    "detail/x2_z-2_mesh_0.res": "d4799ecd9241e65922e34547df03a95f882ede2d22a5be79baa32713aec16b86",
+    "detail/x2_z-3.tscn": "ff2e7a023a4f21d614cde8847baf6c56ec929bbdb8e9fe825dd6ee4021e254c7",
+    "detail/x2_z-3_1.res": "388caa2da2be8f1f3157deede9878304e6a50b0adaee9597f2f2aec6f57a9ae7",
+    "detail/x2_z-3_mesh_0.res": "c293698eb24d6bc3cb88c7a6c86255178f7daeda2f9316c1da3764f98c6a847d",
+    "detail/x2_z-4.tscn": "a242fce355834033eda5d627dd1c52a905ddc4123ec0ac3e2619bed8b2c2faec",
+    "detail/x2_z-4_1.res": "b4ca5205319ea2aa6f04bd8d35ed1af92c405d36470183baa1514883ba4ef9d5",
+    "detail/x2_z-4_mesh_0.res": "16a808de1c28e1111c3d44bb4a2d24fdf2ab70463fbcadc736ff032788797860",
+    "detail/x2_z-5.tscn": "e374b6f309508e1aaa427605db6ddb0010fd6e8568f2c9624eede5076c7a5f2f",
+    "detail/x2_z-5_1.res": "7a28b16ecf4788670128f416089da254abb0238613d803f6a819f0121920b99a",
+    "detail/x2_z-5_mesh_0.res": "baf876ee7263f9674bd199d813bc5c73a579573b036353e7138624d2037e4e88",
+    "detail/x2_z0.tscn": "5bbd61a00def83c16fbf8f553c6ab01388fc75b52d3c6ab14c079e772b257d21",
+    "detail/x2_z0_1.res": "19d6bf4fc23431a413feff53b027673d98a5c35ce58715c5cab68711968ce1cd",
+    "detail/x2_z0_mesh_0.res": "1f17ecd565ddde72b5094b69e611a74af21287e0db7344fe0dcc406bbaff8394",
+    "detail/x2_z1.tscn": "6565933f3c2b7097169855810d696e4d824b9beb789d40a71be4564361f2fd77",
+    "detail/x2_z1_1.res": "76030615510d7b107fd86800896de8607d1a9a7ee789b3081e79a472bbd7a9ef",
+    "detail/x2_z1_mesh_0.res": "2552a9e4c224b08580dd0543fd359eb827f760dba796fde4d699aaf961d4c953",
+    "detail/x2_z2.tscn": "e949a74e47e0a8725d49c67cc0f99732ba02d4213582cbaeb222d0ae6443cab3",
+    "detail/x2_z2_1.res": "2bb861c377e85de246ff2adc6e1ecadfbb7bc336d625cf784c3eae62699c9f2c",
+    "detail/x2_z2_mesh_0.res": "cc148c14832c03a92dc75dca8a9c12fc4c3be99bae2583c32af19d23dfa87424",
+    "detail/x2_z3.tscn": "6ee149d5b6aaab730a781111b1154bf5619c2745ca28d5dc1e841e55c75ca054",
+    "detail/x2_z3_1.res": "4aa8514f29fc4df7db9dee3a5c55a09fc1ae243283cecff6b991ea631ba6aa6d",
+    "detail/x2_z3_mesh_0.res": "5159a81b9e36b1d88d53d8a9ca5913b20b1c0ce99245e4783a205f075c966dc5",
+    "detail/x3_z-1.tscn": "fa8513b97bc1f1cce9ba2a1487b268f1539baa4068653928265ff6a9799a55e0",
+    "detail/x3_z-1_1.res": "dceb75fa1b2b0badf945274eaad64ffc5dca8120c37013d0e9c904348f5ae112",
+    "detail/x3_z-1_mesh_0.res": "42089d369f10976482c285af42a8d9d4564be7b3730a987d1772f8fdc0b98529",
+    "detail/x3_z-2.tscn": "4916d9f80ac85833803d8856a9b58881f74aac87346457afea239d91bb5f5418",
+    "detail/x3_z-2_1.res": "789763cb282f24c006aaf0232a2bbdba84d52bb3678193e3984300049fcba318",
+    "detail/x3_z-2_mesh_0.res": "521efcc71d88f0fd1942a0a6e3d92d2702eee0f628dc4190a34f5a65a701e65d",
+    "detail/x3_z-3.tscn": "ca2d4ca1db30e9c26e4066fc6cc76e3ba4692eb4eb5bc5ee51453ca554051676",
+    "detail/x3_z-3_1.res": "8c2328b745454ffc33195eeaa26f24178551fd10791756f53bc48f9b55e767ed",
+    "detail/x3_z-3_mesh_0.res": "2c48f12e9907b69f138e78f45c30d1176106111b011f5de9017940ec5d2ac689",
+    "detail/x3_z-4.tscn": "7512e7a2e2dca8cbe54304d3aa41e0b195b25f31eaee598e2659313a53e646ad",
+    "detail/x3_z-4_1.res": "6ddc82abcbd5ae42e7084ea807f2414745a7090c6be2bc3ae85fc91d8b4f1962",
+    "detail/x3_z-4_mesh_0.res": "4b7b9aa04526e780b3372b90c0119e33639c29a0de08a80b04ccdc7988f2ca6a",
+    "detail/x3_z-5.tscn": "cbc21b4acd2a2ec0f87082e8ed51994696e924f4c7f2d2113cb2e27e28cd081f",
+    "detail/x3_z-5_1.res": "1f2b19bcd0b37db6321deba1c3c2cfc22ebb00227321a3b6ae958181263e67c4",
+    "detail/x3_z-5_mesh_0.res": "974b90b8c40eafc4bc25034b22f370bc0d1291029a25608510b5e645eb592b8d",
+    "detail/x3_z0.tscn": "d75831f968ee738e17ac8cffba14cc14bcf17dcbc0785d5dcefdd4ad80b3498b",
+    "detail/x3_z0_1.res": "f0e8da98118819b06a31b7719d27849281bcd086b18f67975d3c41e89b567626",
+    "detail/x3_z0_mesh_0.res": "61a0a001a4055580f978f4184349caf4005da41ec593a51a72744f55dbec0d54",
+    "detail/x3_z1.tscn": "7384c97b023e6dd895f03eaab950f306a3d0b60108d95755d7f939e205ec5ab0",
+    "detail/x3_z1_1.res": "2a0081bc7f8758049f618a52dbe328ece6b2110d585dfa54af8ea4df2047c081",
+    "detail/x3_z1_mesh_0.res": "63b2bc54433d645cd3bbe9f70fc1cad145d03faf692b5aa1247ad9d7c02f4a9e",
+    "detail/x3_z2.tscn": "a04425bbab70f8589a780ff3046a12382830512590092408b62fa260468ebfd3",
+    "detail/x3_z2_1.res": "c80a611c6fb63f1dd7faa429e3ca37f15e01a6edae77586206e2e26205c0da00",
+    "detail/x3_z2_mesh_0.res": "48ba6e93352de1b32262fc33ae1e06cd1de9c1b2bcc04a50468e0095cabbf5a8",
+    "detail/x3_z3.tscn": "73e4cb583cd74e50c4eb65b1d78648e74e42fba6576a39426b46b6a3efcbd099",
+    "detail/x3_z3_1.res": "21997cd91e35b7bc23aee8a96ebb3a59f5ff9d3280b6b1b47d463bb5c4a9dbad",
+    "detail/x3_z3_mesh_0.res": "f4a899d0b8219f2cf643a9d9ceb532040bfbe00422f0538bfb8afa5ace792bd1",
+    "overview/x-1_z-1_mesh_0.res": "2232c5b6d0db905c51e9755b414ef5ad36835c9645a5e5f4ce7f2c43caf911fc",
+    "overview/x-1_z-2_mesh_0.res": "159ff4b092ed5aab2888ef8009233c4979d4ad38568b950618dc3a05b0cac3f4",
+    "overview/x-1_z-3_mesh_0.res": "53474feac1a511b70a59fbbc01986f6774246579e0976d49f82a5df21ef51eb4",
+    "overview/x-1_z-4_mesh_0.res": "cd17f202e031cf5ba1f044fb07a90f5ef07cc64eb1a614d15a45e6ef228d2c2c",
+    "overview/x-1_z-5_mesh_0.res": "a4cc275dd5466d399f7bd5b701797c2c3749019f8c6718738cfa5d6ae0475c37",
+    "overview/x-1_z0_mesh_0.res": "5696b461d23ec8f9f9bdd10099d6d2b57e220e20313b7c7bd41dd4d16218e527",
+    "overview/x-1_z1_mesh_0.res": "35fb670abe743920878b3757517a42b92a7533d88f27bac419e03bcd7a7a1e6c",
+    "overview/x-1_z2_mesh_0.res": "0050a0225a3835538551e9ad30b4d7b64ce6a60c87799093b75fc4b5794633d9",
+    "overview/x-1_z3_mesh_0.res": "9aa17258ae52763f4e860a5eae38a24d29398ed619565f8eb25e105009f214e9",
+    "overview/x-1_z4_mesh_0.res": "b2fe25e6090f52e5a4a204d6fbf18105f95e6dd2fe64fcb83a8a7ed51cf5ca54",
+    "overview/x-2_z-1_mesh_0.res": "b6f9472c79a8c90b26b4714f78aba39d1455b50dd8852bc9398c284fb70903b7",
+    "overview/x-2_z-2_mesh_0.res": "a224966bfffdac70aa6c590a9556504e89df708ad6ffb049aefdffb34a686398",
+    "overview/x-2_z-3_mesh_0.res": "0e24b56a76f7adeed1be93e5108186ddc89d764f923248f1ed36f436e4af7f94",
+    "overview/x-2_z-4_mesh_0.res": "2dee6d3fd6da080664497498978f4706a3f0862c2f443b8fbdac8420166b4749",
+    "overview/x-2_z-5_mesh_0.res": "eb31d3ca139daf93b1533718c978c172bb795eddf66b3573742daf47c04f3a2d",
+    "overview/x-2_z0_mesh_0.res": "9af614bcd3a0959751d2e130190a124044a4e9e7ff584e5e5b7731f536a2e6ac",
+    "overview/x-2_z1_mesh_0.res": "48da63a7def28a4153aea832623d330289423b49c9014deb7236f9b2089bfe00",
+    "overview/x-2_z2_mesh_0.res": "7dfe6ca46d660802d27178bb1cdd73a1b1c7f93fd69ed6f1d8874289c87d3af5",
+    "overview/x-2_z3_mesh_0.res": "1374e08bb117dd02eb2cc039cbf5b99af03d1a30e54b16c7c8e49681ea92c1ef",
+    "overview/x-2_z4_mesh_0.res": "2c4cdb6d7dc0bcaae9bd0b8af526d544122d748d900309d3b8e6e766d02ef901",
+    "overview/x-3_z-1_mesh_0.res": "babac7452cf023cb0322494421e461d16dde49396eed0ceb51f489c743eec30e",
+    "overview/x-3_z-2_mesh_0.res": "346f468f5848ffe0dec5ffdf18c2dff4e5a566edb1522bb33bef5458e2ca59b9",
+    "overview/x-3_z-3_mesh_0.res": "1a3d5c481d4f830b8ad8c2bf1989d0d21202267a67c1580d1f84f54297dc4185",
+    "overview/x-3_z-4_mesh_0.res": "3b9bb83dea7e57e682c17205f0650a7d59c3ff085df9c4c7c79900f0cee719ad",
+    "overview/x-3_z-5_mesh_0.res": "68699aab57a1f0eba1beb9a8d572b9ad5ffcae08e99ee0d5bebed52812b6e20e",
+    "overview/x-3_z0_mesh_0.res": "9fe68794db93502dd2ae223c8fc0fece13b58d0ad7018c3c41560928baf3b652",
+    "overview/x-3_z1_mesh_0.res": "08a3266da25f8015ce9625fe7da72850632d0cbebd65c1a762666e2da1e6453b",
+    "overview/x-3_z2_mesh_0.res": "03345f7f8891c52cf52f05cb1a54366ea5f8e7e502fba4b82bcb9e173bf1d973",
+    "overview/x-3_z3_mesh_0.res": "e282b256ef115febd84e72a75eaf2a243bee360f3cb727e75aab6b9e03a5b266",
+    "overview/x-3_z4_mesh_0.res": "7a45fc0a98ba9af4ece8d222bc2e1d424e7d4e94552d8ecc501344bb2f1f81d9",
+    "overview/x-4_z-1_mesh_0.res": "0ec6556c95922b9d16f9ae35752641b1b2c365f52903eb1b9c3d8753d7e522cd",
+    "overview/x-4_z-2_mesh_0.res": "d347a2b4eab2cef953ffb6762fdcae075499065b34f333d03851f1914e60157a",
+    "overview/x-4_z-3_mesh_0.res": "fd34888d4ab83ab3ed783a1ca3e96dbd43fd4f884f9a616c317f807bec6dead3",
+    "overview/x-4_z-4_mesh_0.res": "9d083c783eeef17aa61584d9b7a9c37e9ba3b1cd6af7412b761cc6faacf571d9",
+    "overview/x-4_z-5_mesh_0.res": "4455e8fa3dd2f562144fee52e3ce60b74ead015f638f0da1bd4db8dbfcb437d1",
+    "overview/x-4_z0_mesh_0.res": "c25a788b8a3be35eac4dba2dd7b610f5b94faa6cd759cccf42bfcd0d308a30cc",
+    "overview/x-4_z1_mesh_0.res": "81c77a0fb26819eb9e498e8c68f2d7edc02e11ea99e77d1ac44ead597157c791",
+    "overview/x-4_z2_mesh_0.res": "fdd5da86271da6475164c66cac862f4ace9b0260b81e13d5d4b0b396ad3c2fc3",
+    "overview/x0_z-1_mesh_0.res": "b2e9940dc31064c7904fc71e8990ab0b1e545cb86d669c76376ea322cd14cba3",
+    "overview/x0_z-2_mesh_0.res": "2f1b52041a49202ef2c4e0a446efc5adbd46fae608765e100c44f8d68965edf0",
+    "overview/x0_z-3_mesh_0.res": "94fb39b573f0eb9b40fea3317825c5cd53d74f245861574ec765561b97d11907",
+    "overview/x0_z-4_mesh_0.res": "8c91ef576c2a06149e0a74e2026ba4cc8fc623487e0d18403ee0c1c2ae53b739",
+    "overview/x0_z-5_mesh_0.res": "4d49ef22ef9403b0c755535b9eb4c1abc668e6a97692cdbafde5ee05329a6120",
+    "overview/x0_z0_mesh_0.res": "b5b16987053ff8b7cc52658225bff2d3ddfc6b473d7a77257a05e2c24763b8c2",
+    "overview/x0_z1_mesh_0.res": "74353a0f861915ef384432795decf657fe638fea4cda8e17d44cc0226176a4fa",
+    "overview/x0_z2_mesh_0.res": "c505b664019368fc59639e0d945bf470d6a6998b3251609037b4ee897e92746b",
+    "overview/x0_z3_mesh_0.res": "d73ef69753a9b0fc3351dc60f6e4b441ec81f6385aa0f86bc499a177bb8f9f4a",
+    "overview/x0_z4_mesh_0.res": "20d211d85f9e486bd06ad3cc531e0dac05c71954b54773f115209063313d00e4",
+    "overview/x1_z-1_mesh_0.res": "330138c66951e4cd6a73d7581caf84f56fa6da2640f24a43654109fbb876e7fc",
+    "overview/x1_z-2_mesh_0.res": "6f6a2d36db2cb34469705d90087e7cc86428a4a4de12392e36fe497fa10a27d1",
+    "overview/x1_z-3_mesh_0.res": "35685c040ac3092d6cfdd7eabc334127360d1b6ec24db4b440e71a7e53ae8f27",
+    "overview/x1_z-4_mesh_0.res": "1ede2243055d318ed89d0280d6e8bb7c1db8e15cd65eb5958e87c9fd5fda6221",
+    "overview/x1_z-5_mesh_0.res": "7f91ec1ce1eec1fc1244629bea0688ca4fa80c5e9f6d3503fa47b1fa690cf868",
+    "overview/x1_z0_mesh_0.res": "f5dc07784a278292beb43bc7e9d089864654c77a76409969e96355f4e6538240",
+    "overview/x1_z1_mesh_0.res": "dcf699ba8891cc2dbfe0f53c8d12b6a26c0e8dc39ddf60414e68a67a7eb7a9b4",
+    "overview/x1_z2_mesh_0.res": "53330725d4c463057cabe252e5a31d28996e5fe90e5cbf01fde5a0331e7e0693",
+    "overview/x1_z3_mesh_0.res": "b93c37eabfa95a03fb9cecc85815a6929bdd1613542e9d31407d91b66f957df1",
+    "overview/x1_z4_mesh_0.res": "13afdf12d567641623303919da2bbe778d6ebe8d53c2860c64a322998e828b63",
+    "overview/x2_z-1_mesh_0.res": "765ab1ba12774ac677dfa30d897334cb054fa1a57d39bbf2a3302dbb664c675e",
+    "overview/x2_z-2_mesh_0.res": "913b3b434f142543afb900710467a757856f115597520f32060013ea1afdfe12",
+    "overview/x2_z-3_mesh_0.res": "d60d6da298f938d761e1fdcf52003ff28adf49a90a7e6dbfba5553b20f58d8f3",
+    "overview/x2_z-4_mesh_0.res": "f8c5cab0bb94126318f188bc95223511029f7c538e07dd96d3858c56feed06a4",
+    "overview/x2_z-5_mesh_0.res": "290f33c36ebbb814c399851bc371ed6f132f82003a1eb39f66676f248771d522",
+    "overview/x2_z0_mesh_0.res": "35e0cfbaa6d1bbe8243f54e5e049c9a573d129e753d010018c6141d9aeb5ea43",
+    "overview/x2_z1_mesh_0.res": "35824a87c38c70cecea0b92d86757c8266f605cd50526c557e06c8654de536ed",
+    "overview/x2_z2_mesh_0.res": "877fae362a347163eff30f72fa8981e0beaa7e5ea0334ebfe32f5909232b245e",
+    "overview/x2_z3_mesh_0.res": "a7eaf2328db6f82841aae782e0ae4d5530bc61f2ba7cdb031d5bd876dc2a1866",
+    "overview/x3_z-1_mesh_0.res": "561987cc14c1956542893f4c9c4b35bacfdb8c22dba4f5c16b02f018e704eba5",
+    "overview/x3_z-2_mesh_0.res": "e17e873c79b81c7de4aa34e4506ee92442a5ffe4e4f6bd0329a0f2418887a31d",
+    "overview/x3_z-3_mesh_0.res": "805a4855f4d1f587764bf864cdd233e3002e4a94beab6c032ac046e776c73d75",
+    "overview/x3_z-4_mesh_0.res": "55c4d6841c07fa6e7e1f1f2902883028cf55ef3f2b2eaa3507bdda9dc8185a73",
+    "overview/x3_z-5_mesh_0.res": "b8b31c0d18dc505102a6c782736440989268a36e1c49dcbaedf2942600c20ce2",
+    "overview/x3_z0_mesh_0.res": "04ffdcfaeb7b99450cdd2fe6af8aa4e7d179761971d03fc68aa9299a7fae49bf",
+    "overview/x3_z1_mesh_0.res": "09fba62c69af40b36149ee3630b1a04a057fa34082e771de2f2b318e625a5bf2",
+    "overview/x3_z2_mesh_0.res": "d2a5eb3ba127ed68f541f204d6b2f6f8c2ea1d34e88adfba14d229193c5cea51",
+    "overview/x3_z3_mesh_0.res": "4dea23ed09fa3805ac01d30477241c9510bbc1f919a206d4cf69fde9a7e12209",
+    "overview.tscn": "3cf40345e14b433b4e1262ed3d38c9da600135e0ecd337bc490c76b38599975f",
+    "shared/FrogExplorerMaterial_0000.tres": "cea2e691d3c778698dcef1dc4be01b31e6c99e5c9e7db6bedd73a1cffb6864fd",
+    "shared/FrogExplorerMaterial_0001.tres": "2bf5f94d6def800c64ddf221438e3803c8509e70f4694f695a2b00d76706ed07",
+    "shared/FrogExplorerMaterial_0002.tres": "36f60bb9d0011d04cfd47446427bd6a28a343f445e4d9409070c4deae50115b0",
+    "shared/image_0.png": "4f3b0e863c5fc9364d54d54706cbc3a166062aeec76026c6416d9d60400b37c8",
+    "shared/image_1.png": "4dd99776547b120edba1b03658e9a3b6553d0ea849027b8ebfbb46190b011302",
+    "shared/image_2.png": "8a8f25cbc51e4b80146d1f50251b0dc8f936f95a13b94dbc9f8c04bdbbd60273"
+  }
+}

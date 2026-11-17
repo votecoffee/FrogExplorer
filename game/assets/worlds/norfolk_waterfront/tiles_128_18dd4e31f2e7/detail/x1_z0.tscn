@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/worlds/norfolk_waterfront/tiles_128_18dd4e31f2e7/detail/x1_z0_mesh_0.res" id="1_34ci6"]
+[ext_resource type="Shape3D" path="res://assets/worlds/norfolk_waterfront/tiles_128_18dd4e31f2e7/detail/x1_z0_1.res" id="2_ut024"]
+
+[node name="x1_z0" type="Node3D" unique_id=169650751]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 128, 0, 0)
+
+[node name="@MeshInstance3D@178" type="MeshInstance3D" parent="." unique_id=818264036]
+mesh = ExtResource("1_34ci6")
+
+[node name="@StaticBody3D@179" type="StaticBody3D" parent="." unique_id=200712832]
+collision_layer = 2
+collision_mask = 0
+
+[node name="@CollisionShape3D@180" type="CollisionShape3D" parent="@StaticBody3D@179" unique_id=1640120124]
+shape = ExtResource("2_ut024")

@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/worlds/moscow_andronikov/tiles_16_79739a20b20f/detail/x3_z-1_mesh_0.res" id="1_72cs0"]
+[ext_resource type="Shape3D" path="res://assets/worlds/moscow_andronikov/tiles_16_79739a20b20f/detail/x3_z-1_1.res" id="2_gyok8"]
+
+[node name="x3_z-1" type="Node3D" unique_id=684369074]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48, 0, -16)
+
+[node name="@MeshInstance3D@230" type="MeshInstance3D" parent="." unique_id=1890729553]
+mesh = ExtResource("1_72cs0")
+
+[node name="@StaticBody3D@231" type="StaticBody3D" parent="." unique_id=204448783]
+collision_layer = 2
+collision_mask = 0
+
+[node name="@CollisionShape3D@232" type="CollisionShape3D" parent="@StaticBody3D@231" unique_id=1141877594]
+shape = ExtResource("2_gyok8")

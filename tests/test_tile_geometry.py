@@ -1,12 +1,15 @@
 """Geometric invariants, independent of Godot's importer and runtime."""
 from pathlib import Path
+import json
+import struct
 import sys
+import tempfile
 import unittest
 
 try:import numpy as np
 except ImportError:raise unittest.SkipTest('Optional world-building tests require numpy')
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts/worlds'))
-from tile_geometry import partition,simplify
+from tile_geometry import merge_surfaces,partition,read_glb,simplify,write_gltf
 
 
 def area(points,faces):
@@ -15,6 +18,38 @@ def area(points,faces):
 
 
 class TileGeometryTests(unittest.TestCase):
+    def test_multiple_materials_and_active_scene_instances_survive(self):
+        attrs={'POSITION':np.array([[0,0,0],[0,0,1],[1,0,0]],np.float32),'COLOR_0':np.array([[1,0,0,1]]*3,np.float32)}
+        surfaces=[{'attrs':attrs,'faces':np.array([[0,1,2]]),'material':i} for i in [0,1]]
+        materials=[{'name':f'FrogExplorerMaterial_{i:04d}','pbrMetallicRoughness':{'baseColorFactor':color}} for i,color in enumerate([[1,0,0,1],[0,0,1,1],[0,1,0,1]])]
+        with tempfile.TemporaryDirectory() as temp:
+            path=Path(temp)/'fixture.gltf';write_gltf(path,surfaces,materials,[],[],[])
+            doc=json.loads(path.read_bytes());self.assertEqual(len(doc['materials']),2,'unused material is not imported by every tile')
+            # One mesh is instanced twice in the active scene; an unused node
+            # must not introduce geometry into the tiled world.
+            doc['nodes']=[{'mesh':0},{'mesh':0},{'mesh':0}];doc['scenes']=[{'nodes':[0,1]}]
+            binary=path.with_suffix('.bin').read_bytes();doc['buffers'][0].pop('uri')
+            data=json.dumps(doc).encode();data+=b' '*((-len(data))%4);binary+=b'\0'*((-len(binary))%4)
+            glb=struct.pack('<III',0x46546c67,2,28+len(data)+len(binary))+struct.pack('<II',len(data),0x4e4f534a)+data+struct.pack('<II',len(binary),0x004e4942)+binary
+            source=Path(temp)/'fixture.glb';source.write_bytes(glb)
+            parsed,kept,*_=read_glb(source);merged=merge_surfaces(parsed)
+            self.assertEqual(len(parsed),4);self.assertEqual(len(merged),2)
+            self.assertEqual([len(s['faces']) for s in merged],[2,2])
+            self.assertNotEqual(kept[0]['pbrMetallicRoughness'],kept[1]['pbrMetallicRoughness'])
+            np.testing.assert_array_equal(merged[0]['attrs']['COLOR_0'],np.tile([1,0,0,1],(6,1)))
+
+    def test_texture_indices_are_remapped_without_copying_unused_images(self):
+        attrs={'POSITION':np.array([[0,0,0],[0,0,1],[1,0,0]],np.float32)}
+        materials=[{'pbrMetallicRoughness':{'baseColorTexture':{'index':i}}} for i in range(3)]
+        textures=[{'source':i,'sampler':0} for i in range(3)]
+        with tempfile.TemporaryDirectory() as temp:
+            path=Path(temp)/'fixture.gltf';write_gltf(path,[{'attrs':attrs,'faces':np.array([[0,1,2]]),'material':2}],materials,['a.png','b.png','c.png'],textures,[{}])
+            doc=json.loads(path.read_bytes())
+            self.assertEqual(doc['images'],[{'uri':'../shared/c.png'}])
+            self.assertEqual(doc['materials'][0]['pbrMetallicRoughness']['baseColorTexture']['index'],0)
+            self.assertEqual(doc['textures'][0]['source'],0)
+            self.assertEqual(materials[2]['pbrMetallicRoughness']['baseColorTexture']['index'],2,'source metadata remains unchanged')
+
     def test_seams_preserve_area_uv_and_winding(self):
         points=np.array([[-30,0,-20],[180,21,-20],[180,30,160],[-30,9,160]],np.float32)
         attrs={'POSITION':points,'TEXCOORD_0':points[:,[0,2]]/256}

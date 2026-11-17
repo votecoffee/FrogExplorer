@@ -1,0 +1,16 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/detail/x0_z0_mesh_0.res" id="1_cawot"]
+[ext_resource type="Shape3D" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/detail/x0_z0_1.res" id="2_y5cxb"]
+
+[node name="x0_z0" type="Node3D" unique_id=375574211]
+
+[node name="@MeshInstance3D@94" type="MeshInstance3D" parent="." unique_id=952819660]
+mesh = ExtResource("1_cawot")
+
+[node name="@StaticBody3D@95" type="StaticBody3D" parent="." unique_id=881795078]
+collision_layer = 2
+collision_mask = 0
+
+[node name="@CollisionShape3D@96" type="CollisionShape3D" parent="@StaticBody3D@95" unique_id=747442189]
+shape = ExtResource("2_y5cxb")

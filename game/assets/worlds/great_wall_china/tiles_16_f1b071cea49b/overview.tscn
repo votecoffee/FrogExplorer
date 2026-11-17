@@ -1,0 +1,158 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/overview/x-4_z0_mesh_0.res" id="1_ln7fd"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/overview/x-4_z1_mesh_0.res" id="2_pv4ib"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/overview/x-4_z2_mesh_0.res" id="3_r7lie"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/overview/x-3_z0_mesh_0.res" id="4_c84wj"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/overview/x-3_z1_mesh_0.res" id="5_jpbma"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/overview/x-3_z2_mesh_0.res" id="6_l5ir1"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/overview/x-2_z-1_mesh_0.res" id="7_fb3ba"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/overview/x-2_z0_mesh_0.res" id="8_vm5as"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/overview/x-2_z1_mesh_0.res" id="9_lqfpf"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/overview/x-1_z-1_mesh_0.res" id="10_n28bt"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/overview/x-1_z0_mesh_0.res" id="11_hcufi"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/overview/x0_z-2_mesh_0.res" id="12_twvox"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/overview/x0_z-1_mesh_0.res" id="13_tjywy"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/overview/x1_z-3_mesh_0.res" id="14_f3yaj"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/overview/x1_z-2_mesh_0.res" id="15_3rr4q"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/overview/x1_z-1_mesh_0.res" id="16_b4761"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/overview/x2_z-3_mesh_0.res" id="17_ikan3"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/overview/x2_z-2_mesh_0.res" id="18_wnx10"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/overview/x2_z-1_mesh_0.res" id="19_5u33k"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/overview/x3_z-3_mesh_0.res" id="20_a6nx1"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/overview/x3_z-2_mesh_0.res" id="21_mdkw5"]
+[ext_resource type="ArrayMesh" path="res://assets/worlds/great_wall_china/tiles_16_f1b071cea49b/overview/x3_z-1_mesh_0.res" id="22_l8rfw"]
+
+[node name="Overview" type="Node3D" unique_id=1296073063]
+
+[node name="x-4_z0" type="Node3D" parent="." unique_id=59593871]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64, 0, 0)
+
+[node name="@MeshInstance3D@5" type="MeshInstance3D" parent="x-4_z0" unique_id=656729189]
+mesh = ExtResource("1_ln7fd")
+
+[node name="x-4_z1" type="Node3D" parent="." unique_id=2145234408]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64, 0, 16)
+
+[node name="@MeshInstance3D@9" type="MeshInstance3D" parent="x-4_z1" unique_id=1108074433]
+mesh = ExtResource("2_pv4ib")
+
+[node name="x-4_z2" type="Node3D" parent="." unique_id=69507933]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64, 0, 32)
+
+[node name="@MeshInstance3D@13" type="MeshInstance3D" parent="x-4_z2" unique_id=647258259]
+mesh = ExtResource("3_r7lie")
+
+[node name="x-3_z0" type="Node3D" parent="." unique_id=1586729844]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48, 0, 0)
+
+[node name="@MeshInstance3D@17" type="MeshInstance3D" parent="x-3_z0" unique_id=329962994]
+mesh = ExtResource("4_c84wj")
+
+[node name="x-3_z1" type="Node3D" parent="." unique_id=926531808]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48, 0, 16)
+
+[node name="@MeshInstance3D@21" type="MeshInstance3D" parent="x-3_z1" unique_id=1806775356]
+mesh = ExtResource("5_jpbma")
+
+[node name="x-3_z2" type="Node3D" parent="." unique_id=1988591828]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48, 0, 32)
+
+[node name="@MeshInstance3D@25" type="MeshInstance3D" parent="x-3_z2" unique_id=791141460]
+mesh = ExtResource("6_l5ir1")
+
+[node name="x-2_z-1" type="Node3D" parent="." unique_id=831546188]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32, 0, -16)
+
+[node name="@MeshInstance3D@29" type="MeshInstance3D" parent="x-2_z-1" unique_id=71182324]
+mesh = ExtResource("7_fb3ba")
+
+[node name="x-2_z0" type="Node3D" parent="." unique_id=206488295]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32, 0, 0)
+
+[node name="@MeshInstance3D@33" type="MeshInstance3D" parent="x-2_z0" unique_id=990434847]
+mesh = ExtResource("8_vm5as")
+
+[node name="x-2_z1" type="Node3D" parent="." unique_id=103262909]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32, 0, 16)
+
+[node name="@MeshInstance3D@37" type="MeshInstance3D" parent="x-2_z1" unique_id=343170593]
+mesh = ExtResource("9_lqfpf")
+
+[node name="x-1_z-1" type="Node3D" parent="." unique_id=633245327]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, -16)
+
+[node name="@MeshInstance3D@41" type="MeshInstance3D" parent="x-1_z-1" unique_id=873838967]
+mesh = ExtResource("10_n28bt")
+
+[node name="x-1_z0" type="Node3D" parent="." unique_id=1883055469]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, 0)
+
+[node name="@MeshInstance3D@45" type="MeshInstance3D" parent="x-1_z0" unique_id=1732250009]
+mesh = ExtResource("11_hcufi")
+
+[node name="x0_z-2" type="Node3D" parent="." unique_id=762002982]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -32)
+
+[node name="@MeshInstance3D@49" type="MeshInstance3D" parent="x0_z-2" unique_id=1711178926]
+mesh = ExtResource("12_twvox")
+
+[node name="x0_z-1" type="Node3D" parent="." unique_id=1347594553]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -16)
+
+[node name="@MeshInstance3D@53" type="MeshInstance3D" parent="x0_z-1" unique_id=9707258]
+mesh = ExtResource("13_tjywy")
+
+[node name="x1_z-3" type="Node3D" parent="." unique_id=1094090583]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, -48)
+
+[node name="@MeshInstance3D@57" type="MeshInstance3D" parent="x1_z-3" unique_id=244390166]
+mesh = ExtResource("14_f3yaj")
+
+[node name="x1_z-2" type="Node3D" parent="." unique_id=201729484]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, -32)
+
+[node name="@MeshInstance3D@61" type="MeshInstance3D" parent="x1_z-2" unique_id=593205611]
+mesh = ExtResource("15_3rr4q")
+
+[node name="x1_z-1" type="Node3D" parent="." unique_id=284887474]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, -16)
+
+[node name="@MeshInstance3D@65" type="MeshInstance3D" parent="x1_z-1" unique_id=62356568]
+mesh = ExtResource("16_b4761")
+
+[node name="x2_z-3" type="Node3D" parent="." unique_id=543689051]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 0, -48)
+
+[node name="@MeshInstance3D@69" type="MeshInstance3D" parent="x2_z-3" unique_id=565750170]
+mesh = ExtResource("17_ikan3")
+
+[node name="x2_z-2" type="Node3D" parent="." unique_id=470171219]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 0, -32)
+
+[node name="@MeshInstance3D@73" type="MeshInstance3D" parent="x2_z-2" unique_id=1507184563]
+mesh = ExtResource("18_wnx10")
+
+[node name="x2_z-1" type="Node3D" parent="." unique_id=262088635]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 0, -16)
+
+[node name="@MeshInstance3D@77" type="MeshInstance3D" parent="x2_z-1" unique_id=7603328]
+mesh = ExtResource("19_5u33k")
+
+[node name="x3_z-3" type="Node3D" parent="." unique_id=810286386]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48, 0, -48)
+
+[node name="@MeshInstance3D@81" type="MeshInstance3D" parent="x3_z-3" unique_id=543867706]
+mesh = ExtResource("20_a6nx1")
+
+[node name="x3_z-2" type="Node3D" parent="." unique_id=424462502]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48, 0, -32)
+
+[node name="@MeshInstance3D@85" type="MeshInstance3D" parent="x3_z-2" unique_id=1237340536]
+mesh = ExtResource("21_mdkw5")
+
+[node name="x3_z-1" type="Node3D" parent="." unique_id=663347386]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48, 0, -16)
+
+[node name="@MeshInstance3D@89" type="MeshInstance3D" parent="x3_z-1" unique_id=1159728039]
+mesh = ExtResource("22_l8rfw")

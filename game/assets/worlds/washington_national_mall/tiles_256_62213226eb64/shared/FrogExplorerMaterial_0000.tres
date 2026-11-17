@@ -1,0 +1,10 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/worlds/washington_national_mall/tiles_256_62213226eb64/shared/image_0.jpg" id="1_udhi1"]
+
+[resource]
+resource_name = "FrogExplorerMaterial_0000"
+cull_mode = 2
+albedo_texture = ExtResource("1_udhi1")
+roughness = 0.9
+metadata/_gltf_primary_texture_coord = 0

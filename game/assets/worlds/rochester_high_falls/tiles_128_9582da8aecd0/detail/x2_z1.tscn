@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/worlds/rochester_high_falls/tiles_128_9582da8aecd0/detail/x2_z1_mesh_0.res" id="1_fuit1"]
+[ext_resource type="Shape3D" path="res://assets/worlds/rochester_high_falls/tiles_128_9582da8aecd0/detail/x2_z1_1.res" id="2_0s4qi"]
+
+[node name="x2_z1" type="Node3D" unique_id=1563504975]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 256, 0, 128)
+
+[node name="@MeshInstance3D@214" type="MeshInstance3D" parent="." unique_id=323651501]
+mesh = ExtResource("1_fuit1")
+
+[node name="@StaticBody3D@215" type="StaticBody3D" parent="." unique_id=1917683381]
+collision_layer = 2
+collision_mask = 0
+
+[node name="@CollisionShape3D@216" type="CollisionShape3D" parent="@StaticBody3D@215" unique_id=1240691215]
+shape = ExtResource("2_0s4qi")

@@ -1,0 +1,9 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/shared/image_13.jpg" id="1_7su4f"]
+
+[resource]
+resource_name = "FrogExplorerMaterial_0013"
+cull_mode = 2
+albedo_texture = ExtResource("1_7su4f")
+metadata/_gltf_primary_texture_coord = 0

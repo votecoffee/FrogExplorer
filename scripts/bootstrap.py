@@ -12,6 +12,7 @@ import urllib.request
 import zipfile
 
 from manage_assets import import_assets,sha256,safe_path
+from runtime_assets import verify as verify_runtime
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -93,6 +94,7 @@ def main():
         if not prefix or not setup.is_file():raise ValueError("Install ROS 2 Lyrical separately, then supply --ros-prefix with its existing underlay")
         settings["ros_prefix"]=str(Path(prefix).resolve());settings["use_ros"]=True
     if args.asset_source:print("Imported",import_assets(ROOT,args.asset_source),"verified optional asset files",flush=True)
+    if (ROOT/'config/runtime_assets.lock.json').is_file():print('Verified bundled runtime assets:',verify_runtime(ROOT),flush=True)
     path.write_bytes((json.dumps(settings,indent=2)+"\n").encode("utf-8"))
     logged([engine,"--headless","--editor","--path",ROOT/"game","--import"],ROOT/"state/import.log")
     if args.build_ros:

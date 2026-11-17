@@ -1,0 +1,16 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/worlds/lynchburg_riverfront/tiles_128_e464fc0c052f/detail/x0_z0_mesh_0.res" id="1_1f1qe"]
+[ext_resource type="Shape3D" path="res://assets/worlds/lynchburg_riverfront/tiles_128_e464fc0c052f/detail/x0_z0_1.res" id="2_1s5bs"]
+
+[node name="x0_z0" type="Node3D" unique_id=2044722825]
+
+[node name="@MeshInstance3D@146" type="MeshInstance3D" parent="." unique_id=1753021259]
+mesh = ExtResource("1_1f1qe")
+
+[node name="@StaticBody3D@147" type="StaticBody3D" parent="." unique_id=137133954]
+collision_layer = 2
+collision_mask = 0
+
+[node name="@CollisionShape3D@148" type="CollisionShape3D" parent="@StaticBody3D@147" unique_id=687707162]
+shape = ExtResource("2_1s5bs")

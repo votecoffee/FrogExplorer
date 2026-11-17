@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/detail/x-2_z3_mesh_0.res" id="1_nf4du"]
+[ext_resource type="Shape3D" path="res://assets/worlds/helsinki_senate_square/tiles_64_c2fb67592006/detail/x-2_z3_1.res" id="2_t2uaq"]
+
+[node name="x-2_z3" type="Node3D" unique_id=1647959437]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -128, 0, 192)
+
+[node name="@MeshInstance3D@34" type="MeshInstance3D" parent="." unique_id=1308946696]
+mesh = ExtResource("1_nf4du")
+
+[node name="@StaticBody3D@35" type="StaticBody3D" parent="." unique_id=781112666]
+collision_layer = 2
+collision_mask = 0
+
+[node name="@CollisionShape3D@36" type="CollisionShape3D" parent="@StaticBody3D@35" unique_id=881265519]
+shape = ExtResource("2_t2uaq")

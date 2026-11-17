@@ -92,7 +92,8 @@ func run():
   await recover()
   p.position.y=w.recovery_floor-1;await wait(.25)
   check(p.position.distance_to(w.spawn_point)<.3 and p.is_on_floor(),id+": falling below source cut recovers safely")
-  measurements.append({"id":id,"spawn":str(w.spawn_point),"collision_groups":w.collision_count,"vertical_bounds":item.vertical_bounds,"recovery_floor":w.recovery_floor,"flight_ceiling":w.flight_ceiling,"scene_sha256":FileAccess.get_sha256(item.scene)})
+  var source_hash=FileAccess.get_sha256(item.scene) if FileAccess.file_exists(item.scene) else WorldTiles.manifest(item).source_sha256
+  measurements.append({"id":id,"spawn":str(w.spawn_point),"collision_groups":w.collision_count,"vertical_bounds":item.vertical_bounds,"recovery_floor":w.recovery_floor,"flight_ceiling":w.flight_ceiling,"scene_sha256":source_hash})
  await trip("home_woodland_pond")
  check(game.woodland.recovery_floor==-60 and game.woodland.flight_ceiling==120,"Pond retains its original height limits")
  check(game.pilot.is_on_floor() and game.woodland.trees.size()>=20,"Returning home restores pond collision and climbing trees")

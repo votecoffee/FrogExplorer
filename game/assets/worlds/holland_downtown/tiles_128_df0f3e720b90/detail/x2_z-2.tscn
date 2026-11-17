@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/worlds/holland_downtown/tiles_128_df0f3e720b90/detail/x2_z-2_mesh_0.res" id="1_8w0bw"]
+[ext_resource type="Shape3D" path="res://assets/worlds/holland_downtown/tiles_128_df0f3e720b90/detail/x2_z-2_1.res" id="2_wku5f"]
+
+[node name="x2_z-2" type="Node3D" unique_id=272116026]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 256, 0, -256)
+
+[node name="@MeshInstance3D@202" type="MeshInstance3D" parent="." unique_id=989792943]
+mesh = ExtResource("1_8w0bw")
+
+[node name="@StaticBody3D@203" type="StaticBody3D" parent="." unique_id=63801291]
+collision_layer = 2
+collision_mask = 0
+
+[node name="@CollisionShape3D@204" type="CollisionShape3D" parent="@StaticBody3D@203" unique_id=2056272132]
+shape = ExtResource("2_wku5f")
