@@ -17,6 +17,11 @@ func move(m:Vector2,aux=Vector2.ZERO):
 func stop():c.remote_until=0;c.velocity_until=0;c.size_until=0
 func axis(index:int,value:float):
  var event=InputEventJoypadMotion.new();event.device=42;event.axis=index;event.axis_value=value;Input.parse_input_event(event)
+func key(code:int,pressed:bool):
+ var event=InputEventKey.new();event.physical_keycode=code;event.keycode=code;event.pressed=pressed;Input.parse_input_event(event)
+func button(index:int,pressed:bool):
+ var event=InputEventJoypadButton.new();event.device=42;event.button_index=index;event.pressed=pressed;Input.parse_input_event(event)
+func horizontal_speed()->float:return Vector2(r.body.velocity.x,r.body.velocity.z).length()
 func trip(id:String):
  game.travel.request(id);var deadline=Time.get_ticks_msec()+15000
  while game.travel.busy and Time.get_ticks_msec()<deadline:await get_tree().process_frame
@@ -26,7 +31,15 @@ func await_foot(timeout=5.0):
  while r.active() and Time.get_ticks_msec()<deadline:await get_tree().process_frame
  await wait(.1)
 func square():
- stop();r.clear_for_travel();p.try_resize(1);p.reset_position(Vector3(20,game.woodland.ground_height(20,0)+.04,0));p.heading=PI;game.camera_rig.view_mode=0;await wait(.2)
+ stop();r.clear_for_travel();p.try_resize(1)
+ # Fast flight may retire the arrival tiles. Wait before querying their height
+ # or teleporting the test frog back to the square for a ground-only vehicle.
+ var deadline=Time.get_ticks_msec()+5000
+ while not game.woodland.surface_ready(Vector3(20,0,0),1) and Time.get_ticks_msec()<deadline:await get_tree().process_frame
+ # The ground ray must exclude the frog when resetting twice at the same spot.
+ var ground=r._ground(Vector3(20,game.woodland.surface_top,0))
+ if ground.is_empty():check(false,"Square fixture has resident physical ground");return
+ p.reset_position(ground.position+Vector3.UP*.04);p.heading=PI;game.camera_rig.view_mode=0;await wait(.2)
 func run(owner_game):
  game=owner_game;p=game.pilot;r=game.rides;c=game.controls
  await trip("helsinki_senate_square")
@@ -69,7 +82,9 @@ func run(owner_game):
  var wall=StaticBody3D.new();var shape=CollisionShape3D.new();var box=BoxShape3D.new();box.size=Vector3(20,12,.2);shape.shape=box;wall.position=r.body.position+Vector3(0,3,-2);wall.add_child(shape);game.add_child(wall);await wait(.06)
  move(Vector2(0,-1));await wait(1.3)
  check(r.body.position.z>wall.position.z+.5,"Balloon swept collision blocks flight through a wall")
- stop();wall.queue_free();await wait(.1);r.exit_ride();await await_foot(7)
+ stop();wall.queue_free();await wait(.1)
+ await test_flight_speed()
+ await square();r.request("BALLOON");await wait(.5);r.exit_ride();await await_foot(7)
  check(not r.active() and p.collision_layer==1 and p.is_on_floor(),"Controlled exit lands and restores a grounded frog")
  await square();r.request("CAR");await wait(.15)
  check(r.kind=="CAR","RT can summon the convertible on dry city paving"+(" ("+r.last_notice+")" if r.kind!="CAR" else ""))
@@ -137,10 +152,14 @@ func test_jump_exits():
  check(r.kind=="PARACHUTE" and r.next_ride.is_empty() and not r.body.is_on_floor(),"RT cannot summon or queue a car before parachute touchdown")
  axis(JOY_AXIS_TRIGGER_RIGHT,0);await wait(.05);var canopy=r.prop;axis(JOY_AXIS_TRIGGER_LEFT,1);await wait(.08)
  check(r.kind=="BALLOON" and gone(canopy) and not r.body.is_on_floor(),"LT replaces the parachute with a new balloon while still airborne")
- axis(JOY_AXIS_TRIGGER_LEFT,0);c._find_device();await jump_button();await wait(.45)
- check(r.kind=="PARACHUTE" and r.body.velocity.y<0 and r.body.velocity.y>=-2.01,"Parachute descends at a controlled terminal speed")
+ axis(JOY_AXIS_TRIGGER_LEFT,0);c._find_device();await jump_button();var dropped_at=Time.get_ticks_msec();var drop_height=r.state().ride_altitude_m;await wait(.6)
+ check(r.kind=="PARACHUTE" and r.body.velocity.y<-10 and r.body.velocity.y>=-12.01,"Parachute quickly reaches its faster controlled descent")
+ if r.kind=="PARACHUTE":measurements.append({"kind":"parachute","down_mps":-r.body.velocity.y,"start_height_m":drop_height})
  await await_foot(8)
  check(not r.active() and p.is_on_floor() and r.suspension.is_empty(),"Touchdown stows the parachute and restores walking")
+ var descent_seconds=(Time.get_ticks_msec()-dropped_at)/1000.0
+ check(descent_seconds<drop_height/6.0+1.0,"Parachute returns from altitude substantially faster than the old 2 m/s descent")
+ measurements.append({"kind":"parachute_landing","height_m":drop_height,"seconds":descent_seconds})
  r.request("CAR");await wait(.15);check(r.kind=="CAR","A car is available after actual touchdown")
  if r.kind!="CAR":return
  move(Vector2(0,-1));await wait(2.1)
@@ -159,3 +178,38 @@ func test_jump_exits():
  check(not r.active() and Vector2(p.velocity.x,p.velocity.z).length()<.01,"Coasting comes to rest and releasing the stick restores walking")
  measurements.append({"kind":"car_jump","inherited_mps":before,"initial_coast_mps":initial})
  p.select_species(selected)
+
+func flight_start():
+ stop();key(KEY_W,false);key(KEY_UP,false);button(JOY_BUTTON_DPAD_UP,false);axis(JOY_AXIS_LEFT_Y,0)
+ game.camera_rig.view_mode=0;game.camera_rig.initialized=false
+ r.body.position=Vector3(20,80,80);r.body.velocity=Vector3.ZERO;r.landing=false;r.age=2
+ await wait(.5) # Let the real city stream collision around the airborne start.
+
+func test_flight_speed():
+ c.device=42
+ for code in [KEY_W,KEY_UP]:
+  await flight_start();key(code,true);await wait(.25);var early=horizontal_speed()
+  await wait(1.0);var held=horizontal_speed();key(code,false);await wait(.8)
+  check(early>1 and early<4 and held>early+7,"Held keyboard %s gradually accelerates the balloon"%OS.get_keycode_string(code))
+  check(horizontal_speed()<.05,"Releasing keyboard movement brakes the balloon to a hover")
+  measurements.append({"kind":"keyboard_balloon","key":OS.get_keycode_string(code),"quarter_second_mps":early,"held_mps":held})
+ await flight_start();button(JOY_BUTTON_DPAD_UP,true);await wait(.25);var early=horizontal_speed()
+ await wait(1.0);var held=horizontal_speed();button(JOY_BUTTON_DPAD_UP,false);await wait(.8)
+ check(early>1 and early<4 and held>early+7,"Held D-pad input progressively accelerates the balloon")
+ check(horizontal_speed()<.05,"Releasing the D-pad brakes the balloon to a hover")
+ measurements.append({"kind":"dpad_balloon","quarter_second_mps":early,"held_mps":held})
+ await flight_start();axis(JOY_AXIS_LEFT_Y,-.5);await wait(1.2);var partial=horizontal_speed()
+ check(partial>3 and partial<7,"Partial joystick input retains precise slower flight")
+ axis(JOY_AXIS_LEFT_Y,-1);await wait(3.8);var full=horizontal_speed()
+ check(full>34 and full<36.1 and full>partial*4,"Full joystick input reaches much faster balloon exploration speed")
+ axis(JOY_AXIS_LEFT_Y,1);await wait(.5)
+ check(r.body.velocity.z<0 and horizontal_speed()<full-9,"Reversing the stick brakes before changing direction")
+ axis(JOY_AXIS_LEFT_Y,0);await wait(1.3)
+ check(horizontal_speed()<.05,"Releasing full-speed joystick input settles into a hover")
+ measurements.append({"kind":"joystick_balloon","partial_mps":partial,"full_mps":full})
+ var wall=StaticBody3D.new();var collision=CollisionShape3D.new();var shape=BoxShape3D.new()
+ shape.size=Vector3(20,12,.1);collision.shape=shape;wall.position=r.body.position+Vector3(0,3,-2);wall.add_child(collision);game.add_child(wall);await wait(.06)
+ axis(JOY_AXIS_LEFT_Y,-1);r.body.velocity=Vector3(0,0,-36);await wait(.3)
+ check(r.body.position.z>wall.position.z+.5,"Full-speed balloon collision stops at a thin wall")
+ axis(JOY_AXIS_LEFT_Y,0);wall.queue_free();await wait(.1)
+ stop();c._find_device()

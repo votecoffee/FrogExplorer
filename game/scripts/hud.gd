@@ -86,8 +86,8 @@ func update(delta,pilot,camera,controls,link):
  trigger_legend.text="LT  Balloon    RT  Convertible    X  Jump out" if rides and rides.enabled else "LT  Grow    RT  Shrink    Hold both equally to keep size"
  if rides and rides.active():
   var ride_text="Convertible · %.0f km/h"%(absf(rides.speed)*3.6)
-  if rides.kind=="BALLOON":ride_text="Helium balloon · %.1f m above ground"%rides.state().ride_altitude_m
-  elif rides.kind=="PARACHUTE":ride_text="Parachuting · LT balloon · car after landing"
+  if rides.kind=="BALLOON":ride_text="Helium balloon · %.0f km/h · %.1f m above ground"%[Vector2(rides.body.velocity.x,rides.body.velocity.z).length()*3.6,rides.state().ride_altitude_m]
+  elif rides.kind=="PARACHUTE":ride_text="Parachuting · %.0f m/s down · LT balloon · car after landing"%maxf(0,-rides.body.velocity.y)
   elif rides.kind=="COAST":ride_text="Coasting · %.0f km/h"%(rides.speed*3.6)
   state_label.text=ride_text+"\n"+ExplorerCamera.NAMES[camera.view_mode]
   size_label.text="Ride triggers · L3 / F3 switches controls"

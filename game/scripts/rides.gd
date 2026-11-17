@@ -3,6 +3,13 @@ extends Node3D
 
 # Arcade exploration vehicles. The frog and its saved size stay intact; a
 # separate swept kinematic body owns motion while a ride is active.
+const BALLOON_MAX_SPEED=36.0
+const BALLOON_ACCELERATION=9.0
+const BALLOON_BRAKING=24.0
+const BALLOON_VERTICAL_SPEED=12.0
+const PARACHUTE_TERMINAL_SPEED=12.0
+const PARACHUTE_ACCELERATION=24.0
+
 var game
 var pilot:FrogPilot
 var controls:ExplorerControls
@@ -158,7 +165,7 @@ func jump_out():
  ride_scale=size;heading=yaw;kind="PARACHUTE" if previous=="BALLOON" else "COAST"
  _new_body(kind,foot);age=0;last_pose_species=-1
  if kind=="PARACHUTE":
-  momentum.y=clampf(momentum.y,-minf(6,2*sqrt(size)),0)
+  momentum.y=clampf(momentum.y,-minf(36,PARACHUTE_TERMINAL_SPEED*sqrt(size)),0)
   _visual_props()
   game.hud.toast("Parachuting · left stick steers · LT deploys a new balloon · car after landing")
  else:
@@ -199,7 +206,7 @@ func _parachute(delta:float):
  var desired=direction*minf(12,4*sqrt(ride_scale))
  body.velocity.x=move_toward(body.velocity.x,desired.x,delta*4*sqrt(ride_scale))
  body.velocity.z=move_toward(body.velocity.z,desired.z,delta*4*sqrt(ride_scale))
- body.velocity.y=move_toward(body.velocity.y,-minf(6,2*sqrt(ride_scale)),delta*5*sqrt(ride_scale))
+ body.velocity.y=move_toward(body.velocity.y,-minf(36,PARACHUTE_TERMINAL_SPEED*sqrt(ride_scale)),delta*PARACHUTE_ACCELERATION*sqrt(ride_scale))
  if direction.length()>.1:heading=lerp_angle(heading,atan2(direction.x,direction.z),minf(1,delta*2))
  if controls.velocity_active():
   heading+=controls.remote_velocity.w*delta
@@ -229,15 +236,21 @@ func _fly(delta:float):
  var m=controls.move;var aux=controls.auxiliary;var forward=game.camera_rig.planar_forward();var right=forward.cross(Vector3.UP)
  var movement=right*m.x-forward*m.y
  var direction=(movement+right*aux.x).limit_length()
- var limit=minf(18,6*sqrt(ride_scale));var desired=direction*limit
- var vertical=-aux.y*minf(10,3*sqrt(ride_scale))
+ # Keys and the D-pad request full speed, reached progressively while held.
+ # Squared stick magnitude keeps small analog deflections useful near scenery.
+ var limit=minf(108,BALLOON_MAX_SPEED*sqrt(ride_scale));var desired=direction*direction.length()*limit
+ var vertical=-aux.y*minf(36,BALLOON_VERTICAL_SPEED*sqrt(ride_scale))
  if absf(aux.y)>.1:landing=false;next_ride="";profile_after_exit=false
  if landing:desired=Vector3.ZERO;vertical=-minf(5,1.5*sqrt(ride_scale))
  elif age<1.4 and absf(aux.y)<.1:vertical=.9*sqrt(ride_scale)
  if controls.velocity_active():
   heading+=controls.remote_velocity.w*delta
   desired=pilot.forward()*controls.remote_velocity.x+pilot.forward().cross(Vector3.UP)*controls.remote_velocity.y;vertical=controls.remote_velocity.z
- body.velocity=body.velocity.move_toward(Vector3(desired.x,vertical,desired.z),delta*4*sqrt(ride_scale))
+ var horizontal=Vector2(body.velocity.x,body.velocity.z);var target=Vector2(desired.x,desired.z)
+ var braking=target.length_squared()<horizontal.length_squared() or horizontal.dot(target)<0
+ horizontal=horizontal.move_toward(target,delta*(BALLOON_BRAKING if braking else BALLOON_ACCELERATION)*sqrt(ride_scale))
+ body.velocity.x=horizontal.x;body.velocity.z=horizontal.y
+ body.velocity.y=move_toward(body.velocity.y,vertical,delta*12*sqrt(ride_scale))
  if movement.length()>.1:heading=lerp_angle(heading,atan2(movement.x,movement.z),minf(1,delta*2))
  body.rotation.y=heading;_move(delta)
  _bound(.54*ride_scale)

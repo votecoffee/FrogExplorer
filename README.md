@@ -150,6 +150,8 @@ Walk into a trunk and keep pressing forward to climb. Either stick's horizontal 
 
 Size ranges from **0.25× to 16×**, subject to physical clearance. Movement speed and camera distance scale with size. In ride mode the frog hangs from a helium-balloon tether or drives a green convertible. Right-stick input raises/lowers and strafes the balloon. Jumping from a balloon deploys a parachute; a new balloon is allowed before landing, while a car requires touchdown. Jumping from a car removes it and decelerates the frog to a stop.
 
+Hold movement keys or the D-pad to ramp up balloon speed over about four seconds. At normal frog size, full joystick or digital input reaches **36 m/s** (about 130 km/h); small stick movements give finer control, and releasing the controls brakes to a hover. Balloon altitude controls reach **12 m/s**. The parachute accelerates to a **12 m/s** descent, so returning from a high flight is quicker. Ride speeds continue to scale with frog size, with upper limits.
+
 ## World travel
 
 The catalog includes **12 city areas and four historic destinations**: Helsinki, five US cities, Tokyo, Shanghai, Berlin, Moscow, Montréal, Mexico City, Machu Picchu, a Great Wall section, Giza and the Colosseum. A fresh clone includes their runtime tiles and the pond; only present, device-qualified packs appear in the places list.
