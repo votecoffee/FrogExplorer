@@ -1,0 +1,18 @@
+{
+  "name": "Moscow · Andronikov area, Russia",
+  "country": "RU",
+  "category": "city",
+  "scene_name": "city.glb",
+  "output_dir": "outputs/World_Cities_20261117",
+  "scale": 10,
+  "target": [
+    -2.65,
+    0.45
+  ],
+  "budget": 550000,
+  "calibration": "Approximate 10 m/source unit, giving a roughly 130 m city block and plausible building heights; not surveyed.",
+  "reviewed": true,
+  "description": "Moscow city block near Andronikov Monastery: buildings, a small courtyard and surrounding greenery. Partial aerial scan with rough vegetation and holes at its edges; the monastery church itself is not included.",
+  "kind": "Textured aerial photogrammetry near Andronikov Monastery",
+  "credit": "neominigan"
+}

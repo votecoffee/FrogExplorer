@@ -1,0 +1,21 @@
+{
+  "name": "Berlin · Teufelsberg, Germany",
+  "country": "DE",
+  "category": "city",
+  "scene_name": "city.glb",
+  "output_dir": "outputs/World_Cities_20261117",
+  "scale": 0.01,
+  "target": [
+    500,
+    6000
+  ],
+  "budget": 510000,
+  "calibration": "Assumed centimetre-scale scan; 0.01 m/unit gives a roughly 190 m compound and plausible tower heights. Not surveyed.",
+  "reviewed": true,
+  "description": "Berlin Teufelsberg former listening station: radomes, graffiti-covered buildings, paths and surrounding trees. Bounded scan; the source photographic sky sphere is removed. No climbable-tree volumes.",
+  "kind": "Textured photogrammetry of the Teufelsberg compound",
+  "credit": "shahriyarshahrabi",
+  "exclude_meshes": [
+    "Sphere_Material.001_0"
+  ]
+}

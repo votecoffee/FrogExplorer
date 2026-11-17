@@ -1,0 +1,18 @@
+{
+  "name": "Mexico City · Metropolitan Cathedral, Mexico",
+  "country": "MX",
+  "category": "city",
+  "scene_name": "city.glb",
+  "output_dir": "outputs/World_Cities_20261117",
+  "scale": 1,
+  "target": [
+    -58,
+    -40
+  ],
+  "budget": 750000,
+  "calibration": "Native source units treated as metres; roughly 138 m source cut and 63 m vertical extent. Physical scale unverified.",
+  "reviewed": true,
+  "description": "Mexico City Metropolitan Cathedral exterior, side paving and roof architecture. Reconstruction from CyArk/Open Heritage 3D photographs. Bounded building-area scan; no cathedral interiors or complete Zocalo square.",
+  "kind": "Textured cathedral exterior reconstruction from CyArk aerial photographs",
+  "credit": "agisoft"
+}

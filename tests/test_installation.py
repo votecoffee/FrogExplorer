@@ -1,0 +1,73 @@
+"""Installer boundary checks use synthetic tiny assets, never private models."""
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+import sys
+import tempfile
+import unittest
+import zipfile
+
+SCRIPTS=Path(__file__).resolve().parents[1]/"scripts"
+sys.path.insert(0,str(SCRIPTS))
+from manage_assets import import_assets,safe_path
+from bootstrap import unpack,platform_key
+
+
+class AssetImportTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary=tempfile.TemporaryDirectory();self.root=Path(self.temporary.name)
+        self.source=self.root/"source/game";self.target=self.root/"checkout";self.target.mkdir()
+        self.asset=self.source/"assets/frogs/example.glb";self.asset.parent.mkdir(parents=True);self.asset.write_bytes(b"synthetic-asset")
+        self.manifest={"files":[{"path":"assets/frogs/example.glb","size":15,"sha256":hashlib.sha256(b"synthetic-asset").hexdigest()}]}
+
+    def tearDown(self):self.temporary.cleanup()
+
+    def test_import_accepts_project_root_and_is_repeatable(self):
+        self.assertEqual(import_assets(self.target,self.source.parent,self.manifest),1)
+        self.assertEqual(import_assets(self.target,self.source,self.manifest),1)
+        self.assertEqual((self.target/"game/assets/frogs/example.glb").read_bytes(),b"synthetic-asset")
+        self.assertEqual(json.loads((self.target/".local/assets.json").read_bytes())["files"],1)
+
+    def test_preflight_failure_copies_no_files(self):
+        self.manifest["files"].append({"path":"assets/worlds/missing.glb","size":1,"sha256":"bad"})
+        with self.assertRaisesRegex(ValueError,"No assets were copied"):import_assets(self.target,self.source,self.manifest)
+        self.assertFalse((self.target/"game").exists())
+
+    def test_same_length_corruption_is_rejected(self):
+        self.asset.write_bytes(b"corrupted-asset")
+        with self.assertRaises(ValueError):import_assets(self.target,self.source,self.manifest)
+        self.assertFalse((self.target/"game").exists())
+
+    def test_existing_different_destination_is_preserved(self):
+        destination=self.target/"game/assets/frogs/example.glb";destination.parent.mkdir(parents=True);destination.write_bytes(b"mine")
+        with self.assertRaisesRegex(ValueError,"preserve"):import_assets(self.target,self.source,self.manifest)
+        self.assertEqual(destination.read_bytes(),b"mine")
+
+    def test_unsafe_manifest_paths_are_rejected(self):
+        for relative in ["../outside","/outside","assets/frogs/../../../outside","assets\\frogs\\outside","C:/outside"]:
+            with self.subTest(relative=relative),self.assertRaises(ValueError):safe_path(self.target,relative)
+
+    def test_unexpected_asset_category_is_rejected(self):
+        self.manifest["files"][0]["path"]="scripts/injected.py"
+        with self.assertRaisesRegex(ValueError,"category"):import_assets(self.target,self.source,self.manifest)
+
+
+class ArchiveTests(unittest.TestCase):
+    def test_safe_archive_extracts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);archive=root/"engine.zip"
+            with zipfile.ZipFile(archive,"w") as output:output.writestr("engine",b"test")
+            unpack(archive,root/"unpack")
+            self.assertEqual((root/"unpack/engine").read_bytes(),b"test")
+
+    def test_archive_escape_is_rejected_before_extraction(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);archive=root/"engine.zip"
+            with zipfile.ZipFile(archive,"w") as output:
+                output.writestr("valid",b"safe");output.writestr("../escape",b"bad")
+            with self.assertRaises(ValueError):unpack(archive,root/"unpack")
+            self.assertFalse((root/"unpack/valid").exists());self.assertFalse((root/"escape").exists())
+
+
+if __name__=="__main__":unittest.main()

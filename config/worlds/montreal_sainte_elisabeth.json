@@ -1,0 +1,19 @@
+{
+  "name": "Montréal · Rue Sainte-Élisabeth, Canada",
+  "country": "CA",
+  "category": "city",
+  "scene_name": "city.glb",
+  "output_dir": "outputs/World_Cities_20261117",
+  "scale": 1,
+  "target": [
+    0,
+    -0.3
+  ],
+  "budget": 320000,
+  "calibration": "Native source units treated as metres; roughly 24 m of frontage. Physical scale unverified.",
+  "reviewed": true,
+  "description": "Short Montreal Rue Sainte-Elisabeth street-front scan with murals and a narrow sidewalk. This is a small street strip, not a neighborhood. Large frogs and vehicles have limited clearance.",
+  "kind": "Street-level photogrammetry, 67 photographs",
+  "credit": "archeomatique",
+  "arrival_radius": 0.8
+}

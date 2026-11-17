@@ -1,0 +1,18 @@
+{
+  "name": "Tokyo · Imperial Palace area, Japan",
+  "country": "JP",
+  "category": "city",
+  "scene_name": "city.glb",
+  "output_dir": "outputs/World_Cities_20261117",
+  "scale": 100,
+  "target": [
+    4,
+    1.2
+  ],
+  "budget": 1000000,
+  "calibration": "Approximate 100 m/source unit, giving a roughly 2.2 km city cut and plausible high-rise heights; not surveyed.",
+  "reviewed": true,
+  "description": "Tokyo Imperial Palace grounds and surrounding city blocks. Broad aerial model with coarse ground-level textures and incomplete bridges; use roads or a balloon. No swimming or tree climbing.",
+  "kind": "Textured aerial city reconstruction",
+  "credit": "CMBC"
+}

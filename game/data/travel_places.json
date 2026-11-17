@@ -1,0 +1,1999 @@
+{
+  "version": 1,
+  "places": [
+    {
+      "id": "home_woodland_pond",
+      "name": "Woodland pond",
+      "category": "home",
+      "provider": "pond",
+      "status": "ready",
+      "profiles": [
+        "windows",
+        "linux",
+        "pi5"
+      ],
+      "random_eligible": false,
+      "spawn": [
+        2.8,
+        0.2,
+        3.5
+      ],
+      "heading_degrees": 180,
+      "attribution": "FrogExplorer procedural woodland",
+      "description": "Climb the trees, swim, and catch flies.",
+      "capabilities": [
+        "walking",
+        "jumping",
+        "tree_climbing",
+        "swimming",
+        "flies"
+      ],
+      "anchor": {},
+      "size_range": [
+        0.25,
+        16.0
+      ]
+    },
+    {
+      "id": "helsinki_senate_square",
+      "name": "Senate Square · Helsinki, Finland",
+      "category": "city",
+      "provider": "local_mesh",
+      "status": "ready",
+      "profiles": [
+        "windows"
+      ],
+      "random_eligible": true,
+      "scene": "res://assets/worlds/helsinki_senate_square/senate_square.glb",
+      "spawn": [
+        0,
+        0,
+        0
+      ],
+      "heading_degrees": 180,
+      "bounds": [
+        -107,
+        -290,
+        130,
+        185
+      ],
+      "size_range": [
+        0.25,
+        16.0
+      ],
+      "attribution": "City of Helsinki · Helsinki 3D Mesh 2017 · CC BY 4.0",
+      "source_url": "https://www.hel.fi/en/decision-making/information-on-helsinki/maps-and-geospatial-data/helsinki-3d",
+      "description": "A 250 × 500 m city scan. Walk or hop around the square. Aerial scan detail is coarse at frog height; no climbable trees or swimming here.",
+      "capabilities": [
+        "walking",
+        "jumping"
+      ],
+      "anchor": {
+        "longitude": 24.9525,
+        "latitude": 60.1694,
+        "horizontal_crs": "EPSG:3879",
+        "source_srs": "EPSG:3879+5773",
+        "source_srs_origin": [
+          25490000,
+          6668000,
+          0
+        ],
+        "anchor_projected": [
+          25497363.062073022,
+          6672947.252662436,
+          6.4395913690821
+        ],
+        "source_year": 2017,
+        "vertical_conversion": "none; source metadata retained verbatim",
+        "local_axes": "X east, Y up, Z south"
+      },
+      "quality": "Local-pack prototype; L19 visual/collision mesh. Source survey is not current street conditions.",
+      "qualification": {
+        "windows": "Windows headless size/physics/travel and live ROS DDS checked at 0.25x-16x; rendered performance and physical gamepad untested",
+        "linux": "untested",
+        "pi5": "untested"
+      },
+      "spawn_candidates": [
+        [
+          20,
+          0,
+          0
+        ],
+        [
+          -20,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "rochester_high_falls",
+      "name": "Rochester, NY · High Falls",
+      "category": "city",
+      "provider": "local_mesh",
+      "status": "ready",
+      "profiles": [
+        "windows"
+      ],
+      "random_eligible": true,
+      "scene": "res://assets/worlds/rochester_high_falls/city.glb",
+      "spawn": [
+        -78.23350284490999,
+        5.786295860837577,
+        77.17358038046264
+      ],
+      "spawn_candidates": [
+        [
+          -66.31941710378234,
+          5.819037023450115,
+          87.83768807028379
+        ],
+        [
+          -83.80400992607981,
+          5.8301261077988125,
+          71.43167731104072
+        ],
+        [
+          -53.24276953491949,
+          6.257377519397331,
+          97.03731252043062
+        ],
+        [
+          -89.37451700724962,
+          5.865787399542492,
+          65.68977424161878
+        ],
+        [
+          -39.17176176876128,
+          6.512477867446742,
+          104.59483683649258
+        ],
+        [
+          -94.94502408841944,
+          5.835385130910432,
+          59.947871172196855
+        ],
+        [
+          -24.249206984313066,
+          6.75553679399463,
+          110.35848381163581
+        ],
+        [
+          -16.74454797370116,
+          7.101082963716032,
+          113.12978190719348
+        ],
+        [
+          -106.08603825075907,
+          5.9176363626061255,
+          48.464065033352995
+        ],
+        [
+          -1.8191705432992065,
+          7.407700059806978,
+          118.88572474435205
+        ],
+        [
+          -117.2270524130987,
+          5.837654715083837,
+          36.98025889450915
+        ]
+      ],
+      "heading_degrees": 180,
+      "bounds": [
+        -480.0,
+        -480.0,
+        480.0,
+        480.0
+      ],
+      "size_range": [
+        0.25,
+        16.0
+      ],
+      "camera_far": 1600.0,
+      "fog_density": 0.00035,
+      "attribution": "USGS / USDA NAIP / (c) OpenStreetMap contributors (ODbL)",
+      "source_url": "https://www.openstreetmap.org/copyright",
+      "source_urls": [
+        "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer",
+        "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer",
+        "https://www.openstreetmap.org/copyright"
+      ],
+      "description": "1 km square open-data prototype: real terrain and aerial ground imagery; simplified footprint buildings with some estimated heights. Walk, jump, fly or drive. City swimming and climbing are not implemented.",
+      "capabilities": [
+        "walking",
+        "jumping",
+        "balloon",
+        "driving"
+      ],
+      "anchor": {
+        "longitude": -77.6158,
+        "latitude": 43.1626,
+        "horizontal_crs": "EPSG:32618",
+        "anchor_projected": [
+          287348.6727908565,
+          4782193.341613017,
+          119.93162536621094
+        ],
+        "local_axes": "X east, Y up, Z south",
+        "elevation_source": "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer",
+        "vertical_conversion": "none; native 3DEP service elevations, see dem.service.json"
+      },
+      "quality": "Aerial-textured terrain and extruded mapped footprints; no photographic facades, bridge decks or near-ground street detail. See source receipts.",
+      "height_counts": {
+        "height_tag": 0,
+        "levels_tag": 40,
+        "estimated": 90
+      },
+      "qualification": {
+        "windows": "Windows headless city arrivals, collision, walking/jumping, 0.25x-16x size, all cameras and balloon/car physics checked; rendered game FPS and physical F710 untested",
+        "linux": "untested",
+        "pi5": "untested"
+      }
+    },
+    {
+      "id": "washington_national_mall",
+      "name": "Washington, DC · National Mall",
+      "category": "city",
+      "provider": "local_mesh",
+      "status": "ready",
+      "profiles": [
+        "windows"
+      ],
+      "random_eligible": true,
+      "scene": "res://assets/worlds/washington_national_mall/city.glb",
+      "spawn": [
+        -20.745521860924075,
+        -0.5215393280682621,
+        -14.89824258942485
+      ],
+      "spawn_candidates": [
+        [
+          -8.55142855771874,
+          -0.5210850504987148,
+          -24.91686434248284
+        ],
+        [
+          -26.533275117164383,
+          -0.5324968296926054,
+          -0.19749554806343728
+        ],
+        [
+          7.029078339818991,
+          -0.5189655671090394,
+          -27.630146758735407
+        ],
+        [
+          -24.061448265249126,
+          -0.5587375328822981,
+          15.417476066390249
+        ],
+        [
+          21.87357402942782,
+          -0.5154680264677323,
+          -22.22745436757962
+        ],
+        [
+          -14.264947161306281,
+          -0.570523066348378,
+          27.783501048248
+        ],
+        [
+          0.3501667533254107,
+          -0.5586216740784371,
+          33.7845962248423
+        ],
+        [
+          32.190276124856894,
+          -0.5196103138029118,
+          -10.292339850518282
+        ],
+        [
+          35.21796710659223,
+          -0.5596500551929386,
+          5.196474582737837
+        ],
+        [
+          16.052054637583222,
+          -0.5578292910151488,
+          31.792242289257466
+        ],
+        [
+          32.733918857947444,
+          -0.5623182549024941,
+          15.406800725119911
+        ]
+      ],
+      "heading_degrees": 180,
+      "bounds": [
+        -780.0,
+        -780.0,
+        780.0,
+        780.0
+      ],
+      "size_range": [
+        0.25,
+        16.0
+      ],
+      "camera_far": 2560.0,
+      "fog_density": 0.00035,
+      "attribution": "USGS / USDA NAIP / (c) OpenStreetMap contributors (ODbL)",
+      "source_url": "https://www.openstreetmap.org/copyright",
+      "source_urls": [
+        "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer",
+        "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer",
+        "https://www.openstreetmap.org/copyright"
+      ],
+      "description": "1.6 km square open-data prototype: real terrain and aerial ground imagery; simplified footprint buildings with some estimated heights. Walk, jump, fly or drive. City swimming and climbing are not implemented.",
+      "capabilities": [
+        "walking",
+        "jumping",
+        "balloon",
+        "driving"
+      ],
+      "anchor": {
+        "longitude": -77.0353,
+        "latitude": 38.8895,
+        "horizontal_crs": "EPSG:32618",
+        "anchor_projected": [
+          323478.0633696662,
+          4306483.241815796,
+          12.256424903869629
+        ],
+        "local_axes": "X east, Y up, Z south",
+        "elevation_source": "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer",
+        "vertical_conversion": "none; native 3DEP service elevations, see dem.service.json"
+      },
+      "quality": "Aerial-textured terrain and extruded mapped footprints; no photographic facades, bridge decks or near-ground street detail. See source receipts.",
+      "height_counts": {
+        "height_tag": 54,
+        "levels_tag": 52,
+        "estimated": 109
+      },
+      "qualification": {
+        "windows": "Windows headless city arrivals, collision, walking/jumping, 0.25x-16x size, all cameras and balloon/car physics checked; rendered game FPS and physical F710 untested",
+        "linux": "untested",
+        "pi5": "untested"
+      }
+    },
+    {
+      "id": "holland_downtown",
+      "name": "Holland, MI · Downtown & Centennial Park",
+      "category": "city",
+      "provider": "local_mesh",
+      "status": "ready",
+      "profiles": [
+        "windows"
+      ],
+      "random_eligible": true,
+      "scene": "res://assets/worlds/holland_downtown/city.glb",
+      "spawn": [
+        -0.6905286145054573,
+        0.019719937234875716,
+        1.0443416363210503
+      ],
+      "spawn_candidates": [
+        [
+          -0.8150451041231553,
+          0.042328113151179424,
+          -6.954689282722416
+        ],
+        [
+          11.230767661192049,
+          -0.18183632743195857,
+          -3.5415610297617697
+        ],
+        [
+          -0.9395615937408532,
+          0.020725591838165656,
+          -14.95372020176588
+        ],
+        [
+          11.538662772967646,
+          -0.12140697712975793,
+          12.455476214682735
+        ],
+        [
+          -0.4414956352700615,
+          -0.05914650368443745,
+          17.04240347440797
+        ],
+        [
+          10.922872549416452,
+          -0.11996375426590247,
+          -19.53859827420628
+        ],
+        [
+          -8.054251174093224,
+          -0.15078724349759567,
+          21.11959456652403
+        ],
+        [
+          -18.63362433283678,
+          -0.112003744300913,
+          15.417339968365713
+        ],
+        [
+          24.56830021992467,
+          -0.08949649942595442,
+          -3.693283870756808
+        ],
+        [
+          -1.188594572976249,
+          0.030844344024083058,
+          -30.9517820398528
+        ],
+        [
+          -24.04947844683793,
+          0.029863954400760805,
+          21.504961020784275
+        ]
+      ],
+      "heading_degrees": 180,
+      "bounds": [
+        -480.0,
+        -480.0,
+        480.0,
+        480.0
+      ],
+      "size_range": [
+        0.25,
+        16.0
+      ],
+      "camera_far": 1600.0,
+      "fog_density": 0.00035,
+      "attribution": "USGS / USDA NAIP / (c) OpenStreetMap contributors (ODbL)",
+      "source_url": "https://www.openstreetmap.org/copyright",
+      "source_urls": [
+        "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer",
+        "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer",
+        "https://www.openstreetmap.org/copyright"
+      ],
+      "description": "1 km square open-data prototype: real terrain and aerial ground imagery; simplified footprint buildings with some estimated heights. Walk, jump, fly or drive. City swimming and climbing are not implemented.",
+      "capabilities": [
+        "walking",
+        "jumping",
+        "balloon",
+        "driving"
+      ],
+      "anchor": {
+        "longitude": -86.1071,
+        "latitude": 42.789,
+        "horizontal_crs": "EPSG:32616",
+        "anchor_projected": [
+          573027.5771949824,
+          4737770.5988139305,
+          184.72007751464844
+        ],
+        "local_axes": "X east, Y up, Z south",
+        "elevation_source": "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer",
+        "vertical_conversion": "none; native 3DEP service elevations, see dem.service.json"
+      },
+      "quality": "Aerial-textured terrain and extruded mapped footprints; no photographic facades, bridge decks or near-ground street detail. See source receipts.",
+      "height_counts": {
+        "height_tag": 2,
+        "levels_tag": 141,
+        "estimated": 355
+      },
+      "qualification": {
+        "windows": "Windows headless city arrivals, collision, walking/jumping, 0.25x-16x size, all cameras and balloon/car physics checked; rendered game FPS and physical F710 untested",
+        "linux": "untested",
+        "pi5": "untested"
+      }
+    },
+    {
+      "id": "norfolk_waterfront",
+      "name": "Norfolk, VA · Downtown waterfront",
+      "category": "city",
+      "provider": "local_mesh",
+      "status": "ready",
+      "profiles": [
+        "windows"
+      ],
+      "random_eligible": true,
+      "scene": "res://assets/worlds/norfolk_waterfront/city.glb",
+      "spawn": [
+        -15.464133010161625,
+        -0.465836207794534,
+        -29.466101251057086
+      ],
+      "spawn_candidates": [
+        [
+          -5.6692849283912885,
+          -0.6151129282587613,
+          -35.90652755001474
+        ],
+        [
+          31.79167576954933,
+          -0.9060591659214325,
+          -19.143285593483597
+        ],
+        [
+          -0.46690437359317194,
+          -0.7951071933160876,
+          -42.03424829054096
+        ],
+        [
+          49.170296856671285,
+          -0.9423357571960964,
+          -12.083311223851634
+        ],
+        [
+          71.4186643902035,
+          -1.001663638368575,
+          -7.6752340183759005
+        ],
+        [
+          -36.02388513220624,
+          0.3594829766880063,
+          76.50920849325497
+        ],
+        [
+          -28.70483864744436,
+          0.36442424208963636,
+          79.73900083238374
+        ],
+        [
+          -50.01456110733318,
+          0.3219682647087913,
+          68.98868372646497
+        ],
+        [
+          -14.066745677920604,
+          0.38376686720310443,
+          86.19858551064125
+        ],
+        [
+          0.571347291603149,
+          0.45962204032327175,
+          92.65817018889877
+        ],
+        [
+          96.66595904692124,
+          -0.734254864361287,
+          8.088534661797395
+        ]
+      ],
+      "heading_degrees": 180,
+      "bounds": [
+        -480.0,
+        -480.0,
+        480.0,
+        480.0
+      ],
+      "size_range": [
+        0.25,
+        16.0
+      ],
+      "camera_far": 1600.0,
+      "fog_density": 0.00035,
+      "attribution": "USGS / USDA NAIP / (c) OpenStreetMap contributors (ODbL)",
+      "source_url": "https://www.openstreetmap.org/copyright",
+      "source_urls": [
+        "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer",
+        "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer",
+        "https://www.openstreetmap.org/copyright"
+      ],
+      "description": "1 km square open-data prototype: real terrain and aerial ground imagery; simplified footprint buildings with some estimated heights. Walk, jump, fly or drive. City swimming and climbing are not implemented.",
+      "capabilities": [
+        "walking",
+        "jumping",
+        "balloon",
+        "driving"
+      ],
+      "anchor": {
+        "longitude": -76.2917,
+        "latitude": 36.847,
+        "horizontal_crs": "EPSG:32618",
+        "anchor_projected": [
+          384836.9806031747,
+          4078678.347910973,
+          2.3594634532928467
+        ],
+        "local_axes": "X east, Y up, Z south",
+        "elevation_source": "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer",
+        "vertical_conversion": "none; native 3DEP service elevations, see dem.service.json"
+      },
+      "quality": "Aerial-textured terrain and extruded mapped footprints; no photographic facades, bridge decks or near-ground street detail. See source receipts.",
+      "height_counts": {
+        "height_tag": 3,
+        "levels_tag": 67,
+        "estimated": 120
+      },
+      "qualification": {
+        "windows": "Windows headless city arrivals, collision, walking/jumping, 0.25x-16x size, all cameras and balloon/car physics checked; rendered game FPS and physical F710 untested",
+        "linux": "untested",
+        "pi5": "untested"
+      }
+    },
+    {
+      "id": "lynchburg_riverfront",
+      "name": "Lynchburg, VA · Downtown riverfront",
+      "category": "city",
+      "provider": "local_mesh",
+      "status": "ready",
+      "profiles": [
+        "windows"
+      ],
+      "random_eligible": true,
+      "scene": "res://assets/worlds/lynchburg_riverfront/city.glb",
+      "spawn": [
+        -0.6670241836232407,
+        0.18184046885156932,
+        1.5384493203440428
+      ],
+      "spawn_candidates": [
+        [
+          8.143804360841674,
+          -0.6544661356857295,
+          -0.6023410555300481
+        ],
+        [
+          5.256841471744423,
+          0.0044382673256473035,
+          7.704811057619212
+        ],
+        [
+          -10.19672861808646,
+          0.5607680184030324,
+          -11.313971984288486
+        ],
+        [
+          17.18284497873465,
+          -1.6059726097396583,
+          -1.8126864910183347
+        ],
+        [
+          -13.54519268124467,
+          1.7853382782296103,
+          11.032288560038397
+        ],
+        [
+          15.015656043633584,
+          -0.7245265624042565,
+          9.780167045459205
+        ],
+        [
+          -7.771003198656457,
+          1.8133008254872687,
+          16.993208934262185
+        ],
+        [
+          -18.96917203396397,
+          1.3893776511424756,
+          2.004100029289326
+        ],
+        [
+          21.962305984873257,
+          -1.8225390394780936,
+          4.602775533487225
+        ],
+        [
+          -23.656593632571973,
+          1.4533153261939242,
+          -4.478806630296582
+        ],
+        [
+          24.63511143365004,
+          -2.767617381402366,
+          -6.453097064494996
+        ]
+      ],
+      "heading_degrees": 180,
+      "bounds": [
+        -480.0,
+        -480.0,
+        480.0,
+        480.0
+      ],
+      "size_range": [
+        0.25,
+        16.0
+      ],
+      "camera_far": 1600.0,
+      "fog_density": 0.00035,
+      "attribution": "USGS / USDA NAIP / (c) OpenStreetMap contributors (ODbL)",
+      "source_url": "https://www.openstreetmap.org/copyright",
+      "source_urls": [
+        "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer",
+        "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer",
+        "https://www.openstreetmap.org/copyright"
+      ],
+      "description": "1 km square open-data prototype: real terrain and aerial ground imagery; simplified footprint buildings with some estimated heights. Walk, jump, fly or drive. City swimming and climbing are not implemented.",
+      "capabilities": [
+        "walking",
+        "jumping",
+        "balloon",
+        "driving"
+      ],
+      "anchor": {
+        "longitude": -79.1415,
+        "latitude": 37.4154,
+        "horizontal_crs": "EPSG:32617",
+        "anchor_projected": [
+          664465.727643122,
+          4142576.6591266673,
+          177.90159606933594
+        ],
+        "local_axes": "X east, Y up, Z south",
+        "elevation_source": "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer",
+        "vertical_conversion": "none; native 3DEP service elevations, see dem.service.json"
+      },
+      "quality": "Aerial-textured terrain and extruded mapped footprints; no photographic facades, bridge decks or near-ground street detail. See source receipts.",
+      "height_counts": {
+        "height_tag": 9,
+        "levels_tag": 90,
+        "estimated": 367
+      },
+      "qualification": {
+        "windows": "Windows headless city arrivals, collision, walking/jumping, 0.25x-16x size, all cameras and balloon/car physics checked; rendered game FPS and physical F710 untested",
+        "linux": "untested",
+        "pi5": "untested"
+      }
+    },
+    {
+      "id": "machu_picchu",
+      "name": "Machu Picchu · Peru",
+      "category": "history",
+      "provider": "local_mesh",
+      "status": "ready",
+      "profiles": [
+        "windows"
+      ],
+      "random_eligible": true,
+      "scene": "res://assets/worlds/machu_picchu/landmark.glb",
+      "spawn": [
+        4.157968521118164,
+        0.04,
+        -5.766074180603027
+      ],
+      "spawn_candidates": [
+        [
+          2.657968521118164,
+          0.039996185302734376,
+          -5.766074180603027
+        ],
+        [
+          4.157968521118164,
+          0.039996185302734376,
+          -4.266074180603027
+        ],
+        [
+          4.157968521118164,
+          0.039996185302734376,
+          -7.266074180603027
+        ],
+        [
+          5.657968521118164,
+          0.039996185302734376,
+          -5.766074180603027
+        ],
+        [
+          2.657968521118164,
+          0.03999237060546875,
+          -4.266074180603027
+        ],
+        [
+          2.657968521118164,
+          0.039996185302734376,
+          -7.266074180603027
+        ],
+        [
+          5.657968521118164,
+          0.039996185302734376,
+          -4.266074180603027
+        ],
+        [
+          5.657968521118164,
+          0.039996185302734376,
+          -7.266074180603027
+        ],
+        [
+          1.157968521118164,
+          0.039996185302734376,
+          -5.766074180603027
+        ],
+        [
+          4.157968521118164,
+          0.04,
+          -2.7660741806030273
+        ],
+        [
+          4.157968521118164,
+          0.039996185302734376,
+          -8.766074180603027
+        ],
+        [
+          7.157968521118164,
+          0.03999237060546875,
+          -5.766074180603027
+        ],
+        [
+          1.157968521118164,
+          0.039996185302734376,
+          -4.266074180603027
+        ],
+        [
+          1.157968521118164,
+          0.039996185302734376,
+          -7.266074180603027
+        ],
+        [
+          2.657968521118164,
+          0.039996185302734376,
+          -2.7660741806030273
+        ]
+      ],
+      "heading_degrees": 0,
+      "bounds": [
+        -145.5158233642578,
+        -265.4368591308594,
+        145.51585388183594,
+        265.43695068359375
+      ],
+      "vertical_bounds": [
+        -42.550045013427734,
+        40.89497756958008
+      ],
+      "size_range": [
+        0.25,
+        16.0
+      ],
+      "camera_far": 1062.74755859375,
+      "fog_density": 0.0002,
+      "attribution": "Ministerio de Cultura Perú / original SketchUp contributor · CC BY 4.0 · archived via Objaverse / Zenodo",
+      "source_url": "https://sketchfab.com/3d-models/d59370ac4a444628b95081f5bb7bbd02",
+      "source_urls": [
+        "https://sketchfab.com/3d-models/d59370ac4a444628b95081f5bb7bbd02",
+        "https://zenodo.org/records/10326006"
+      ],
+      "description": "Terraced citadel reconstruction with modeled walls and ruins. Bounded architectural model; surrounding mountains are not included.",
+      "capabilities": [
+        "walking",
+        "jumping",
+        "balloon",
+        "driving"
+      ],
+      "anchor": {
+        "horizontal_crs": "LOCAL_MODEL",
+        "source_units_to_meters": 0.01,
+        "source_blender_origin": [
+          14584.203125,
+          -26576.607421875,
+          -4089.486312866211
+        ],
+        "local_axes": "X model-right, Y up, Z model-back; north orientation unknown",
+        "scale_accuracy": "Assumed centimetre-scale architectural source; 0.01 m/unit, approximate, not surveyed.",
+        "georeferenced": false
+      },
+      "quality": "Textured architectural reconstruction; finite source cut, holes and coarse close-up textures retained. No invented surrounding terrain, water or climbing volumes.",
+      "qualification": {
+        "windows": "Windows prototype; see LANDMARKS.md and retained validation receipts for checked physics routes. Rendered game FPS and physical controller untested",
+        "linux": "untested",
+        "pi5": "untested"
+      }
+    },
+    {
+      "id": "great_wall_china",
+      "name": "Great Wall · Huanghuacheng area, China",
+      "category": "history",
+      "provider": "local_mesh",
+      "status": "ready",
+      "profiles": [
+        "windows"
+      ],
+      "random_eligible": true,
+      "scene": "res://assets/worlds/great_wall_china/landmark.glb",
+      "spawn": [
+        41.77949523925781,
+        0.04,
+        -26.255950927734375
+      ],
+      "spawn_candidates": [
+        [
+          43.27949523925781,
+          0.047930755615234376,
+          -26.755950927734375
+        ]
+      ],
+      "heading_degrees": 0,
+      "bounds": [
+        -62.17597961425781,
+        -39.080509185791016,
+        62.221675872802734,
+        39.06599044799805
+      ],
+      "vertical_bounds": [
+        -9.851947784423828,
+        32.21683883666992
+      ],
+      "size_range": [
+        0.25,
+        16.0
+      ],
+      "camera_far": 650,
+      "fog_density": 0.0002,
+      "attribution": "Lionel · CC BY 4.0 · archived via Objaverse / Zenodo",
+      "source_url": "https://sketchfab.com/3d-models/3ce0cc3108e54097862ea735309d9292",
+      "source_urls": [
+        "https://sketchfab.com/3d-models/3ce0cc3108e54097862ea735309d9292",
+        "https://zenodo.org/records/10219301"
+      ],
+      "description": "Short drone-scanned wall section near Huanghuacheng, with watchtowers. Narrow paths and incomplete surrounding terrain; use the balloon to explore.",
+      "capabilities": [
+        "walking",
+        "jumping",
+        "balloon",
+        "driving"
+      ],
+      "anchor": {
+        "horizontal_crs": "LOCAL_MODEL",
+        "source_units_to_meters": 1,
+        "source_blender_origin": [
+          -64.27949523925781,
+          -372.7559509277344,
+          -40.93888473510742
+        ],
+        "local_axes": "X model-right, Y up, Z model-back; north orientation unknown",
+        "scale_accuracy": "Native source units treated as metres; physical scale unverified.",
+        "georeferenced": false
+      },
+      "quality": "Drone photogrammetry, 156 Mavic Pro photographs; finite source cut, holes and coarse close-up textures retained. No invented surrounding terrain, water or climbing volumes.",
+      "qualification": {
+        "windows": "Windows prototype; see LANDMARKS.md and retained validation receipts for checked physics routes. Rendered game FPS and physical controller untested",
+        "linux": "untested",
+        "pi5": "untested"
+      }
+    },
+    {
+      "id": "giza_pyramids",
+      "name": "Pyramids of Giza · Egypt",
+      "category": "history",
+      "provider": "local_mesh",
+      "status": "ready",
+      "profiles": [
+        "windows"
+      ],
+      "random_eligible": true,
+      "scene": "res://assets/worlds/giza_pyramids/landmark.glb",
+      "spawn": [
+        16.35936737060547,
+        0.04,
+        3.2935333251953125
+      ],
+      "spawn_candidates": [
+        [
+          14.859367370605469,
+          -0.06905456542968749,
+          3.2935333251953125
+        ],
+        [
+          16.35936737060547,
+          -0.008583984375,
+          4.7935333251953125
+        ],
+        [
+          16.35936737060547,
+          -0.07289978027343749,
+          1.7935333251953125
+        ],
+        [
+          17.85936737060547,
+          0.16652587890625,
+          3.2935333251953125
+        ],
+        [
+          14.859367370605469,
+          -0.1408624267578125,
+          4.7935333251953125
+        ],
+        [
+          14.859367370605469,
+          -0.145546875,
+          1.7935333251953125
+        ],
+        [
+          17.85936737060547,
+          0.166220703125,
+          4.7935333251953125
+        ],
+        [
+          17.85936737060547,
+          0.060782470703125,
+          1.7935333251953125
+        ],
+        [
+          13.359367370605469,
+          -0.12397094726562499,
+          3.2935333251953125
+        ],
+        [
+          16.35936737060547,
+          -0.18479248046875,
+          0.2935333251953125
+        ],
+        [
+          19.35936737060547,
+          0.2930975341796875,
+          3.2935333251953125
+        ],
+        [
+          15.359367370605469,
+          -0.24948974609375,
+          6.2935333251953125
+        ],
+        [
+          17.35936737060547,
+          0.006232299804687501,
+          6.2935333251953125
+        ],
+        [
+          13.359367370605469,
+          -0.1979913330078125,
+          4.7935333251953125
+        ],
+        [
+          13.359367370605469,
+          -0.17246337890625,
+          1.7935333251953125
+        ]
+      ],
+      "heading_degrees": 0,
+      "bounds": [
+        -470.0250549316406,
+        -619.9236450195312,
+        470.0250244140625,
+        619.9236450195312
+      ],
+      "vertical_bounds": [
+        -49.30192565917969,
+        136.7852325439453
+      ],
+      "size_range": [
+        0.25,
+        16.0
+      ],
+      "camera_far": 2480.694580078125,
+      "fog_density": 0.0002,
+      "attribution": "gabriele.l · CC BY 4.0 · archived via Objaverse / Zenodo",
+      "source_url": "https://sketchfab.com/3d-models/20fa1b7c608a43e1814c3744641732a4",
+      "source_urls": [
+        "https://sketchfab.com/3d-models/20fa1b7c608a43e1814c3744641732a4",
+        "https://zenodo.org/records/10239232"
+      ],
+      "description": "Partial aerial reconstruction of the Giza plateau and two large pyramids. Coarse at frog height, with holes at some scan edges; no pyramid interiors.",
+      "capabilities": [
+        "walking",
+        "jumping",
+        "balloon",
+        "driving"
+      ],
+      "anchor": {
+        "horizontal_crs": "LOCAL_MODEL",
+        "source_units_to_meters": 10,
+        "source_blender_origin": [
+          8.364063262939453,
+          78.32935333251953,
+          -14.65904541015625
+        ],
+        "local_axes": "X model-right, Y up, Z model-back; north orientation unknown",
+        "scale_accuracy": "Approximate 10 m/source unit estimated from the large pyramid bases. No survey control.",
+        "georeferenced": false
+      },
+      "quality": "Aerial photogrammetry, Meshroom reconstruction; finite source cut, holes and coarse close-up textures retained. No invented surrounding terrain, water or climbing volumes.",
+      "qualification": {
+        "windows": "Windows prototype; see LANDMARKS.md and retained validation receipts for checked physics routes. Rendered game FPS and physical controller untested",
+        "linux": "untested",
+        "pi5": "untested"
+      }
+    },
+    {
+      "id": "rome_colosseum",
+      "name": "Colosseum · Rome, Italy",
+      "category": "history",
+      "provider": "local_mesh",
+      "status": "ready",
+      "profiles": [
+        "windows"
+      ],
+      "random_eligible": true,
+      "scene": "res://assets/worlds/rome_colosseum/landmark.glb",
+      "spawn": [
+        -138.4025115966797,
+        0.04,
+        43.914451599121094
+      ],
+      "spawn_candidates": [
+        [
+          -136.9025115966797,
+          0.059458770751953126,
+          43.914451599121094
+        ],
+        [
+          -136.9025115966797,
+          0.04074005126953125,
+          42.414451599121094
+        ],
+        [
+          -135.4025115966797,
+          0.13889984130859376,
+          43.914451599121094
+        ],
+        [
+          -136.9025115966797,
+          0.10903457641601563,
+          40.914451599121094
+        ],
+        [
+          -135.4025115966797,
+          0.15824417114257813,
+          42.414451599121094
+        ],
+        [
+          -141.9025115966797,
+          0.3964338684082031,
+          44.914451599121094
+        ],
+        [
+          -135.4025115966797,
+          0.17215255737304688,
+          40.914451599121094
+        ],
+        [
+          -141.9025115966797,
+          0.4913282775878906,
+          46.414451599121094
+        ],
+        [
+          -133.9025115966797,
+          0.21092132568359376,
+          43.914451599121094
+        ],
+        [
+          -141.4025115966797,
+          0.4472761535644531,
+          40.414451599121094
+        ],
+        [
+          -137.4025115966797,
+          0.10105804443359376,
+          39.414451599121094
+        ],
+        [
+          -133.9025115966797,
+          0.2606878662109375,
+          42.414451599121094
+        ],
+        [
+          -136.4025115966797,
+          0.6057539367675782,
+          48.414451599121094
+        ],
+        [
+          -143.4025115966797,
+          0.35518173217773436,
+          44.914451599121094
+        ],
+        [
+          -135.9025115966797,
+          0.16418746948242188,
+          39.414451599121094
+        ]
+      ],
+      "heading_degrees": 0,
+      "bounds": [
+        -343.78826904296875,
+        -136.65066528320312,
+        343.78826904296875,
+        136.65066528320312
+      ],
+      "vertical_bounds": [
+        -23.400007247924805,
+        49.68739318847656
+      ],
+      "size_range": [
+        0.25,
+        16.0
+      ],
+      "camera_far": 1376.153076171875,
+      "fog_density": 0.0002,
+      "attribution": "CMBC · CC BY 4.0 · archived via Objaverse / Zenodo",
+      "source_url": "https://sketchfab.com/3d-models/535dc96e586f40bd956ea3cbff810055",
+      "source_urls": [
+        "https://sketchfab.com/3d-models/535dc96e586f40bd956ea3cbff810055",
+        "https://zenodo.org/records/10386979"
+      ],
+      "description": "Aerial scan of the Colosseum and surrounding Rome block. Explore the plaza and fly around the arena; close-up scan detail and arch openings are limited. Dense Windows prototype.",
+      "capabilities": [
+        "walking",
+        "jumping",
+        "balloon",
+        "driving"
+      ],
+      "anchor": {
+        "horizontal_crs": "LOCAL_MODEL",
+        "source_units_to_meters": 19,
+        "source_blender_origin": [
+          1.2843427658081055,
+          0.31128692626953125,
+          -0.35817497654965047
+        ],
+        "local_axes": "X model-right, Y up, Z model-back; north orientation unknown",
+        "scale_accuracy": "Approximate 19 m/source unit from roughly 10-unit outer major axis versus roughly 189 m landmark. Not surveyed.",
+        "georeferenced": false
+      },
+      "quality": "Textured aerial reconstruction; finite source cut, holes and coarse close-up textures retained. No invented surrounding terrain, water or climbing volumes.",
+      "qualification": {
+        "windows": "Windows prototype; see LANDMARKS.md and retained validation receipts for checked physics routes. Rendered game FPS and physical controller untested",
+        "linux": "untested",
+        "pi5": "untested"
+      }
+    },
+    {
+      "id": "tokyo_imperial_palace",
+      "name": "Tokyo · Imperial Palace area, Japan",
+      "category": "city",
+      "provider": "local_mesh",
+      "status": "ready",
+      "profiles": [
+        "windows"
+      ],
+      "random_eligible": true,
+      "scene": "res://assets/worlds/tokyo_imperial_palace/city.glb",
+      "spawn": [
+        406.7393798828125,
+        0.04,
+        136.41790771484375
+      ],
+      "spawn_candidates": [
+        [
+          405.2393798828125,
+          0.10123352050781251,
+          136.41790771484375
+        ],
+        [
+          406.7393798828125,
+          0.06291870117187501,
+          137.91790771484375
+        ],
+        [
+          406.7393798828125,
+          0.035941162109375,
+          134.91790771484375
+        ],
+        [
+          408.2393798828125,
+          0.0351629638671875,
+          136.41790771484375
+        ],
+        [
+          405.2393798828125,
+          0.12416748046875001,
+          137.91790771484375
+        ],
+        [
+          405.2393798828125,
+          0.07831481933593751,
+          134.91790771484375
+        ],
+        [
+          408.2393798828125,
+          0.034293212890625,
+          137.91790771484375
+        ],
+        [
+          408.2393798828125,
+          0.0360174560546875,
+          134.91790771484375
+        ],
+        [
+          403.7393798828125,
+          0.1624517822265625,
+          136.41790771484375
+        ],
+        [
+          406.7393798828125,
+          0.08585266113281251,
+          139.41790771484375
+        ],
+        [
+          406.7393798828125,
+          0.0367803955078125,
+          133.41790771484375
+        ],
+        [
+          409.7393798828125,
+          0.0352392578125,
+          136.41790771484375
+        ],
+        [
+          403.7393798828125,
+          0.1853857421875,
+          137.91790771484375
+        ],
+        [
+          403.7393798828125,
+          0.13954833984375,
+          134.91790771484375
+        ],
+        [
+          405.2393798828125,
+          0.147086181640625,
+          139.41790771484375
+        ]
+      ],
+      "heading_degrees": 0,
+      "bounds": [
+        -1117.3260498046875,
+        -766.0299682617188,
+        1117.3260498046875,
+        766.00048828125
+      ],
+      "vertical_bounds": [
+        -46.26228332519531,
+        132.9841766357422
+      ],
+      "size_range": [
+        0.25,
+        16.0
+      ],
+      "camera_far": 4470.30419921875,
+      "fog_density": 0.0002,
+      "attribution": "CMBC · cc-by-4.0 · archived via Objaverse / Zenodo",
+      "source_url": "https://sketchfab.com/3d-models/75ffe33bf9434988ac8967e62566d06d",
+      "source_urls": [
+        "https://sketchfab.com/3d-models/75ffe33bf9434988ac8967e62566d06d",
+        "https://zenodo.org/records/10352067"
+      ],
+      "description": "Tokyo Imperial Palace grounds and surrounding city blocks. Broad aerial model with coarse ground-level textures and incomplete bridges; use roads or a balloon. No swimming or tree climbing.",
+      "capabilities": [
+        "walking",
+        "jumping",
+        "balloon",
+        "driving"
+      ],
+      "anchor": {
+        "horizontal_crs": "LOCAL_MODEL",
+        "source_units_to_meters": 100,
+        "source_blender_origin": [
+          -0.06739377975463867,
+          2.5641791820526123,
+          -0.00226104736328125
+        ],
+        "local_axes": "X model-right, Y up, Z model-back; north orientation unknown",
+        "scale_accuracy": "Approximate 100 m/source unit, giving a roughly 2.2 km city cut and plausible high-rise heights; not surveyed.",
+        "georeferenced": false
+      },
+      "quality": "Textured aerial city reconstruction; finite source cut, holes and coarse close-up textures retained. No invented surrounding terrain, water or climbing volumes.",
+      "qualification": {
+        "windows": "Windows prototype; see WORLD_CITIES.md and validation receipts. Rendered game FPS and physical controller untested",
+        "linux": "untested",
+        "pi5": "untested"
+      },
+      "country": "JP",
+      "license": {
+        "id": "cc-by-4.0"
+      }
+    },
+    {
+      "id": "shanghai_lujiazui",
+      "name": "Shanghai · Central skyline, China",
+      "category": "city",
+      "provider": "local_mesh",
+      "status": "ready",
+      "profiles": [
+        "windows"
+      ],
+      "random_eligible": true,
+      "scene": "res://assets/worlds/shanghai_lujiazui/city.glb",
+      "spawn": [
+        880.87841796875,
+        0.04,
+        39.62767028808594
+      ],
+      "spawn_candidates": [
+        [
+          879.37841796875,
+          0.04,
+          39.62767028808594
+        ],
+        [
+          880.87841796875,
+          0.04,
+          41.12767028808594
+        ],
+        [
+          880.87841796875,
+          0.04,
+          38.12767028808594
+        ],
+        [
+          882.37841796875,
+          0.04,
+          39.62767028808594
+        ],
+        [
+          879.37841796875,
+          0.04,
+          41.12767028808594
+        ],
+        [
+          879.37841796875,
+          0.04,
+          38.12767028808594
+        ],
+        [
+          882.37841796875,
+          0.04,
+          41.12767028808594
+        ],
+        [
+          882.37841796875,
+          0.04006103515625,
+          38.12767028808594
+        ],
+        [
+          877.87841796875,
+          0.04,
+          39.62767028808594
+        ],
+        [
+          880.87841796875,
+          0.04,
+          42.62767028808594
+        ],
+        [
+          880.87841796875,
+          0.04,
+          36.62767028808594
+        ],
+        [
+          883.87841796875,
+          0.03993896484375,
+          39.62767028808594
+        ],
+        [
+          877.87841796875,
+          0.04006103515625,
+          41.12767028808594
+        ],
+        [
+          877.87841796875,
+          0.04,
+          38.12767028808594
+        ],
+        [
+          879.37841796875,
+          0.04,
+          42.62767028808594
+        ]
+      ],
+      "heading_degrees": 0,
+      "bounds": [
+        -1721.590087890625,
+        -1785.27490234375,
+        1721.590087890625,
+        1785.2750244140625
+      ],
+      "vertical_bounds": [
+        -21.105979919433594,
+        602.383544921875
+      ],
+      "size_range": [
+        0.25,
+        16.0
+      ],
+      "camera_far": 7142.099609375,
+      "fog_density": 0.0002,
+      "attribution": "beyond.zht · cc-by-4.0 · archived via Objaverse / Zenodo",
+      "source_url": "https://sketchfab.com/3d-models/3eab4438b9b34ceeaa35367429732970",
+      "source_urls": [
+        "https://sketchfab.com/3d-models/3eab4438b9b34ceeaa35367429732970",
+        "https://zenodo.org/records/10319397"
+      ],
+      "description": "Central Shanghai and Lujiazui skyline, modeled streets and river. Simplified architecture with plain facades, not a photographic scan. The visible river has no swimming volume.",
+      "capabilities": [
+        "walking",
+        "jumping",
+        "balloon",
+        "driving"
+      ],
+      "anchor": {
+        "horizontal_crs": "LOCAL_MODEL",
+        "source_units_to_meters": 1500,
+        "source_blender_origin": [
+          -1.0872522592544556,
+          1.076418399810791,
+          7.32421875e-05
+        ],
+        "local_axes": "X model-right, Y up, Z model-back; north orientation unknown",
+        "scale_accuracy": "Approximate 1500 m/source unit from the roughly 0.4-unit skyline height versus the roughly 600 m tallest towers; not surveyed.",
+        "georeferenced": false
+      },
+      "quality": "Simplified architectural city model, plain building materials; finite source cut, holes and coarse close-up textures retained. No invented surrounding terrain, water or climbing volumes.",
+      "qualification": {
+        "windows": "Windows prototype; see WORLD_CITIES.md and validation receipts. Rendered game FPS and physical controller untested",
+        "linux": "untested",
+        "pi5": "untested"
+      },
+      "country": "CN",
+      "license": {
+        "id": "cc-by-4.0"
+      }
+    },
+    {
+      "id": "berlin_teufelsberg",
+      "name": "Berlin · Teufelsberg, Germany",
+      "category": "city",
+      "provider": "local_mesh",
+      "status": "ready",
+      "profiles": [
+        "windows"
+      ],
+      "random_eligible": true,
+      "scene": "res://assets/worlds/berlin_teufelsberg/city.glb",
+      "spawn": [
+        -11.354911804199219,
+        0.04,
+        -70.6418228149414
+      ],
+      "spawn_candidates": [
+        [
+          -12.854911804199219,
+          0.08962921142578126,
+          -70.6418228149414
+        ],
+        [
+          -11.354911804199219,
+          0.10250000000000001,
+          -69.1418228149414
+        ],
+        [
+          -11.354911804199219,
+          0.0552435302734375,
+          -72.1418228149414
+        ],
+        [
+          -9.854911804199219,
+          0.053946533203125,
+          -70.6418228149414
+        ],
+        [
+          -12.854911804199219,
+          0.11247161865234376,
+          -69.1418228149414
+        ],
+        [
+          -9.854911804199219,
+          0.13667205810546876,
+          -69.1418228149414
+        ],
+        [
+          -9.854911804199219,
+          0.0300360107421875,
+          -72.1418228149414
+        ],
+        [
+          -12.854911804199219,
+          0.182974853515625,
+          -73.1418228149414
+        ],
+        [
+          -11.354911804199219,
+          0.28655914306640623,
+          -67.6418228149414
+        ],
+        [
+          -11.354911804199219,
+          0.10543731689453126,
+          -73.6418228149414
+        ],
+        [
+          -8.354911804199219,
+          0.157706298828125,
+          -70.6418228149414
+        ],
+        [
+          -14.354911804199219,
+          0.17385009765625,
+          -69.6418228149414
+        ],
+        [
+          -12.854911804199219,
+          0.26769927978515623,
+          -67.6418228149414
+        ],
+        [
+          -9.854911804199219,
+          0.3236761474609375,
+          -67.6418228149414
+        ],
+        [
+          -9.854911804199219,
+          0.0208502197265625,
+          -73.6418228149414
+        ]
+      ],
+      "heading_degrees": 0,
+      "bounds": [
+        -94.51510620117188,
+        -96.40670776367188,
+        94.51510620117188,
+        96.40672302246094
+      ],
+      "vertical_bounds": [
+        -11.077982902526855,
+        59.212249755859375
+      ],
+      "size_range": [
+        0.25,
+        16.0
+      ],
+      "camera_far": 650,
+      "fog_density": 0.0002,
+      "attribution": "shahriyarshahrabi · cc-by-4.0 · archived via Objaverse / Zenodo",
+      "source_url": "https://sketchfab.com/3d-models/0b29654380d74dc7ad1011eb7d1d79e5",
+      "source_urls": [
+        "https://sketchfab.com/3d-models/0b29654380d74dc7ad1011eb7d1d79e5",
+        "https://zenodo.org/records/10305982"
+      ],
+      "description": "Berlin Teufelsberg former listening station: radomes, graffiti-covered buildings, paths and surrounding trees. Bounded scan; the source photographic sky sphere is removed. No climbable-tree volumes.",
+      "capabilities": [
+        "walking",
+        "jumping",
+        "balloon",
+        "driving"
+      ],
+      "anchor": {
+        "horizontal_crs": "LOCAL_MODEL",
+        "source_units_to_meters": 0.01,
+        "source_blender_origin": [
+          1635.4912109375,
+          -1064.1826171875,
+          680.3985595703125
+        ],
+        "local_axes": "X model-right, Y up, Z model-back; north orientation unknown",
+        "scale_accuracy": "Assumed centimetre-scale scan; 0.01 m/unit gives a roughly 190 m compound and plausible tower heights. Not surveyed.",
+        "georeferenced": false
+      },
+      "quality": "Textured photogrammetry of the Teufelsberg compound; finite source cut, holes and coarse close-up textures retained. No invented surrounding terrain, water or climbing volumes.",
+      "qualification": {
+        "windows": "Windows prototype; see WORLD_CITIES.md and validation receipts. Rendered game FPS and physical controller untested",
+        "linux": "untested",
+        "pi5": "untested"
+      },
+      "country": "DE",
+      "license": {
+        "id": "cc-by-4.0"
+      }
+    },
+    {
+      "id": "moscow_andronikov",
+      "name": "Moscow · Andronikov area, Russia",
+      "category": "city",
+      "provider": "local_mesh",
+      "status": "ready",
+      "profiles": [
+        "windows"
+      ],
+      "random_eligible": true,
+      "scene": "res://assets/worlds/moscow_andronikov/city.glb",
+      "spawn": [
+        -22.91375732421875,
+        0.04,
+        -7.099643707275391
+      ],
+      "spawn_candidates": [
+        [
+          -28.41375732421875,
+          0.16030792236328126,
+          -9.09964370727539
+        ],
+        [
+          -14.91375732421875,
+          0.17098907470703126,
+          -3.0996437072753906
+        ]
+      ],
+      "heading_degrees": 0,
+      "bounds": [
+        -64.41372680664062,
+        -61.36300277709961,
+        64.47352600097656,
+        61.362998962402344
+      ],
+      "vertical_bounds": [
+        -1.7612327337265015,
+        22.393352508544922
+      ],
+      "size_range": [
+        0.25,
+        16.0
+      ],
+      "camera_far": 650,
+      "fog_density": 0.0002,
+      "attribution": "neominigan · cc-by-4.0 · archived via Objaverse / Zenodo",
+      "source_url": "https://sketchfab.com/3d-models/06bb654d078c4c61bcabe431d6a1ef8e",
+      "source_urls": [
+        "https://sketchfab.com/3d-models/06bb654d078c4c61bcabe431d6a1ef8e",
+        "https://zenodo.org/records/10352255"
+      ],
+      "description": "Moscow city block near Andronikov Monastery: buildings, a small courtyard and surrounding greenery. Partial aerial scan with rough vegetation and holes at its edges; the monastery church itself is not included.",
+      "capabilities": [
+        "walking",
+        "jumping",
+        "balloon",
+        "driving"
+      ],
+      "anchor": {
+        "horizontal_crs": "LOCAL_MODEL",
+        "source_units_to_meters": 10,
+        "source_blender_origin": [
+          -0.15862441062927246,
+          -0.35996437072753906,
+          0.05189170837402344
+        ],
+        "local_axes": "X model-right, Y up, Z model-back; north orientation unknown",
+        "scale_accuracy": "Approximate 10 m/source unit, giving a roughly 130 m city block and plausible building heights; not surveyed.",
+        "georeferenced": false
+      },
+      "quality": "Textured aerial photogrammetry near Andronikov Monastery; finite source cut, holes and coarse close-up textures retained. No invented surrounding terrain, water or climbing volumes.",
+      "qualification": {
+        "windows": "Windows prototype; see WORLD_CITIES.md and validation receipts. Rendered game FPS and physical controller untested",
+        "linux": "untested",
+        "pi5": "untested"
+      },
+      "country": "RU",
+      "license": {
+        "id": "cc-by-4.0"
+      }
+    },
+    {
+      "id": "montreal_sainte_elisabeth",
+      "name": "Montréal · Rue Sainte-Élisabeth, Canada",
+      "category": "city",
+      "provider": "local_mesh",
+      "status": "ready",
+      "profiles": [
+        "windows"
+      ],
+      "random_eligible": true,
+      "scene": "res://assets/worlds/montreal_sainte_elisabeth/city.glb",
+      "spawn": [
+        0.15565109252929688,
+        0.04,
+        0.2600368857383728
+      ],
+      "spawn_candidates": [
+        [
+          -1.3443489074707031,
+          0.02598289489746094,
+          0.2600368857383728
+        ],
+        [
+          3.155651092529297,
+          -0.0012902832031249992,
+          0.7600368857383728
+        ],
+        [
+          -5.344348907470703,
+          -0.18362518310546874,
+          0.2600368857383728
+        ],
+        [
+          -6.844348907470703,
+          -0.0865888214111328,
+          -0.2399631142616272
+        ],
+        [
+          -8.344348907470703,
+          -0.11837669372558593,
+          -0.2399631142616272
+        ],
+        [
+          -9.844348907470703,
+          -0.14779945373535155,
+          -0.2399631142616272
+        ]
+      ],
+      "heading_degrees": 0,
+      "bounds": [
+        -11.826770782470703,
+        -1.7350977659225464,
+        11.826674461364746,
+        1.734481692314148
+      ],
+      "vertical_bounds": [
+        -0.38895702362060547,
+        8.843849182128906
+      ],
+      "size_range": [
+        0.25,
+        16.0
+      ],
+      "camera_far": 650,
+      "fog_density": 0.0002,
+      "attribution": "archeomatique · cc-by-nc-1.0 · archived via Objaverse / Zenodo",
+      "source_url": "https://sketchfab.com/3d-models/d84d190a3bf94fc08a7ec897b8402f96",
+      "source_urls": [
+        "https://sketchfab.com/3d-models/d84d190a3bf94fc08a7ec897b8402f96",
+        "https://zenodo.org/records/10316577"
+      ],
+      "description": "Short Montreal Rue Sainte-Elisabeth street-front scan with murals and a narrow sidewalk. This is a small street strip, not a neighborhood. Large frogs and vehicles have limited clearance.",
+      "capabilities": [
+        "walking",
+        "jumping",
+        "balloon",
+        "driving"
+      ],
+      "anchor": {
+        "horizontal_crs": "LOCAL_MODEL",
+        "source_units_to_meters": 1,
+        "source_blender_origin": [
+          -0.15565109252929688,
+          0.46003687381744385,
+          -3.9890871047973633
+        ],
+        "local_axes": "X model-right, Y up, Z model-back; north orientation unknown",
+        "scale_accuracy": "Native source units treated as metres; roughly 24 m of frontage. Physical scale unverified.",
+        "georeferenced": false
+      },
+      "quality": "Street-level photogrammetry, 67 photographs; finite source cut, holes and coarse close-up textures retained. No invented surrounding terrain, water or climbing volumes.",
+      "qualification": {
+        "windows": "Windows prototype; see WORLD_CITIES.md and validation receipts. Rendered game FPS and physical controller untested",
+        "linux": "untested",
+        "pi5": "untested"
+      },
+      "country": "CA",
+      "license": {
+        "id": "cc-by-nc-1.0"
+      }
+    },
+    {
+      "id": "mexico_city_cathedral",
+      "name": "Mexico City · Metropolitan Cathedral, Mexico",
+      "category": "city",
+      "provider": "local_mesh",
+      "status": "ready",
+      "profiles": [
+        "windows"
+      ],
+      "random_eligible": true,
+      "scene": "res://assets/worlds/mexico_city_cathedral/city.glb",
+      "spawn": [
+        -58.061622619628906,
+        0.04,
+        41.00393295288086
+      ],
+      "spawn_candidates": [
+        [
+          -59.561622619628906,
+          0.07188323974609376,
+          41.00393295288086
+        ],
+        [
+          -58.061622619628906,
+          0.0261602783203125,
+          42.50393295288086
+        ],
+        [
+          -58.061622619628906,
+          0.04713348388671875,
+          39.50393295288086
+        ],
+        [
+          -56.561622619628906,
+          0.0255499267578125,
+          41.00393295288086
+        ],
+        [
+          -59.561622619628906,
+          0.06622985839843751,
+          42.50393295288086
+        ],
+        [
+          -59.561622619628906,
+          0.07247070312500001,
+          39.50393295288086
+        ],
+        [
+          -56.561622619628906,
+          0.012747802734375,
+          42.50393295288086
+        ],
+        [
+          -56.561622619628906,
+          0.02514556884765625,
+          39.50393295288086
+        ],
+        [
+          -61.061622619628906,
+          0.08954528808593751,
+          41.00393295288086
+        ],
+        [
+          -58.061622619628906,
+          0.044974365234375,
+          44.00393295288086
+        ],
+        [
+          -58.061622619628906,
+          0.0530157470703125,
+          38.00393295288086
+        ],
+        [
+          -55.061622619628906,
+          -0.003838500976562499,
+          41.00393295288086
+        ],
+        [
+          -61.061622619628906,
+          0.08170227050781251,
+          42.50393295288086
+        ],
+        [
+          -61.061622619628906,
+          0.09426788330078126,
+          39.50393295288086
+        ],
+        [
+          -59.561622619628906,
+          0.05776885986328125,
+          44.00393295288086
+        ]
+      ],
+      "heading_degrees": 0,
+      "bounds": [
+        -66.75859832763672,
+        -69.01727294921875,
+        66.73804473876953,
+        69.01782989501953
+      ],
+      "vertical_bounds": [
+        -0.5792503356933594,
+        62.88201141357422
+      ],
+      "size_range": [
+        0.25,
+        16.0
+      ],
+      "camera_far": 650,
+      "fog_density": 0.0002,
+      "attribution": "agisoft · cc-by-nc-sa-2.0 · archived via Objaverse / Zenodo",
+      "source_url": "https://sketchfab.com/3d-models/ec98bc3741d54810a1ebf35d26c1de54",
+      "source_urls": [
+        "https://sketchfab.com/3d-models/ec98bc3741d54810a1ebf35d26c1de54",
+        "https://zenodo.org/records/10230968"
+      ],
+      "description": "Mexico City Metropolitan Cathedral exterior, side paving and roof architecture. Reconstruction from CyArk/Open Heritage 3D photographs. Bounded building-area scan; no cathedral interiors or complete Zocalo square.",
+      "capabilities": [
+        "walking",
+        "jumping",
+        "balloon",
+        "driving"
+      ],
+      "anchor": {
+        "horizontal_crs": "LOCAL_MODEL",
+        "source_units_to_meters": 1,
+        "source_blender_origin": [
+          0.06162261962890625,
+          1.0039329528808594,
+          -31.35614013671875
+        ],
+        "local_axes": "X model-right, Y up, Z model-back; north orientation unknown",
+        "scale_accuracy": "Native source units treated as metres; roughly 138 m source cut and 63 m vertical extent. Physical scale unverified.",
+        "georeferenced": false
+      },
+      "quality": "Textured cathedral exterior reconstruction from CyArk aerial photographs; finite source cut, holes and coarse close-up textures retained. No invented surrounding terrain, water or climbing volumes.",
+      "qualification": {
+        "windows": "Windows prototype; see WORLD_CITIES.md and validation receipts. Rendered game FPS and physical controller untested",
+        "linux": "untested",
+        "pi5": "untested"
+      },
+      "country": "MX",
+      "license": {
+        "id": "cc-by-nc-sa-2.0"
+      }
+    }
+  ]
+}

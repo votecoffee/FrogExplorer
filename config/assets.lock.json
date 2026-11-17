@@ -1,0 +1,1541 @@
+{
+  "version": 1,
+  "description": "Optional locally imported reference asset set. No binary downloads or distribution rights are implied.",
+  "files": [
+    {
+      "path": "assets/frogs/american_toad.glb",
+      "size": 23791076,
+      "sha256": "284b562c773b7741f94ab8da45bd39f700d6ebe4ca9434e4743bdca027df0de6"
+    },
+    {
+      "path": "assets/frogs/american_toad_American_Toad_Iris_Color.png",
+      "size": 1106643,
+      "sha256": "5ee39d34eb39ee4fb322fef60628b51dbb49a8faa001a24b8b09c3ae2ac820a2"
+    },
+    {
+      "path": "assets/frogs/american_toad_American_Toad_Skin_Color.png",
+      "size": 4524434,
+      "sha256": "6ed2454219c425832f2001b53c0a2ce2095f2d0139f9dabcc44b32e1ce82eac2"
+    },
+    {
+      "path": "assets/frogs/american_toad_American_Toad_Skin_Normal.png",
+      "size": 3753210,
+      "sha256": "059a8107bd78049b290b5f4b07825955c72ec24ab059a137f32b050df80b7193"
+    },
+    {
+      "path": "assets/frogs/american_toad_American_Toad_Skin_Roughness.png",
+      "size": 842646,
+      "sha256": "6d5f9141f3e8e7ebfbc15fe4f6c02ac180c38237373a36d5f134690700c95980"
+    },
+    {
+      "path": "assets/frogs/american_toad_Oral_Tissue_BaseColor.png",
+      "size": 423138,
+      "sha256": "5d6767bcefe0b3459b770f780bd6c4f92f517ee2212cdf6724aa57d7180b2c0f"
+    },
+    {
+      "path": "assets/frogs/american_toad_Oral_Tissue_Normal.png",
+      "size": 1108660,
+      "sha256": "c654d11f5bfc51feda59e5742c8c4da459a4c4c6c25d3872607b9f53edf0a729"
+    },
+    {
+      "path": "assets/frogs/american_toad_Oral_Tissue_Roughness.png",
+      "size": 382489,
+      "sha256": "0c7d9b5be83ae2b0b22cd84d64ff19106405485d26bba053f0d98f2b917335db"
+    },
+    {
+      "path": "assets/frogs/bullfrog.glb",
+      "size": 19110580,
+      "sha256": "3df98bb41708133a3ff3166555b0059cfb8cae4faecfa863d31d5c5918b78968"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_BodyColor.png",
+      "size": 2354978,
+      "sha256": "270eb78cf5e35c78089f18f163af50fd927bb26d486b75cf09fc52d7003068a6"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_BodyColor_PondGreen.png",
+      "size": 2081960,
+      "sha256": "45f22dbaf6dd92f5fe90436f9ea83c360880f701d6175a18d9d457f7d3752015"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_BodyNormal.png",
+      "size": 872045,
+      "sha256": "d6f213a7ea45507b29777865faa230ecebc204a1ebc92faa4e2c4776b1fd93d7"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_EarRim_L_Color.png",
+      "size": 60623,
+      "sha256": "9569023a27e8e6ce74b603f6516d2d23ad75ced41e5dd222ed639753328a6c11"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_EarRim_R_Color.png",
+      "size": 59825,
+      "sha256": "9f76d39586ed461d804d04b5319c392ae83600679ab6c4e082fc6e6106f38ba0"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_Eye.png",
+      "size": 110859,
+      "sha256": "6fc84a7427d71d93dda88411d3587bddc6346a79adbdc86e783c64ddbf9b400c"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_Fore_L_Color.png",
+      "size": 384298,
+      "sha256": "a4d7f7c70b10b814be838c4d62df141adebb259962c90c5d6b26eb07d6c31e0d"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_Fore_R_Color.png",
+      "size": 382059,
+      "sha256": "f6783011ad6bf6845c42b0f3b8be685879c79b0319b5036c9a4ee8f8c960a5a3"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_Hind_L_Color.png",
+      "size": 688679,
+      "sha256": "fb4e21014b440185a3dd8955e7a93ae05397753dc58f98dc76355ef15f25b81d"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_Hind_L_Color_PondGreen.png",
+      "size": 723901,
+      "sha256": "9a144d04baaed87ecc146a5ad0fa407625b6988b4ed9518682937e53c751cef1"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_Hind_R_Color.png",
+      "size": 683536,
+      "sha256": "19d194c16a00abc90e9c3d46efc9be7e179fcc61223d405598f15a8dea88cd00"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_Hind_R_Color_PondGreen.png",
+      "size": 721492,
+      "sha256": "96d0d55441de40842be164eacdc13a18586dfdcecbf59ef551f8164e257f8d2d"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_LimbColor.png",
+      "size": 1259598,
+      "sha256": "61c644cf1dc2c61840c8c8ea839c3035366a537306843e2818faf77c253af45a"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_LimbColor_PondGreen.png",
+      "size": 1268327,
+      "sha256": "df796c0c687d828bd5825e9b46e92ecd33214d5bf9032059f3689cbc5aafce2f"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_LimbNormal.png",
+      "size": 872045,
+      "sha256": "d6f213a7ea45507b29777865faa230ecebc204a1ebc92faa4e2c4776b1fd93d7"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_Tympanum_L_Color.png",
+      "size": 72222,
+      "sha256": "5b8373125fd6458504bb39a38c6faca03a40732683b58754bdd95e871780116e"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_Tympanum_R_Color.png",
+      "size": 67519,
+      "sha256": "f2ed84a69f5615de57375ff187272b1da531f7c28eeb6526bdbfa38749b9effd"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_V13_Color.png",
+      "size": 3511259,
+      "sha256": "a42dd52263abb2571dc1cf24aa82f142a60485aa25e49a1ca15cc23e2f9367a4"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_V13_Iris_Color.png",
+      "size": 1439350,
+      "sha256": "f93f80ee70855a6471fb21dac5e1f8e2bd15651d16831f2154148aff3099cdfd"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_V13_Normal.png",
+      "size": 3831308,
+      "sha256": "dcb13d66174bf924f5671db567db9a5926a77dfa8d5c211fef18dbd74c5a3082"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_V13_Roughness.png",
+      "size": 839005,
+      "sha256": "b3ca9b9edfb985100b3ecc3e865e257c326c8d4cd2e038b881b3d3ca1efecc2f"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_V16_Iris_Color.png",
+      "size": 1439350,
+      "sha256": "f93f80ee70855a6471fb21dac5e1f8e2bd15651d16831f2154148aff3099cdfd"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_V16_Skin_Color.png",
+      "size": 3502494,
+      "sha256": "adb858fd745c9f65391589c68285c24d3bbbe1b3fdefd5c6a0462c87ee1d80a3"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_V16_Skin_Normal.png",
+      "size": 3515718,
+      "sha256": "c99e10f9be90d97440ef6082cdcee3974a822a881a3b8ee4a2622fd42a6d095c"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_V16_Skin_Roughness.png",
+      "size": 807111,
+      "sha256": "77bd2a16ed2f1d4c8121f87366288b2a94514ffcf69dbd81689da9809c0be7bc"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_V17_Iris_Color.png",
+      "size": 772591,
+      "sha256": "221d93ce195c889605856afe7415357b09f6742afe43570289c5d666b38bc7ee"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_V17_Tympanum_Color.png",
+      "size": 251534,
+      "sha256": "092b8d98f6504bba50b0a9dd668d411698201221d48f93dd39214e9d2d3efacf"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_V20_Iris_Color.png",
+      "size": 714734,
+      "sha256": "469057ef70844bc1c8a425481059af77342d37eee83ba3344ceb2e95785e6002"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_V20_Tympanum_Color.png",
+      "size": 277269,
+      "sha256": "ade299b1bd2430f1766d8702381106e4596cd1305edccf95bf7e1ce556d6b58c"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_V20_Tympanum_Normal.png",
+      "size": 20650,
+      "sha256": "a1ee240a2a8296d29cf6c61cbebfd0e6d60b91038b518e9f290388bc8e0895cd"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_V20_Tympanum_Roughness.png",
+      "size": 195427,
+      "sha256": "0190529e169d41e8be3f4cedd9c577f5c23d7854c4a2e48b3472c0154686494e"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_V21_Skin_Color.png",
+      "size": 3436980,
+      "sha256": "3edc7998857fd5425490ef5ec6fa4304b2bc79614e5b71aae5bd2ad9e12ea59b"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_V21_Skin_Normal.png",
+      "size": 3494399,
+      "sha256": "9737e7ea48663f86efbcb887cdd226bb4e90617de7fb77a8b76aeb420bae7908"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_V21_Skin_Roughness.png",
+      "size": 823206,
+      "sha256": "c1f9b87075d9071f2298bb6c088daf2d431951353e5e68069fd8b41f8e2ceed9"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_V22_Joint_Normal.png",
+      "size": 3389634,
+      "sha256": "8757b3681567d17d5dfa98cd25dd95e7afbffd10ab7a8a5ed83187f8dabd494f"
+    },
+    {
+      "path": "assets/frogs/bullfrog_American_Bullfrog_V22_Joint_Roughness.png",
+      "size": 819391,
+      "sha256": "8515f99b6281a94e1ae7e6b97d52b9f339f5fc427b4656e94ca4244d13f94238"
+    },
+    {
+      "path": "assets/frogs/bullfrog_FineSkinNormal.png",
+      "size": 872045,
+      "sha256": "d6f213a7ea45507b29777865faa230ecebc204a1ebc92faa4e2c4776b1fd93d7"
+    },
+    {
+      "path": "assets/frogs/bullfrog_OralTissue.png",
+      "size": 166569,
+      "sha256": "5d107badf14e730b870cca38fab1e283b8e2c4f193cb9af474d151124d31e3c6"
+    },
+    {
+      "path": "assets/frogs/bullfrog_Oral_Tissue_Normal.png",
+      "size": 1108660,
+      "sha256": "c654d11f5bfc51feda59e5742c8c4da459a4c4c6c25d3872607b9f53edf0a729"
+    },
+    {
+      "path": "assets/frogs/bullfrog_Oral_Tissue_Roughness.png",
+      "size": 382489,
+      "sha256": "0c7d9b5be83ae2b0b22cd84d64ff19106405485d26bba053f0d98f2b917335db"
+    },
+    {
+      "path": "assets/frogs/limb_surface_import.gd",
+      "size": 701,
+      "sha256": "2ef621107e77e6e6125131c4675c3bcc6acef3fc8a14353a72109cdf1d6505d6"
+    },
+    {
+      "path": "assets/frogs/limb_surface_import.gd.uid",
+      "size": 19,
+      "sha256": "947a9116fb13c136154076adb5bf9003df334d9f1fffaba740f0d7aa40a0eedd"
+    },
+    {
+      "path": "assets/frogs/montane.glb",
+      "size": 12849860,
+      "sha256": "c9e1418e3beb26727e74deefe44c44fe78d9347d0b4bdfe92162620fcf0ea38e"
+    },
+    {
+      "path": "assets/frogs/montane_Frog.png",
+      "size": 1629391,
+      "sha256": "9095229c70b6fc594bb9df6ac63b526888d832b6528cb1d2cb6df2b3d209d60c"
+    },
+    {
+      "path": "assets/frogs/montane_MontaneFrog_BaseColor_2K.png",
+      "size": 4951406,
+      "sha256": "0dee67bac0685ab0b4e90b67204e1d0483ff08d9b4783f78e258ae839df3bc20"
+    },
+    {
+      "path": "assets/frogs/montane_Oral_Tissue_BaseColor.png",
+      "size": 423138,
+      "sha256": "5d6767bcefe0b3459b770f780bd6c4f92f517ee2212cdf6724aa57d7180b2c0f"
+    },
+    {
+      "path": "assets/frogs/montane_Oral_Tissue_Normal.png",
+      "size": 1108660,
+      "sha256": "c654d11f5bfc51feda59e5742c8c4da459a4c4c6c25d3872607b9f53edf0a729"
+    },
+    {
+      "path": "assets/frogs/montane_Oral_Tissue_Roughness.png",
+      "size": 382489,
+      "sha256": "0c7d9b5be83ae2b0b22cd84d64ff19106405485d26bba053f0d98f2b917335db"
+    },
+    {
+      "path": "assets/frogs/red_eye.glb",
+      "size": 14427548,
+      "sha256": "fc908a923414c8c4f7c4ea32fea39dca1514e6b8cce6fb3a114730f5e716da6f"
+    },
+    {
+      "path": "assets/frogs/red_eye_auge27.jpg",
+      "size": 91233,
+      "sha256": "0e340d59c582e4c3ba09590e2fa5a95637124b8ce40b2336a7fac0f1b7a8e2ff"
+    },
+    {
+      "path": "assets/frogs/red_eye_Oral_Tissue_Normal.png",
+      "size": 1108660,
+      "sha256": "c654d11f5bfc51feda59e5742c8c4da459a4c4c6c25d3872607b9f53edf0a729"
+    },
+    {
+      "path": "assets/frogs/red_eye_Oral_Tissue_Roughness.png",
+      "size": 382489,
+      "sha256": "0c7d9b5be83ae2b0b22cd84d64ff19106405485d26bba053f0d98f2b917335db"
+    },
+    {
+      "path": "assets/frogs/red_eye_RedEyedTreeFrog_BaseColor_2K.png",
+      "size": 3569393,
+      "sha256": "c4c0e3cbea0c1d0cbc2d7df1d1d00f20eb87f2e45b5aada4974b66197aa2dfb8"
+    },
+    {
+      "path": "assets/frogs/red_eye_RedEyedTreeFrog_Normal_2K.png",
+      "size": 3701021,
+      "sha256": "04fa26657dc2c0d73cdf150181404bac4828caa3c71b14c54688bcc99a9c6fa0"
+    },
+    {
+      "path": "assets/frogs/red_eye_Red_Iris_Generated.png",
+      "size": 1994442,
+      "sha256": "efff4519bd6a75da005c6d266289f6040c6cf93e9d4615799ef1fa6a08c7a527"
+    },
+    {
+      "path": "assets/frogs/red_eye_Red_V1_Membrane_Color.png",
+      "size": 383874,
+      "sha256": "197893f2052f7af58808355332288a1232f0f955438cbf256cb3ad839889ddfd"
+    },
+    {
+      "path": "assets/frogs/red_eye_Red_V1_Skin_Color.png",
+      "size": 3893524,
+      "sha256": "017384712b45bdea5f9bbf00c42629ed1751434e9f8704144d249dc1eed94c6a"
+    },
+    {
+      "path": "assets/frogs/red_eye_Red_V1_Skin_Normal.png",
+      "size": 2684052,
+      "sha256": "63f3e849a2683bc212ab1a739f014b1f2132906dd90ab040f7397eabd01c59c9"
+    },
+    {
+      "path": "assets/frogs/red_eye_Red_V1_Skin_Roughness.png",
+      "size": 688062,
+      "sha256": "9df74458def33e461f1c3ee047069ec5464beb6762f9184b67ef3b21d5873198"
+    },
+    {
+      "path": "assets/frogs/red_eye_Red_V2_Membrane_Color-Red_V2_MembraneAlpha_Roughness.png",
+      "size": 474737,
+      "sha256": "f28b6baffa8ee511f29e92a84894fe275f2f8cfb8c6ffb0616de1611320a8ba5"
+    },
+    {
+      "path": "assets/frogs/red_eye_Red_V2_Skin_Color.png",
+      "size": 3428222,
+      "sha256": "de0022cbbe1f12030de71bcb561c5df4be9149f3351dcec1c53d5e0b8ca7b904"
+    },
+    {
+      "path": "assets/frogs/red_eye_Red_V2_Skin_Normal.png",
+      "size": 1999045,
+      "sha256": "9a98eb126eb17055aa32ca4d72ba0c4f39d99ce118f5b9028065a6991d4200dc"
+    },
+    {
+      "path": "assets/frogs/red_eye_Red_V2_Skin_Roughness.png",
+      "size": 683004,
+      "sha256": "c8150270a99a6736eb785644f4e44b3b9e095cf5a3754ef21e780cceea971fdc"
+    },
+    {
+      "path": "assets/frogs/toad.glb",
+      "size": 21212900,
+      "sha256": "457fd9698b8ef0eaf4cf8336831cee5cf1c2002bb02c8836bd7b2976f727a90b"
+    },
+    {
+      "path": "assets/frogs/toad_JapaneseToad_BaseColor_2K.png",
+      "size": 7396263,
+      "sha256": "de81a0371b20dd3ebb72b2beb1a0e11c84c90aa0c456f4a4e14f5624d61eed82"
+    },
+    {
+      "path": "assets/frogs/toad_Oral_Tissue_BaseColor.png",
+      "size": 423138,
+      "sha256": "5d6767bcefe0b3459b770f780bd6c4f92f517ee2212cdf6724aa57d7180b2c0f"
+    },
+    {
+      "path": "assets/frogs/toad_Oral_Tissue_Normal.png",
+      "size": 1108660,
+      "sha256": "c654d11f5bfc51feda59e5742c8c4da459a4c4c6c25d3872607b9f53edf0a729"
+    },
+    {
+      "path": "assets/frogs/toad_Oral_Tissue_Roughness.png",
+      "size": 382489,
+      "sha256": "0c7d9b5be83ae2b0b22cd84d64ff19106405485d26bba053f0d98f2b917335db"
+    },
+    {
+      "path": "assets/frogs/toad_toad.png",
+      "size": 2286186,
+      "sha256": "d4c78d752753b336ebc6666b1c01baa095bcf44913ae0df2b9dcb48a3de6826a"
+    },
+    {
+      "path": "assets/frogs/whites.glb",
+      "size": 19550508,
+      "sha256": "b4ea0212c04574eb4831ff5f8ac35b6566c097f231a5784e026d8e34fea25924"
+    },
+    {
+      "path": "assets/frogs/whites_FineSkinNormal.png",
+      "size": 872045,
+      "sha256": "d6f213a7ea45507b29777865faa230ecebc204a1ebc92faa4e2c4776b1fd93d7"
+    },
+    {
+      "path": "assets/frogs/whites_OralTissue.png",
+      "size": 166569,
+      "sha256": "5d107badf14e730b870cca38fab1e283b8e2c4f193cb9af474d151124d31e3c6"
+    },
+    {
+      "path": "assets/frogs/whites_Oral_Tissue_Normal.png",
+      "size": 1108660,
+      "sha256": "c654d11f5bfc51feda59e5742c8c4da459a4c4c6c25d3872607b9f53edf0a729"
+    },
+    {
+      "path": "assets/frogs/whites_Oral_Tissue_Roughness.png",
+      "size": 382489,
+      "sha256": "0c7d9b5be83ae2b0b22cd84d64ff19106405485d26bba053f0d98f2b917335db"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Iris_Generated.png",
+      "size": 2250692,
+      "sha256": "d9b59bb9a95ba539fb663a95585b434af0f6ed3321cb110974e703fd38e30808"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_BodyColor.png",
+      "size": 1716328,
+      "sha256": "bba9e7e8a47f2fbcd1907027528286fb0e022377d2be094a084ad8b773a9cb2f"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_BodyColor_BlueGreen.001.png",
+      "size": 1620057,
+      "sha256": "efb7e68ebd1150ac4bd2cd9f4f17fbbef7b1cb7c4ccf6dd6b1c5ae528523ff48"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_BodyColor_BlueGreen.png",
+      "size": 1711800,
+      "sha256": "e3d4885578c64d380b39679c806941baa53822dc74130d59aec0911d8b025cf8"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_BodyColor_BlueGreen_7.png",
+      "size": 1711800,
+      "sha256": "e3d4885578c64d380b39679c806941baa53822dc74130d59aec0911d8b025cf8"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_BodyNormal.png",
+      "size": 872045,
+      "sha256": "d6f213a7ea45507b29777865faa230ecebc204a1ebc92faa4e2c4776b1fd93d7"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_Eye.png",
+      "size": 112694,
+      "sha256": "656dd4e567851dee9b3cce39ef1e7f21ba627e002b9312254b3991841a4d7a4d"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_Fore_L_Color.png",
+      "size": 272424,
+      "sha256": "9fa5af698dcfeb4648e08d1d0031201290cf49e8403a7d046bd5307f0bdeb2f3"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_Fore_R_Color.png",
+      "size": 267039,
+      "sha256": "acb316ad2b72962729cc90c1228d758eebe26ed8de441b85f26ce3b93216beeb"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_Hind_L_Color.png",
+      "size": 400955,
+      "sha256": "0877defdd9978c72865cab6140c56d29d46fd017786d61cecb4e93853f321fdf"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_Hind_R_Color.png",
+      "size": 399914,
+      "sha256": "de707aac0a4ac8db5b1f92a9b719a12a1f61f8ef5f04513e63ae6b0be589fcf2"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_LimbColor.png",
+      "size": 801219,
+      "sha256": "8d6ea6e1e3a10799e51b5f10b53ec77073ce36fa84dabf6e3b7e32a3d91298df"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_LimbColor_BlueGreen.png",
+      "size": 1068402,
+      "sha256": "a1fbbd26ab6f1d007330559d28d8208baa43851076e00ff04a3f404a04c2cd5a"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_LimbNormal.png",
+      "size": 872045,
+      "sha256": "d6f213a7ea45507b29777865faa230ecebc204a1ebc92faa4e2c4776b1fd93d7"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_V13_Color.png",
+      "size": 3497858,
+      "sha256": "161f45b26d6c9b314a7ab1d2f064d1ae71f8eaadd846a3ecb6d3f33c83b5f1f0"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_V13_Iris_Color.png",
+      "size": 1326917,
+      "sha256": "2dd8d5116104bb5be70b1adc543697152543a33df5874f37f2e14ad4c2dd2d3f"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_V13_Normal.png",
+      "size": 3635580,
+      "sha256": "3eb7325031c1f9e86fb974e5a2427ecf7dbe1849ea6190a862c5a2d51e3ad6aa"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_V13_Roughness.png",
+      "size": 740219,
+      "sha256": "ce9295de6888ddf779bc54bab4747e4031eb56b341e1772729cea98aa5f564fa"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_V16_Iris_Color.png",
+      "size": 1372418,
+      "sha256": "f09ec7168d59b7bcac1ccdc52580671d7da9b68cb806eebe55d882e01b8f1d80"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_V16_Skin_Color.png",
+      "size": 3340505,
+      "sha256": "43b17fd72f476bee3a17f79124807224d14e5076488aea8a93d5842c5b92aef6"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_V16_Skin_Normal.png",
+      "size": 3337815,
+      "sha256": "8f6cda821e1d1200335ac4c9a9ce5a5597b72d9e2b08159fe065c3f812f9bbd6"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_V16_Skin_Roughness.png",
+      "size": 758237,
+      "sha256": "74bc3deb10748fcb7b319be7afd052594f7a9e15e55e9d552860908611d43b09"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_V17_Iris_Color.png",
+      "size": 782733,
+      "sha256": "82e930a6f8ebee5088763970f4b8a7d859ffea04fc741245fe9069903b584adc"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_V17_Tympanum_Color.png",
+      "size": 239986,
+      "sha256": "4ff5ef82c8fbb6b2f80d4eb08000ff046fa930152f71ad06206d4d9de2595c2e"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_V20_Iris_Color.png",
+      "size": 703381,
+      "sha256": "eeef220244ff6fca1b635eb9bf5ad5f09b013b2fcdf1cdf25fc22c0d4ff0a41e"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_V20_Tympanum_Color.png",
+      "size": 278040,
+      "sha256": "118cc30ebb7b8870a6e560f7167c1735cba54307eb33c9c1e719ffc45ba04fbd"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_V20_Tympanum_Normal.png",
+      "size": 20650,
+      "sha256": "a1ee240a2a8296d29cf6c61cbebfd0e6d60b91038b518e9f290388bc8e0895cd"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_V20_Tympanum_Roughness.png",
+      "size": 195427,
+      "sha256": "0190529e169d41e8be3f4cedd9c577f5c23d7854c4a2e48b3472c0154686494e"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_V21_Skin_Color.png",
+      "size": 3315259,
+      "sha256": "3e7068b076a50bae97ace7b635e610b72a9b8ef358b38f949bc0caa9997872df"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_V21_Skin_Normal.png",
+      "size": 3497650,
+      "sha256": "bf2c9c0446cff2179a4c2acc884387808e1ff94aa2fdeff982e2aedbcc2db6cb"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_V21_Skin_Roughness.png",
+      "size": 750458,
+      "sha256": "69a68f09f1afe9821195fbfc7e37ca28cc93803895373cee16c6275cfdc9da63"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_V22_Joint_Normal.png",
+      "size": 3398967,
+      "sha256": "00d62621f36b639768ad3b47a51acd706ef95e2367772765b2fe7dd454cf6685"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_Tree_Frog_V22_Joint_Roughness.png",
+      "size": 741802,
+      "sha256": "a91993a9323481811a50dd674bfb47d8189d8e631e529a8dce7d3b095c7892fe"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_V12_Atlas_Color.png",
+      "size": 3398249,
+      "sha256": "0c80253950131f01a659ba3d4cff9abc8c9b280ca4a0e41b934381bd10971397"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_V12_Atlas_Normal.png",
+      "size": 2423285,
+      "sha256": "02d4891a77296d966d85dae8f230404e35f8faec678031ea3f3b631be46a632f"
+    },
+    {
+      "path": "assets/frogs/whites_Whites_V12_Atlas_Roughness.png",
+      "size": 656023,
+      "sha256": "eacd87d0d6bb5e5f7f33b6e839738c90dc28300747dd7ba5e52099f3c6c4e547"
+    },
+    {
+      "path": "assets/worlds/berlin_teufelsberg/city.glb",
+      "size": 25742856,
+      "sha256": "925b69a211db412d954b258312f103a29ec642a5a53431e607343a6eb2e670b6"
+    },
+    {
+      "path": "assets/worlds/berlin_teufelsberg/city_Image_1.jpg",
+      "size": 1038844,
+      "sha256": "b7cc79670ccc17b2b778972caef4795e7ca169985669771b1912b6012d38d504"
+    },
+    {
+      "path": "assets/worlds/berlin_teufelsberg/city_Image_2.jpg",
+      "size": 1021628,
+      "sha256": "a8ac760bc40bbe24bbb5687e9ef30b03328780c470bdfcd2a1100713018ced4d"
+    },
+    {
+      "path": "assets/worlds/berlin_teufelsberg/city_Image_3.jpg",
+      "size": 1024377,
+      "sha256": "e2cc95a308297a4e6f7ce4632b83284a8c8a42eee5424da6b51c606218834af8"
+    },
+    {
+      "path": "assets/worlds/berlin_teufelsberg/city_Image_4.jpg",
+      "size": 945931,
+      "sha256": "d3dd23ce99c5702894881981896589cb652faac7252d741aa49043d0765e0071"
+    },
+    {
+      "path": "assets/worlds/berlin_teufelsberg/city_Image_5.jpg",
+      "size": 1059253,
+      "sha256": "ea599f2215c76362ac9b35f71d7d9420faa824bc8393e033ae9845618a3cef18"
+    },
+    {
+      "path": "assets/worlds/berlin_teufelsberg/city_Image_6.jpg",
+      "size": 1015307,
+      "sha256": "8bb4666953e5c5558b78efbb9606fe8bd0ca7551c611398ae3a6f7f6a474c4f0"
+    },
+    {
+      "path": "assets/worlds/berlin_teufelsberg/city_Image_7.jpg",
+      "size": 913591,
+      "sha256": "aad4a62cf9cdc9ec40e04602aea411e88333461b12dc8ea8658d2bc85567141c"
+    },
+    {
+      "path": "assets/worlds/berlin_teufelsberg/city_Image_8.jpg",
+      "size": 1035284,
+      "sha256": "7f56a76a83a4a06c714f3871bcbacd6fdd2aa701d586651f4bae621742fadfc3"
+    },
+    {
+      "path": "assets/worlds/giza_pyramids/landmark.glb",
+      "size": 5478720,
+      "sha256": "644b0cbcb7646288060c4f4c7fc71325f70cb97e5fc7664fce51fec3436c0437"
+    },
+    {
+      "path": "assets/worlds/giza_pyramids/landmark_Image_0.png",
+      "size": 1211192,
+      "sha256": "4f3b0e863c5fc9364d54d54706cbc3a166062aeec76026c6416d9d60400b37c8"
+    },
+    {
+      "path": "assets/worlds/giza_pyramids/landmark_Image_1.png",
+      "size": 1355398,
+      "sha256": "4dd99776547b120edba1b03658e9a3b6553d0ea849027b8ebfbb46190b011302"
+    },
+    {
+      "path": "assets/worlds/giza_pyramids/landmark_Image_2.png",
+      "size": 148064,
+      "sha256": "8a8f25cbc51e4b80146d1f50251b0dc8f936f95a13b94dbc9f8c04bdbbd60273"
+    },
+    {
+      "path": "assets/worlds/great_wall_china/landmark.glb",
+      "size": 11174060,
+      "sha256": "65dcf18b22b54925d36748b662faffedec0a27d372b79b5addf4e1f32d8f193a"
+    },
+    {
+      "path": "assets/worlds/great_wall_china/landmark_Image_0.jpg",
+      "size": 764859,
+      "sha256": "3f551dc62b8bc48cc2a982772ca346ccf98372c57c163c0e475be09f32fbacc6"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/ATTRIBUTION.txt",
+      "size": 680,
+      "sha256": "6e54af4e63e6cc70ffd927d590c494759872ec84fe795d11b21149335cfbc536"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square.glb",
+      "size": 10002816,
+      "sha256": "de36a17bf7461c41b91829994f6815bf60150ec4ad8b6ff8437e8889c0f9e0cb"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000000_0.jpg",
+      "size": 17929,
+      "sha256": "d0cde8cd7d7cfd833c77df4f456905118bf06e975bb5f5815aa0cb2380104c0a"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000001_0.jpg",
+      "size": 14125,
+      "sha256": "cfca584fa23d84e696c1851f17294a406ca242cb8679068061d3ffa56a3e70df"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000002_0.jpg",
+      "size": 29471,
+      "sha256": "68d90fef9df687daaa0cef62abefd659f1b9ace8edb7400bc40b0fcd66981cab"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000003_0.jpg",
+      "size": 30252,
+      "sha256": "b041661cb7a2a685b9e8b41c3436bcaf6a4024e09df3c09d64f279c6c4651d62"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000010_0.jpg",
+      "size": 15170,
+      "sha256": "2c05227594261ffa2d3655cacdc1a080f3d1380bfd74b4961d5b5b51cf9c3f42"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000011_0.jpg",
+      "size": 15780,
+      "sha256": "990f83ca3b409ad853a3e064c8562e97507ce15eccdc35b626e280969b9e7392"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000012_0.jpg",
+      "size": 28306,
+      "sha256": "1cebe946c916f606d738eafbdb5ae81636c1279e205f4093310460358a30821d"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000013_0.jpg",
+      "size": 24942,
+      "sha256": "9027a0f85f65cbee4a14ed9f12f61ed5d0730209212c5b235ae12de6fd7bee49"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000020_0.jpg",
+      "size": 40658,
+      "sha256": "932121eb476211d21794b5f21934c683d862a892c4c3728396a8b3d3916e791f"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000021_0.jpg",
+      "size": 35956,
+      "sha256": "869c77220455b59b1dbb84165cd1975ceaf5b7b0066c04328a9e31c83414746a"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000022_0.jpg",
+      "size": 32795,
+      "sha256": "a37cc762bf3edd7058ca10b9f6d089aea1331a5d8427819d49520bccffdd5050"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000023_0.jpg",
+      "size": 31513,
+      "sha256": "88e13316258938a7e9c55ef8adee4dfe3dd91ed47b987b77dd169ee0906463cc"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000030_0.jpg",
+      "size": 45236,
+      "sha256": "5457ff337461c81e6acd7bd8622ab3b8d8a75adcba12ec52f855f1d11ed947b0"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000031_0.jpg",
+      "size": 27435,
+      "sha256": "3a9ddf84cb9bfaf511cc74e9b7922d3058303ebf3582ca9d0f253b3c95d7e235"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000032_0.jpg",
+      "size": 42628,
+      "sha256": "11763608ac463edd52b2f10e4ce767e07bcaca394fb7be73e278dd3169423e9d"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000033_0.jpg",
+      "size": 37449,
+      "sha256": "e60799e0dc881c8d51a986da879d873caa476db992951090e76a4109e1d519be"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000100_0.jpg",
+      "size": 20259,
+      "sha256": "2324503e15a9629b8c028a228fe3b9df537196867cd6bb5a33be88b9c66f0a79"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000101_0.jpg",
+      "size": 20339,
+      "sha256": "090fc1d2090cede4ee03bab241bbd3671b4a3e29f7fbc1e916244bebb841cf7c"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000102_0.jpg",
+      "size": 26453,
+      "sha256": "d57ea92196bd6127a2b4c368d3dd23f22b2b05fc2fc0a947cba25a38cc751726"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000103_0.jpg",
+      "size": 27209,
+      "sha256": "73fa6ebfc1ec5705fc71602754aed12a6e32f4286ed81b4351c271e99f24c37e"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000110_0.jpg",
+      "size": 22108,
+      "sha256": "b156601099de8a7ee451c1f1c2cca7377052984b193020817d4c7f269cbadc98"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000111_0.jpg",
+      "size": 26044,
+      "sha256": "f2ef2d19dde133f3bf8d2dd25ac2ae7410a683acd75eb8a00b5b76ef3f977ddc"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000112_0.jpg",
+      "size": 27389,
+      "sha256": "2dbdc811a3eaa328efdf9513a537d8166d03d4315c3ac1095cc37a89b3abd104"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000113_0.jpg",
+      "size": 27064,
+      "sha256": "5331911edb7909c94189adc97e1f1b4db78e36c110bc34a786d5a8a3ac69ab90"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000120_0.jpg",
+      "size": 24154,
+      "sha256": "870c3f1f647953c65af15e36473be0ff3aab69ecb7a84b4d015e4f272481b58f"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000121_0.jpg",
+      "size": 32574,
+      "sha256": "e0885398fe42bf617c706cef4228bc357085817b99b8949ec73f7b721ba74a05"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000122_0.jpg",
+      "size": 40390,
+      "sha256": "055cdda47955fe07111dd1595f9b6a3a2c7470f3d6a5b46be1f14965a6ad4456"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000123_0.jpg",
+      "size": 35166,
+      "sha256": "079563fa7fc4dc2500b1bc5aee28207d5d1fc8b42e336973a9e333b0010fd089"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000130_0.jpg",
+      "size": 35469,
+      "sha256": "df8b73d552f62b1c61403fc522dece8315a869b8caa54b96665eefc4e69a66f7"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000131_0.jpg",
+      "size": 25449,
+      "sha256": "e4c01f03df2d2c0e1d9c2e6ab1a250a82a4eba3956afe2bde0bf29217583890f"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000132_0.jpg",
+      "size": 41347,
+      "sha256": "0f8166d1cfa5be9e64a88ea096425160fb42caa11b2c7ffb9b484ed649c0ebad"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000133_0.jpg",
+      "size": 33539,
+      "sha256": "23ee6716915cbc65d047b2b01eee4d44a87ae176ce59c851d0c4b14b5f34f420"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000200_0.jpg",
+      "size": 26691,
+      "sha256": "74fec7635c6343eaa16bfa7b35bc4f45030dfacda59949afa206c2cd5d66e056"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000201_0.jpg",
+      "size": 30964,
+      "sha256": "82f913d64b9f53c97d8b32a1f6fa082564b73e384492255ae005d9ec72e4182a"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000202_0.jpg",
+      "size": 35058,
+      "sha256": "badad7a36adc45e9162a51ca50bb27d456939bcde0403397a36b0a21c4b92e51"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000203_0.jpg",
+      "size": 16175,
+      "sha256": "e3f406279291960ec5947b2b25917502d68ec0859cf6e8e98a62af99c12c3e64"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000210_0.jpg",
+      "size": 26375,
+      "sha256": "ae0562fbaca8af2e0eb3d94996b4d13b770b3d5d4afbccc73819a63dddce41ef"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000211_0.jpg",
+      "size": 44460,
+      "sha256": "4c4c067af555eb96b3471880dac5899e93cd1271c8ec8dbf8b5e98697b8dcb3e"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000212_0.jpg",
+      "size": 26134,
+      "sha256": "7304c83d6ef9feb9f479f20fa142abd11db8e85a6918034c235fab911abc14e7"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000213_0.jpg",
+      "size": 20441,
+      "sha256": "8a8d36a5a663400ee4b08c00d96db252ce31fa3e672dffd518e943896ac5c5da"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000220_0.jpg",
+      "size": 30752,
+      "sha256": "d193c18925b1fe6d71e9d69551c41e8a73a5b770e3e44af5e88e89a30e88ab3c"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000221_0.jpg",
+      "size": 23769,
+      "sha256": "f54bf82453cecf01a0ac536cb9c7c383588e81ba689689743329eab7836bb3b3"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000222_0.jpg",
+      "size": 27462,
+      "sha256": "51ae72e923ffe534d21a78acb07ee7b14846361a4e0c0565b9c1dbaf36041e16"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000223_0.jpg",
+      "size": 21156,
+      "sha256": "e65e11ca0b03a493ce071bc605e61d5adb6eb82f13f8f8755e81dcf6e4da551b"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000230_0.jpg",
+      "size": 13903,
+      "sha256": "45963e2a4ba9a2a9e80d9ba0fddb231340f125d9fbcbf2de7ace3169cabefa10"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000231_0.jpg",
+      "size": 18227,
+      "sha256": "31035c98b8f01c7474615c78e173f8872746ce5dba5b8ca102ea836f3145658a"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000232_0.jpg",
+      "size": 11297,
+      "sha256": "7dd44ccbeeca2720af1de518196d2a0b7eff1f00f968348a9b6433001640beed"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000233_0.jpg",
+      "size": 12554,
+      "sha256": "d99b54bbd3cd1f2e6736c3daacd84cff3247468b7b993e871a43a88e37887b0f"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000300_0.jpg",
+      "size": 40984,
+      "sha256": "d48d4ff34eef8fdc89b07da77202b14cdfe653ab4997cb2881d6882dbec9b10d"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000301_0.jpg",
+      "size": 37924,
+      "sha256": "1fe7ece1ece0d0bee1922c4a5078445a453c3d5deeb6ad0512c5b1d7ceb163dd"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000302_0.jpg",
+      "size": 18862,
+      "sha256": "35b0333d9520fc5b07bbadd678b692ae4de59aa6045e7adaeba72dc15891f6b9"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000303_0.jpg",
+      "size": 25710,
+      "sha256": "31011ad9989b5693f1660d946e2b34a3add4562e409360075caca956c08360f8"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000310_0.jpg",
+      "size": 36266,
+      "sha256": "c7e6183e129aa77a78671a6445a8e310cbe7b4b5a5a00cda31da902a6177815a"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000311_0.jpg",
+      "size": 44809,
+      "sha256": "bc0c145bdd2b9211aa65fc3c95eab0a3f0c7acb7613f46632b82dc85650cfbfe"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000312_0.jpg",
+      "size": 29456,
+      "sha256": "c750832a9bb351f22a1ff6fd81d58e2d0a79974c0ce55480408dff49c1870e76"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000313_0.jpg",
+      "size": 27731,
+      "sha256": "255ef98a293567b2e59dfe7401f0734530837946c40210be1dbd5010dc65658d"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000320_0.jpg",
+      "size": 14617,
+      "sha256": "c62df4f01a0bdb4601b9d12f08d3e37e1e39a713f8e5f577baa473d14adb03b7"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000321_0.jpg",
+      "size": 36418,
+      "sha256": "00683cdaed6205949db7c0753216031646e17f32f69907b9e94a5c2b92e59d2d"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000322_0.jpg",
+      "size": 17433,
+      "sha256": "b523ececd15f80a317a75d27666fcf66986b621d4bbd120cd35fa3c7df403a8c"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000323_0.jpg",
+      "size": 32293,
+      "sha256": "26051329c84576e022dc4517ac57b349c04a24290adf040cd76cc8926f357be9"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000330_0.jpg",
+      "size": 30645,
+      "sha256": "2af3e12d1eafc914d5079a0f530e7830dc045030bc932a8873b4e89a26fdaaed"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000331_0.jpg",
+      "size": 34971,
+      "sha256": "ab3d2b275cd86afe61e9261b4055095938da931fdeb81aa0f108c0ec50d1c189"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000332_0.jpg",
+      "size": 38724,
+      "sha256": "f836295eb1e1b961f73eacc47d93133f0f2f25cba3d832b88941ea807bd0bd81"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+020_L19_000333_0.jpg",
+      "size": 44211,
+      "sha256": "93ad23e2ac0986645a29f8acf11d6f8ec1c6070191c4cb3ad428ae9100f98cb8"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000000_0.jpg",
+      "size": 34895,
+      "sha256": "bf46cbd923dec5d07c36fbac6af4a96a7cff1acb1c0f84595981c90178bb1c2f"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000001_0.jpg",
+      "size": 28121,
+      "sha256": "f8259926589632a0942d9703296bc6d3cac04a6e12f5a6b99b9d455bfb0d3ac6"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000002_0.jpg",
+      "size": 29612,
+      "sha256": "c7a980533cff4f2575202bbb39f4c37ba1d4cc5319255b228487dbff5a2000dd"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000003_0.jpg",
+      "size": 15880,
+      "sha256": "83fdc293c30fbd36dec8c2415eb6e5b91e93e1db234dec4cbfc26e6eeca8f976"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000010_0.jpg",
+      "size": 29747,
+      "sha256": "1dde048e3ef61a65b0de61a57347bf6f5c5969455033ad7253e1387bb8fa1e6c"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000011_0.jpg",
+      "size": 22578,
+      "sha256": "e0f8ab2c28eb5a45985ff71e33dd35f2bfe3e0926d1e3543ed20825554f4f0b3"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000012_0.jpg",
+      "size": 21150,
+      "sha256": "39fd1a909704df0b892b8a03e006bce6aee276a8a083ffb7d90433820be905d6"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000013_0.jpg",
+      "size": 30552,
+      "sha256": "b95d170b3e5f9e67a0b3386824126ea2294a7a13348bdd4a31f02e13db621236"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000014_0.jpg",
+      "size": 28731,
+      "sha256": "4200b04bd186f23ab5c9607680bb47a49857a3c5955e21b6773dab72c49f3113"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000020_0.jpg",
+      "size": 30624,
+      "sha256": "4ee6dff7372b40f32068b9117663379fadf82f765c09124769f208e646406ef1"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000021_0.jpg",
+      "size": 19479,
+      "sha256": "337ba6a0d4b65cdd11946502b90a77fb1ce4ec3ee146fe0e1f54336a2c86c595"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000022_0.jpg",
+      "size": 29250,
+      "sha256": "1eb196014bbe8070ce2ec2335f60e56aa1de8fd215636dece60e0362a2294844"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000023_0.jpg",
+      "size": 47857,
+      "sha256": "e2ba6ffeb70b11a12667cb65d9db47539e730fea13a201799fa92064809bdc21"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000030_0.jpg",
+      "size": 33069,
+      "sha256": "7e16ea6499973b59c320013186411395dadf5bdd48d0d2d3087d7444df958d21"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000031_0.jpg",
+      "size": 29178,
+      "sha256": "7b3945cd02b1dbff62a1bc6c79510bc43d6292230d2d467516b023023efb89c4"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000032_0.jpg",
+      "size": 27201,
+      "sha256": "123c3a6eb4e15c82087fab5087b0d8c41c500b9cc6561180ce5f318eb90f102d"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000033_0.jpg",
+      "size": 6726,
+      "sha256": "d44347c59baf61c411c7fe291c645feee4c15cc10d0ed7a633adc542d6ced442"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000034_0.jpg",
+      "size": 28054,
+      "sha256": "df2a571a29fe31a4bb0b4f36b32ce912707b9c6bcec014bf5775765a3c97af11"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000035_0.jpg",
+      "size": 7525,
+      "sha256": "70b127da3cc708fc9475261a7b07666507a78f48e9420eb4800cfe87ad5ad29b"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000100_0.jpg",
+      "size": 31008,
+      "sha256": "82229ab8eb55473502adde847a13894f5ff0712d5e7a314f9d4e3a0fa7d52cc9"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000101_0.jpg",
+      "size": 32365,
+      "sha256": "7e9cd610a188c5c37a967ebef7e75838663c73762229400a63fad3589a5fc9d6"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000102_0.jpg",
+      "size": 26828,
+      "sha256": "89ced2584d78f61b2d4086449b8e2d45bbd5e89c623d019159c58ff8e3c82f06"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000103_0.jpg",
+      "size": 34756,
+      "sha256": "9ec74a1c4ea48037fcb20a184c8299efcf6d3e27a2db83f3e5572603bb575b24"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000110_0.jpg",
+      "size": 35480,
+      "sha256": "e960f62eba8c6af15f01084846b291eb38659c83fa7255d154c75f417a40de57"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000111_0.jpg",
+      "size": 36711,
+      "sha256": "3a46bd62adc99c670c3537119895790f452046b236684c2d48145abbfe433a4d"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000112_0.jpg",
+      "size": 35356,
+      "sha256": "d1f018cbd1d471d50d42a83982785afcf98996f81bdf213a9b0fb92c0ad0fae4"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000113_0.jpg",
+      "size": 22311,
+      "sha256": "6b9eae6f026dfd379c835e3888c17f2bcebdc9b44bea0f65fe0cdc9d58553c14"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000120_0.jpg",
+      "size": 27553,
+      "sha256": "31a511755175c3c65b51b0d18270b83c665297671551a98458dc22a3eace1578"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000121_0.jpg",
+      "size": 32278,
+      "sha256": "4df95e29dd49a259c9a2cacb2c79aae296181e44ff0a5c492a01d97f52926904"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000122_0.jpg",
+      "size": 39304,
+      "sha256": "ff41299cde30a24fe7ebd2d63390524779bafb60c3bb661eb4833bbf75108179"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000123_0.jpg",
+      "size": 24262,
+      "sha256": "ed99c83af3a07adb98553ff393d9af3952c356610e877ebdf18bc76ed8dcc172"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000130_0.jpg",
+      "size": 46472,
+      "sha256": "ec3dfc5a80a657e64acf0009ce55ae45bb811631437d7462f0475c41b697d378"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000131_0.jpg",
+      "size": 37204,
+      "sha256": "5fbd0765bb1df5e0405d58ba2a07fe163247dbd4f060cb4ed7d7728a66b2fe20"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000132_0.jpg",
+      "size": 37039,
+      "sha256": "0822c56d52e016471921d8aa688cc8a91767a1fc73407199785c5b5aff7cb1f2"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000133_0.jpg",
+      "size": 38200,
+      "sha256": "e15f93f4ec9a8c35b5174815be26e21b136fbe4b724750cb88ef044f1d70ae64"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000200_0.jpg",
+      "size": 40213,
+      "sha256": "a8463204a369c65aa3aa0420a2fbb6891024e8a689144e42c9ab67e6f774bda6"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000201_0.jpg",
+      "size": 45134,
+      "sha256": "695a987c43ff01d213904d23234f514a0cfa560178a461fa645458322ac5204e"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000202_0.jpg",
+      "size": 28506,
+      "sha256": "9c202658301e99508d16e5f5e10d6b9936284c328a47101274363572e3af86a9"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000203_0.jpg",
+      "size": 33346,
+      "sha256": "5a7010b0e3e7423b91583cfea86821d2700885d431c872fdf684e6cad7d3c1b5"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000210_0.jpg",
+      "size": 33850,
+      "sha256": "bc6eb2463b742687cdf199f619a936e0c4fea893cca2cabbc3f1593841a53fbc"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000211_0.jpg",
+      "size": 24867,
+      "sha256": "1dd961a46a66ed9151dd2e26c044ab181e2254cfd45eaff02aa3d1612f2f4f19"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000212_0.jpg",
+      "size": 26001,
+      "sha256": "391788dcb79a18dfd41ac94b5ba8722fe425beeb52b059d7273116cbf304cf16"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000213_0.jpg",
+      "size": 23028,
+      "sha256": "3a22df8880ac49be35d20304f28cbd1d922fb88aa6be3d7d7f2ea52903089b4c"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000220_0.jpg",
+      "size": 33266,
+      "sha256": "2dda90a13f3a1df51428f7cff344beb02155470434326fdc77d2a9c191b89523"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000221_0.jpg",
+      "size": 40002,
+      "sha256": "7acd91e87509fba2dadc57bd3ce78c3911141caf84d1801c874a359e257979dd"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000222_0.jpg",
+      "size": 29513,
+      "sha256": "de6f088f4a63fc706e31ac59962a3403b12fa073b4ec88762d141dc592f84d00"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000223_0.jpg",
+      "size": 31817,
+      "sha256": "882b8ec6462b04397233b1e4e8221ebf0d773dd3c8e290f80344c0a4e6913e36"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000230_0.jpg",
+      "size": 40914,
+      "sha256": "21a455c0ae6497c6fb0cf42558e2f7c6a0f3f2062922920e339fe6403991c69c"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000231_0.jpg",
+      "size": 39552,
+      "sha256": "7318cddaedf2a8cc3128d89acb7db46633c3fbd1f705395fae662b318478eeb6"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000232_0.jpg",
+      "size": 38724,
+      "sha256": "55381b4095b59bcc23b1dccf6e6c52e09ac1de63debd0dbb9d64c5369f34ccca"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000233_0.jpg",
+      "size": 23986,
+      "sha256": "046b678b33dfde1f6402b647dddf3f19e16b6fe8c1571b231855e0462aec4990"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000300_0.jpg",
+      "size": 31045,
+      "sha256": "3dadd9cc2484cb5fa10f820d258a6fa6676297964d8e25ba70f64b95725e108b"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000301_0.jpg",
+      "size": 29204,
+      "sha256": "95a928ad238f3bb4fcb1b640851a85ab88430aeabcbce59e3c99e12d16147b2d"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000302_0.jpg",
+      "size": 33712,
+      "sha256": "15e3f3629e36e376690a27e65bc51d456720d1827d05000065ffc464fb7a9faa"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000303_0.jpg",
+      "size": 45716,
+      "sha256": "539ab6319fe73cfd8d6e9507d4f1f287d64193535378c33cfbb1f534ccc8455b"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000310_0.jpg",
+      "size": 28094,
+      "sha256": "3e556df8452ab61cd718f79d986dd45f8bf85469eb11c1cda803fec9e4c2ccb1"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000311_0.jpg",
+      "size": 34869,
+      "sha256": "defe79836b45a688256465580530584eccd90e857e40d14ce86d76f9353c7a5a"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000312_0.jpg",
+      "size": 31858,
+      "sha256": "c3adf01601afdae5e2b880fe1ad8f95f58f634e169c0cbe5126db2ad5367a4d4"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000313_0.jpg",
+      "size": 43882,
+      "sha256": "1d1505b3478f408b9ad7b6682af0974d34e9bef6e221cbc02882e516dc5324e8"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000320_0.jpg",
+      "size": 36915,
+      "sha256": "7c50a0073f6a163027505a33163a306e1a3602a1e1913858b7408a9b1e8d0559"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000321_0.jpg",
+      "size": 32688,
+      "sha256": "dbdd114458c12be9f7fa67fc20b80b04ecdcf4ac07b5897bdb506081fd4e4fed"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000322_0.jpg",
+      "size": 23648,
+      "sha256": "6a670f58192ca5fa831985970b0e9d184ea0e5ea113ee81a304c63cad40f314a"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000323_0.jpg",
+      "size": 42449,
+      "sha256": "d836bfb913e48759ce999b69bcf80f35f0d13339d9d5d526fd5f4cec743c1f0d"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000330_0.jpg",
+      "size": 38412,
+      "sha256": "93a724ecba17ca33644dc5ee89153d9eccaed3fb4f27f7a17257f74f93a0eca4"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000331_0.jpg",
+      "size": 36769,
+      "sha256": "ebbe3a5af57f385c7530ed26a485b86e44d673d34ae78c5453b63cf12bf53a9d"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000332_0.jpg",
+      "size": 33184,
+      "sha256": "0cac0b7e4528162c9b15880b76ac69999d5dbe214d8cf4128d6b619080a6feaa"
+    },
+    {
+      "path": "assets/worlds/helsinki_senate_square/senate_square_Tile_+036_+021_L19_000333_0.jpg",
+      "size": 35244,
+      "sha256": "eb5ff5f7dcc591bf97a30aa177c81859feb38770d89482519b6656e494d479f5"
+    },
+    {
+      "path": "assets/worlds/holland_downtown/city.glb",
+      "size": 2331860,
+      "sha256": "2a255a008912b6554a3da7a21137512ed4903be40474a7346f7420d224f2b55b"
+    },
+    {
+      "path": "assets/worlds/holland_downtown/city_aerial.jpg",
+      "size": 711775,
+      "sha256": "f87c947a13268673b8da5276c7880654deff3b251a1c78bf97e974a6c162575b"
+    },
+    {
+      "path": "assets/worlds/lynchburg_riverfront/city.glb",
+      "size": 2199236,
+      "sha256": "2e64107de2c98e9f578433d0e05f174b79ab1abf046e8552fdbda5fdbafb293b"
+    },
+    {
+      "path": "assets/worlds/lynchburg_riverfront/city_aerial.jpg",
+      "size": 745248,
+      "sha256": "9addeb7a6a3b456672e7a9c9991dcf779b829168fb0b3f5e9d7d2d26218b6ee2"
+    },
+    {
+      "path": "assets/worlds/machu_picchu/landmark.glb",
+      "size": 3996616,
+      "sha256": "b095ef3c9579ebd4e9812536eb3433421614a900393f6851ca9f0854d388f0ea"
+    },
+    {
+      "path": "assets/worlds/machu_picchu/landmark_Image_0.jpg",
+      "size": 1318099,
+      "sha256": "4c6cf590299da881f43184e32d6d69277f2cf2d188d527eaa5914a0ddfaac530"
+    },
+    {
+      "path": "assets/worlds/machu_picchu/landmark_Image_1.jpg",
+      "size": 127068,
+      "sha256": "571aa4d48ade5cd9ca422e0ce14bdd9a575aaa634420a2b1b60e8ce8bbcb0b27"
+    },
+    {
+      "path": "assets/worlds/machu_picchu/landmark_Image_2.jpg",
+      "size": 511858,
+      "sha256": "6da2bc565411b1e297e3701700dab5cc12fdd379c97beb5c596158b79b1ca736"
+    },
+    {
+      "path": "assets/worlds/mexico_city_cathedral/city.glb",
+      "size": 35406040,
+      "sha256": "23582bd2e09454f0e988e9c0efa8ca87f0a3768089518aa916af38cbe258c1de"
+    },
+    {
+      "path": "assets/worlds/mexico_city_cathedral/city_Image_0.jpg",
+      "size": 921883,
+      "sha256": "6e68784899e693c28edf5c3eedf8b180bbdf12b0ef5bd68060bd72b4bef77c97"
+    },
+    {
+      "path": "assets/worlds/mexico_city_cathedral/city_Image_1.jpg",
+      "size": 924974,
+      "sha256": "8857d8aa63101f74788c9d1a8868c7c99924c5290fd808bad49fc14aec3cba41"
+    },
+    {
+      "path": "assets/worlds/mexico_city_cathedral/city_Image_2.jpg",
+      "size": 910392,
+      "sha256": "6d56bc35bd50e1924f93f5263e6b164a1b6249707ccd775cb39f3e535d357afa"
+    },
+    {
+      "path": "assets/worlds/mexico_city_cathedral/city_Image_3.jpg",
+      "size": 906048,
+      "sha256": "aa5d4b22269be2d026693601cd527d69433046e975c65cb59126888eb723820e"
+    },
+    {
+      "path": "assets/worlds/montreal_sainte_elisabeth/city.glb",
+      "size": 13255640,
+      "sha256": "26367df0193714fa62c4ed83ee2e5c7a48b6d3f90be651446b44edc30423b878"
+    },
+    {
+      "path": "assets/worlds/montreal_sainte_elisabeth/city_Image_0.jpg",
+      "size": 834427,
+      "sha256": "c6629fc08949a9ce8a3be3f27eb3103b6195c86218b100be77fc3069dcda9319"
+    },
+    {
+      "path": "assets/worlds/moscow_andronikov/city.glb",
+      "size": 35321924,
+      "sha256": "d9ed25c8b983dec6122c602c429d8664658c391ca322820f13a7f28325124c7e"
+    },
+    {
+      "path": "assets/worlds/moscow_andronikov/city_Image_0.jpg",
+      "size": 800987,
+      "sha256": "3f9e9f96fb366e760578f13e438a23ff3cf5bc85f7b359a36dc2599d22d9a224"
+    },
+    {
+      "path": "assets/worlds/moscow_andronikov/city_Image_1.jpg",
+      "size": 776837,
+      "sha256": "c70c711bc48b9d89fbf15139b934c55b0abdd618cd937cb0734abb3d40e4f1b3"
+    },
+    {
+      "path": "assets/worlds/moscow_andronikov/city_Image_10.jpg",
+      "size": 840039,
+      "sha256": "d62171ff341072589d13108a353376bcc614cc208f0cb7cae8a80867faedae83"
+    },
+    {
+      "path": "assets/worlds/moscow_andronikov/city_Image_11.jpg",
+      "size": 840529,
+      "sha256": "5c31d76a3c42d36a3d74bf394d6b431701947cf301e28feea61d76e4b535c005"
+    },
+    {
+      "path": "assets/worlds/moscow_andronikov/city_Image_12.jpg",
+      "size": 419158,
+      "sha256": "8283b52eae425e9ad1c934be92a840b1c4ddf6455aba811babf8114f30507f78"
+    },
+    {
+      "path": "assets/worlds/moscow_andronikov/city_Image_2.jpg",
+      "size": 722999,
+      "sha256": "88dae44d1c2611afd80bbef306decd719f2af13c70c48189bd010c53d9e0d135"
+    },
+    {
+      "path": "assets/worlds/moscow_andronikov/city_Image_3.jpg",
+      "size": 712586,
+      "sha256": "df5e993881313b8760206c3e3e64fa5692b847d9e449cfa2fb04278b77deb205"
+    },
+    {
+      "path": "assets/worlds/moscow_andronikov/city_Image_4.jpg",
+      "size": 695063,
+      "sha256": "a7017b3f8754e858f1326c9cb5506a6513078b1c859a5ddf4777bb4efaae4a14"
+    },
+    {
+      "path": "assets/worlds/moscow_andronikov/city_Image_5.jpg",
+      "size": 678132,
+      "sha256": "493c9c0c2431b4e9f50b996b678f59c8b3e163990e11e334dc464c633b2d32e0"
+    },
+    {
+      "path": "assets/worlds/moscow_andronikov/city_Image_6.jpg",
+      "size": 679399,
+      "sha256": "b2707f10e9ecdea22a51c2d01af798af433b309ca71e7473dd3b0f22266cec03"
+    },
+    {
+      "path": "assets/worlds/moscow_andronikov/city_Image_7.jpg",
+      "size": 698624,
+      "sha256": "bac1f31adb64a5e96efa4157adada3e7be0afad609efe331a143ebbf7f5ec46c"
+    },
+    {
+      "path": "assets/worlds/moscow_andronikov/city_Image_8.jpg",
+      "size": 686718,
+      "sha256": "14260e3c7db25c742f11b5884f788b6023129b4cce61ae1796c63afc8647819c"
+    },
+    {
+      "path": "assets/worlds/moscow_andronikov/city_Image_9.jpg",
+      "size": 685315,
+      "sha256": "448d04f6a57460d3df78182fada585f6a7d0dae1df7159df12953802d7320eb3"
+    },
+    {
+      "path": "assets/worlds/norfolk_waterfront/city.glb",
+      "size": 1876448,
+      "sha256": "657858b98e931891634b7ccf55fa88703b1d6c7aad3c616c2300b156ca162aba"
+    },
+    {
+      "path": "assets/worlds/norfolk_waterfront/city_aerial.jpg",
+      "size": 637508,
+      "sha256": "f458b291af14f082707d67b1ba78379fa5f54681da9c1c8cb1449751519f5523"
+    },
+    {
+      "path": "assets/worlds/rochester_high_falls/city.glb",
+      "size": 1539720,
+      "sha256": "b982e862ffebb08a9dced872cc1ec9badedac2df72db018f79711c8105497b1b"
+    },
+    {
+      "path": "assets/worlds/rochester_high_falls/city_aerial.jpg",
+      "size": 605773,
+      "sha256": "fe32be48a00aec237518983978ffab918f662fa7646b86da4601737c5b6ae979"
+    },
+    {
+      "path": "assets/worlds/rome_colosseum/landmark.glb",
+      "size": 164523016,
+      "sha256": "3f07dce2cd3f747ed132dec08eb033b628b65d78347499ddacabbcd164f8ccfa"
+    },
+    {
+      "path": "assets/worlds/rome_colosseum/landmark_Image_0.jpg",
+      "size": 1464920,
+      "sha256": "d344702ab06948e0e8a787bb842ed9797aea133345c9934baf63f3ec63bd0698"
+    },
+    {
+      "path": "assets/worlds/shanghai_lujiazui/city.glb",
+      "size": 53729436,
+      "sha256": "a5c4707d87e0ce48b7ef781355a73680459a4578c9b5072ec073efd60833c011"
+    },
+    {
+      "path": "assets/worlds/tokyo_imperial_palace/city.glb",
+      "size": 108967412,
+      "sha256": "5b0306871b7836e78ef13c6f702382f0d0465552d3cd5d39407d1fea0f88ed55"
+    },
+    {
+      "path": "assets/worlds/tokyo_imperial_palace/city_Image_0.jpg",
+      "size": 1362234,
+      "sha256": "d7f747266f351c727ebe464873abf3c2dcec8eaeabb42625b47afdbfccacf5f5"
+    },
+    {
+      "path": "assets/worlds/washington_national_mall/city.glb",
+      "size": 2338616,
+      "sha256": "78c510fa2e96cc37a4b12469e61b0849529ef3bd93e5725fa6718457fdc0de75"
+    },
+    {
+      "path": "assets/worlds/washington_national_mall/city_aerial.jpg",
+      "size": 840331,
+      "sha256": "4e571f5b36a1c50ad5b361d4160e23b64f371637d3f9d30bd62cc22c7a00b103"
+    }
+  ]
+}

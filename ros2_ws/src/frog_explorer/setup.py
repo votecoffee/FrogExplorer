@@ -1,0 +1,19 @@
+from pathlib import Path
+import os
+from setuptools import setup
+
+project = Path(__file__).resolve().parents[3]
+game = project / "game"
+data = [("share/ament_index/resource_index/packages", ["resource/frog_explorer"]),
+        ("share/frog_explorer", ["package.xml"]),
+        ("share/frog_explorer/launch", ["launch/explorer.launch.py"])]
+data.append(("share/frog_explorer",[os.path.relpath(project/name,Path(__file__).resolve().parent) for name in ["README.md","LICENSE","ASSET_CREDITS.md"]]))
+for folder in sorted({p.parent for p in game.rglob("*") if p.is_file() and ".godot" not in p.parts}):
+    files = [os.path.relpath(p, Path(__file__).resolve().parent) for p in folder.iterdir() if p.is_file() and not p.name.endswith(".tmp")]
+    if files:
+        data.append((str(Path("share/frog_explorer/game") / folder.relative_to(game)), files))
+setup(name="frog_explorer", version="0.1.0", packages=["frog_explorer"],
+      data_files=data, install_requires=["setuptools"], zip_safe=False,
+      maintainer="votecoffee", maintainer_email="7451299+votecoffee@users.noreply.github.com",
+      description="Woodland pond exploration game and ROS 2 bridge", license="MIT",
+      tests_require=["pytest"], entry_points={"console_scripts": ["game_bridge=frog_explorer.bridge:main"]})

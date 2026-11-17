@@ -1,0 +1,18 @@
+{
+  "name": "Shanghai · Central skyline, China",
+  "country": "CN",
+  "category": "city",
+  "scene_name": "city.glb",
+  "output_dir": "outputs/World_Cities_20261117",
+  "scale": 1500,
+  "target": [
+    -0.5,
+    1.05
+  ],
+  "budget": 450000,
+  "calibration": "Approximate 1500 m/source unit from the roughly 0.4-unit skyline height versus the roughly 600 m tallest towers; not surveyed.",
+  "reviewed": true,
+  "description": "Central Shanghai and Lujiazui skyline, modeled streets and river. Simplified architecture with plain facades, not a photographic scan. The visible river has no swimming volume.",
+  "kind": "Simplified architectural city model, plain building materials",
+  "credit": "beyond.zht"
+}
