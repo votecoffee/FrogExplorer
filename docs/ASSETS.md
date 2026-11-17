@@ -75,3 +75,17 @@ redistribution restrictions. Only the sculpting code is published; the revised
 red-eyed GLB stays local. Reference photographs guide proportions and are not
 sampled into the skin: [Smithsonian active/sleeping frogs](https://nationalzoo.si.edu/animals/news/new-zoo-red-eyed-tree-frogs)
 and [STRI's species description](https://panamabiota.org/portal/taxa/index.php?clid=0&taxauthid=1&tid=10678).
+
+To continue from the saved **v3** Blender model, use the separate contour pass:
+
+```powershell
+& "C:\path\to\blender.exe" --background --python scripts/frogs/refine_red_eye_contours.py -- --input .local/red_eye_shape_v3/candidate/Red_Eyed_Tree_Frog_Shape_v3.blend --output .local/red_eye_shape_v4/candidate
+```
+
+This v4 pass refines the muzzle roof and ventral chin, narrows digit stems,
+rounds all 18 terminal pad outlines, and retracts the shared web slightly.
+Localized smoothing polishes the pad contours without smoothing the whole
+animal. It preserves the v3 body proportions, skin, eye/lid geometry and motion
+library. Review open/closed eyes, mouth actions and planted feet before local
+installation. [Additional reference photographs](https://exo-terra.com/explore/care-guides/frogs-toads/agalychnis-callidryas/)
+guide shape only; no photo pixels are included in the skin.
