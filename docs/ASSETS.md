@@ -49,3 +49,29 @@ All 16 exports can be split into streaming packs without modifying their origina
 `python scripts/make_audio.py` regenerates croak/woodland synthesis. The separate authored American-toad trill is included as a small audio asset. Run `scripts/rides/build_props.py` in Blender to rebuild the balloon, convertible and parachute. `game/scripts/starter_frog.gd` creates its own primitive geometry and simple animation keys at runtime; Blender is not required for starter play.
 
 The earlier detailed frog retargeting/sculpting source archives are outside this code repository. Import their prepared GLBs to retain the established skins, rigs and 28-clip libraries. No realistic source model is silently replaced: the starter path runs only when a species GLB is absent, or when the explicit development flag `--starter-models` is supplied.
+
+## Refine the local red-eyed frog's shape
+
+`scripts/frogs/refine_red_eye_shape.py` applies a conservative rest-mesh pass to
+the previously prepared skin/eyes v2 Blender model (111 joints, 28 actions).
+It narrows the trunk, tapers arm/leg cross-sections around their existing bones,
+softens the muzzle/brow contour with a protected eye-socket band, and refines
+terminal toe-pad profiles. It preserves topology, UVs, skin weights, packed
+images, eye/lid/tongue geometry, joint rest transforms and animation curves.
+
+```powershell
+& "C:\path\to\blender.exe" --background --python scripts/frogs/refine_red_eye_shape.py -- --input "D:\local\Red_Eyed_Tree_Frog_Animated.blend" --output .local/red_eye_shape_v3/candidate
+```
+
+Keep a verified backup and review the exported GLB in neutral clay, with its
+skin, and in motion before installing it as `game/assets/frogs/red_eye.glb`.
+The script saves a new packed Blender file, self-contained GLB and preservation
+report. `--strength` ranges from 0 to 1. The original reference lock remains a
+baseline; it does not describe this later local override. The reference importer
+will preserve/refuse an existing differing model rather than overwrite it.
+
+Shape changes remain derived from the source model and do not remove its
+redistribution restrictions. Only the sculpting code is published; the revised
+red-eyed GLB stays local. Reference photographs guide proportions and are not
+sampled into the skin: [Smithsonian active/sleeping frogs](https://nationalzoo.si.edu/animals/news/new-zoo-red-eyed-tree-frogs)
+and [STRI's species description](https://panamabiota.org/portal/taxa/index.php?clid=0&taxauthid=1&tid=10678).
