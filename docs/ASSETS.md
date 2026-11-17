@@ -89,3 +89,19 @@ animal. It preserves the v3 body proportions, skin, eye/lid geometry and motion
 library. Review open/closed eyes, mouth actions and planted feet before local
 installation. [Additional reference photographs](https://exo-terra.com/explore/care-guides/frogs-toads/agalychnis-callidryas/)
 guide shape only; no photo pixels are included in the skin.
+
+The next pass continues **v4**, concentrating on anatomical transitions:
+
+```powershell
+& "C:\path\to\blender.exe" --background --python scripts/frogs/refine_red_eye_anatomy.py -- --input .local/red_eye_shape_v4/candidate/Red_Eyed_Tree_Frog_Shape_v4.blend --output .local/red_eye_shape_v5/candidate
+```
+
+Shape v5 tapers the limb ends around retained muscle bellies, reduces projecting
+elbow/knee/ankle caps, and blends the rear cheek into the shoulder. A shared
+upper/lower-lip mask softens the exaggerated upturn at the mouth corners. It
+keeps v4's trunk and toe-pad work, separate eyes/lids/tongue, skin textures,
+topology, UVs, weights, skeleton and all 28 actions. Masked surface fairing and
+an orientation guard protect local transitions; review the exported model in
+climbing, swimming, jumping and mouth poses before installing it. These shape
+choices use the photographs linked above and [Smithsonian's active frog](https://nationalzoo.si.edu/animals/news/new-zoo-red-eyed-tree-frogs),
+without embedding the photographs in the asset.
