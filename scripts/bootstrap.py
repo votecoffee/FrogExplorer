@@ -105,7 +105,7 @@ def main():
     if args.test:logged([engine,"--headless","--path",ROOT/"game","--","--smoke","--test-session","--no-ros"],ROOT/"state/install-smoke.log")
     print("Installed FrogExplorer with Godot",version)
     print("Run Start-FrogExplorer.cmd" if os.name=="nt" else "Run bash scripts/run_linux.sh")
-    print("Settings: .local/settings.json; logs: state/. Realistic frogs/worlds are optional local imports.")
+    print("Settings: .local/settings.json; logs: state/. Five realistic frogs and 16 world tile packs are bundled; the red-eyed model is an optional local import.")
 
 
 if __name__=="__main__":main()
