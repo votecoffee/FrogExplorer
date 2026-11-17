@@ -1097,6 +1097,7 @@
         "windows"
       ],
       "random_eligible": true,
+      "tile_manifest": "res://assets/worlds/rome_colosseum/tiles_64_ad37b3622177/manifest.json",
       "scene": "res://assets/worlds/rome_colosseum/landmark.glb",
       "spawn": [
         -138.4025115966797,
@@ -1239,6 +1240,7 @@
         "windows"
       ],
       "random_eligible": true,
+      "tile_manifest": "res://assets/worlds/tokyo_imperial_palace/tiles_128_9ced8684a934/manifest.json",
       "scene": "res://assets/worlds/tokyo_imperial_palace/city.glb",
       "spawn": [
         406.7393798828125,

@@ -12,6 +12,7 @@ var status="Local play · F4 for LAN host/join"
 var peer:ENetMultiplayerPeer
 var members={}
 var cached_fingerprint=""
+var content_hashes={}
 var send_elapsed=0.0
 var snapshot_elapsed=0.0
 var sequence=0
@@ -42,11 +43,20 @@ func fingerprint()->String:
  for file in folder.get_files():
   if file.ends_with(".gd") and not file.ends_with("_smoke.gd") and not file.ends_with("_probe.gd") and not file=="smoke.gd":files.append("res://scripts/"+file)
  for item in game.travel.catalog:
-  if item.has("scene"):files.append(str(item.scene))
+  var tiles=WorldTiles.manifest(item)
+  if not tiles.is_empty() and not tiles.has("error"):
+   files.append(tiles.path)
+   for file in tiles.files:files.append(tiles.folder+"/"+str(file))
+  elif item.has("scene"):files.append(str(item.scene))
  for species in FrogPilot.SPECIES:files.append("res://assets/frogs/"+species.file+".glb")
  files.sort();var parts=[]
- for path in files:parts.append(path+":"+(FileAccess.get_sha256(path) if FileAccess.file_exists(path) else "missing"))
+ for path in files:
+  # Packs and game code are immutable for this process. Retain verified hashes
+  # across reconnects, just as the complete fingerprint is normally retained.
+  if not content_hashes.has(path):content_hashes[path]=FileAccess.get_sha256(path) if FileAccess.file_exists(path) else "missing"
+  parts.append(path+":"+str(content_hashes[path]))
  parts.append("starter_only:"+str("--starter-models" in OS.get_cmdline_user_args()))
+ parts.append("whole_scenes:"+str("--whole-scenes" in OS.get_cmdline_user_args()))
  var engine=Engine.get_version_info()
  cached_fingerprint="%d.%d.%d:"%[engine.major,engine.minor,engine.patch]+FileAccess.get_sha256("res://main.tscn")+str(parts).sha256_text()
  return cached_fingerprint

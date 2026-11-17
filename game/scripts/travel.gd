@@ -50,7 +50,9 @@ func unavailable(item:Dictionary)->String:
  if sizes.size()!=2 or size<float(sizes[0]) or size>float(sizes[1]):return "This place does not support the default arrival size."
  if item.get("provider","")=="pond":return ""
  if item.get("provider","")!="local_mesh":return "This world provider is not installed."
- var path=str(item.get("scene",""))
+ var tiles=WorldTiles.manifest(item)
+ if tiles.has("error"):return tiles.error
+ var path=str(item.get("scene","")) if tiles.is_empty() else str(tiles.folder)+"/"+str(tiles.overview_scene)
  if not path.begins_with("res://assets/worlds/") or not ResourceLoader.exists(path):return "The scene pack is missing."
  if not item.has("spawn") or item.spawn.size()!=3 or not item.has("bounds") or item.bounds.size()!=4:return "The scene pack has no safe arrival definition."
  return ""
@@ -100,33 +102,42 @@ func _valid(token:int)->bool:return busy and token==ticket and not game.quitting
 func _prepare(item:Dictionary,token:int):
  if not _valid(token):return
  var scene:PackedScene
+ var tiles=WorldTiles.manifest(item)
  if item.provider=="local_mesh":
   status="loading";changed.emit()
   if not _valid(token):return
-  var path=str(item.scene)
-  var existing=ResourceLoader.load_threaded_get_status(path)
-  if existing not in [ResourceLoader.THREAD_LOAD_IN_PROGRESS,ResourceLoader.THREAD_LOAD_LOADED]:
-   var error=ResourceLoader.load_threaded_request(path,"PackedScene")
-   if error!=OK:_fail("The scene pack could not be opened.");return
-  while true:
-   if not _valid(token):return
-   var amount=[];var state=ResourceLoader.load_threaded_get_status(path,amount)
-   if not amount.is_empty():progress=.05+.55*float(amount[0])
-   changed.emit()
-   if state==ResourceLoader.THREAD_LOAD_LOADED:break
-   if state!=ResourceLoader.THREAD_LOAD_IN_PROGRESS:_fail("The scene pack could not be loaded.");return
-   await get_tree().process_frame
-  scene=ResourceLoader.load_threaded_get(path) as PackedScene
+  if not tiles.is_empty():
+   var integrity=WorldTiles.verify(tiles)
+   if not integrity.is_empty():_fail(integrity);return
+  var path=str(item.scene) if tiles.is_empty() else str(tiles.folder)+"/"+str(tiles.overview_scene)
+  if DisplayServer.get_name()=="headless":
+   # The dummy rendering backend cannot safely allocate mesh/texture RIDs
+   # concurrently with the active scene. Keep headless server loading serial.
+   scene=load(path) as PackedScene
+  else:
+   scene=await _load_scene(path,token)
+  if not _valid(token):return
   if not scene:_fail("The scene pack has no usable scene.");return
  if not _valid(token):return
  status="collision";progress=.65;message="Preparing the ground...";changed.emit()
  if item.provider=="pond":staged=WoodlandWorld.new()
  else:
-  var local_world=LocalMeshWorld.new();local_world.packed_scene=scene;local_world.pack=item;staged=local_world
+  var local_world=LocalMeshWorld.new() if tiles.is_empty() else TiledMeshWorld.new()
+  local_world.packed_scene=scene;local_world.pack=item
+  if local_world is TiledMeshWorld:local_world.manifest=tiles;local_world.game=game
+  staged=local_world
  staged.staging=true;staged.visible=false;staged.name="IncomingWorld"
  game.add_child(staged) # Keep static bodies registered; layer 2 isolates them from the frog.
  staged.set_collision_layers(2);changed.emit()
  if not _valid(token):return
+ if staged is TiledMeshWorld:
+  var deadline=Time.get_ticks_msec()+60000
+  while not staged.initial_ready():
+   if not _valid(token):return
+   if not staged.stream_error.is_empty():_fail(staged.stream_error);return
+   if Time.get_ticks_msec()>deadline:_fail("The arrival tiles did not finish loading. Staying here.");return
+   await get_tree().process_frame
+   if not _valid(token):return
  # Let the physics server register the isolated collision layer before queries.
  await get_tree().physics_frame
  await get_tree().physics_frame
@@ -137,6 +148,25 @@ func _prepare(item:Dictionary,token:int):
  var p=item.get("spawn",[2.8,.2,3.5]);var expected=Vector3(float(p[0]),float(p[1]),float(p[2]))
  var spawn=_safe_spawn(staged,expected)
  if spawn.is_empty():_fail("There is no clear, walkable ground at this arrival point. Staying here.");return
+ _commit(item,spawn)
+
+func _load_scene(path:String,token:int)->PackedScene:
+ var existing=ResourceLoader.load_threaded_get_status(path)
+ if existing not in [ResourceLoader.THREAD_LOAD_IN_PROGRESS,ResourceLoader.THREAD_LOAD_LOADED]:
+  var error=ResourceLoader.load_threaded_request(path,"PackedScene")
+  if error!=OK:_fail("The scene pack could not be opened.");return null
+ while true:
+  if not _valid(token):
+   ResourceLoader.load_threaded_get(path);return null
+  var amount=[];var state=ResourceLoader.load_threaded_get_status(path,amount)
+  if not amount.is_empty():progress=.05+.55*float(amount[0])
+  changed.emit()
+  if state==ResourceLoader.THREAD_LOAD_LOADED:break
+  if state!=ResourceLoader.THREAD_LOAD_IN_PROGRESS:_fail("The scene pack could not be loaded.");return null
+  await get_tree().process_frame
+ return ResourceLoader.load_threaded_get(path) as PackedScene
+
+func _commit(item:Dictionary,spawn:Dictionary):
  # This is the only swap point. Nothing in the previous world is changed until
  # the new collision and capsule-clearance checks have passed.
  var old=game.woodland
@@ -184,7 +214,7 @@ func _discard_stage():
 
 func state()->Dictionary:
  var item=place(current_id)
- return {"place_id":current_id,"place_name":item.get("name","Woodland pond"),"map_epoch":map_epoch,"geographic_anchor":item.get("anchor",{}),"travel_state":status,"travel_progress":progress}
+ return {"place_id":current_id,"place_name":item.get("name","Woodland pond"),"map_epoch":map_epoch,"geographic_anchor":item.get("anchor",{}),"travel_state":status,"travel_progress":progress,"world_stream":game.woodland.streaming_state()}
 
 func _load_history():
  var path="user://travel_history.json"

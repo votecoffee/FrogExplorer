@@ -16,6 +16,7 @@ static func fits(space:PhysicsDirectSpaceState3D,foot:Vector3,size:float,mask:in
 
 static func arrival(world:WoodlandWorld,expected:Vector3,size:float,mask:int,exclude:Array[RID]=[])->Dictionary:
  if not within_bounds(world,expected,size):return {}
+ if not world.surface_ready(expected,FrogBodyMetrics.BASE_RADIUS*size):return {}
  var space=world.get_world_3d().direct_space_state
  var ray=PhysicsRayQueryParameters3D.create(expected+Vector3.UP*2,expected-Vector3.UP*3,mask)
  ray.exclude=exclude

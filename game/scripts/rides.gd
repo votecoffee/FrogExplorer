@@ -83,6 +83,7 @@ func _shape_transform(ride:String,foot:Vector3,yaw:float)->Transform3D:
 func _fits(ride:String,foot:Vector3,yaw:float)->bool:
  var extent=(.54 if ride=="BALLOON" else .84)*ride_scale
  if not pilot.woodland.travel_bounds.grow(-extent).has_point(Vector2(foot.x,foot.z)):return false
+ if not pilot.woodland.surface_ready(foot,extent):return false
  var query=PhysicsShapeQueryParameters3D.new();query.shape=_shape(ride);query.transform=_shape_transform(ride,foot,yaw);query.collision_mask=1
  var exclude:Array[RID]=[pilot.get_rid()]
  if is_instance_valid(body):exclude.append(body.get_rid())
@@ -187,6 +188,11 @@ func physics_update(delta:float):
  if body.position.y < pilot.woodland.recovery_floor:
   clear_for_travel();pilot.reset_position();notify("Recovered at the arrival point.")
 
+func _move(delta:float):
+ var radius=(.54 if kind=="BALLOON" else .84)*ride_scale
+ if not pilot.woodland.allow_motion(body,radius,delta):body.velocity=Vector3.ZERO;speed=0;return
+ body.move_and_slide()
+
 func _parachute(delta:float):
  var m=controls.move;var forward=game.camera_rig.planar_forward();var right=forward.cross(Vector3.UP)
  var direction=(right*(m.x+controls.auxiliary.x)-forward*m.y).limit_length()
@@ -199,7 +205,7 @@ func _parachute(delta:float):
   heading+=controls.remote_velocity.w*delta
   var v=pilot.forward()*controls.remote_velocity.x+pilot.forward().cross(Vector3.UP)*controls.remote_velocity.y
   body.velocity.x=v.x;body.velocity.z=v.z # Descent remains controlled by the chute.
- body.rotation.y=heading;body.move_and_slide();_bound(FrogBodyMetrics.BASE_RADIUS*ride_scale)
+ body.rotation.y=heading;_move(delta);_bound(FrogBodyMetrics.BASE_RADIUS*ride_scale)
  prop.rotation.z=sin(age*1.9)*.035;prop.rotation.x=sin(age*1.4)*.025
  if body.is_on_floor() or pilot.woodland.in_water(body.position):_finish_fall("parachute_landed")
 
@@ -207,7 +213,7 @@ func _coast(delta:float):
  # Inherit car momentum, then brake independently of held throttle input.
  var horizontal=Vector2(body.velocity.x,body.velocity.z).move_toward(Vector2.ZERO,delta*10*sqrt(ride_scale))
  body.velocity.x=horizontal.x;body.velocity.z=horizontal.y;body.velocity.y-=9*delta
- body.move_and_slide();_bound(FrogBodyMetrics.BASE_RADIUS*ride_scale)
+ _move(delta);_bound(FrogBodyMetrics.BASE_RADIUS*ride_scale)
  speed=Vector2(body.velocity.x,body.velocity.z).length()
  if pilot.woodland.in_water(body.position):_finish_fall("coast_stopped");return
  if speed<.03*ride_scale and body.is_on_floor() and controls.move.length()<.1 and controls.auxiliary.length()<.1:
@@ -233,7 +239,7 @@ func _fly(delta:float):
   desired=pilot.forward()*controls.remote_velocity.x+pilot.forward().cross(Vector3.UP)*controls.remote_velocity.y;vertical=controls.remote_velocity.z
  body.velocity=body.velocity.move_toward(Vector3(desired.x,vertical,desired.z),delta*4*sqrt(ride_scale))
  if movement.length()>.1:heading=lerp_angle(heading,atan2(movement.x,movement.z),minf(1,delta*2))
- body.rotation.y=heading;body.move_and_slide()
+ body.rotation.y=heading;_move(delta)
  _bound(.54*ride_scale)
  if body.position.y>pilot.woodland.flight_ceiling:body.position.y=pilot.woodland.flight_ceiling;body.velocity.y=minf(0,body.velocity.y)
  prop.rotation.z=sin(age*1.7)*.035;prop.rotation.x=sin(age*1.3)*.025
@@ -258,7 +264,7 @@ func _drive(delta:float):
   # External SI commands remain SI; angular Z remains radians per second.
   heading+=controls.remote_velocity.w*delta;body.rotation.y=heading;speed=controls.remote_velocity.x
   body.velocity.x=sin(heading)*speed;body.velocity.z=cos(heading)*speed
- body.move_and_slide();_bound(.84*ride_scale)
+ _move(delta);_bound(.84*ride_scale)
  var actual=Vector2(body.velocity.x,body.velocity.z).length()
  if body.is_on_wall() and actual<absf(speed)*.5:speed=signf(speed)*actual
  if pilot.woodland.in_water(body.position):body.position=last_dry;body.velocity=Vector3.ZERO;speed=0;notify("The convertible cannot swim. Try the balloon.")

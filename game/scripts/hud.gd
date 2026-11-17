@@ -96,6 +96,9 @@ func update(delta,pilot,camera,controls,link):
  connection_label.text=("ROS 2 connected" if link.connected else "Local play · ROS 2 offline")+"  /  "+("Gamepad" if controls.device>=0 else "Keyboard")
  debug_label.visible=debug_enabled
  if debug_enabled:debug_label.text="%s\nAxes: %s\nButtons: %s\nAnimation: %s  /  %.0f FPS"%[ExplorerGamepadProfile.diagnostics(controls.device_profile),str(controls.raw_axes),str(controls.raw_buttons),pilot.current_clip,Engine.get_frames_per_second()]
+ if debug_enabled and pilot.woodland is TiledMeshWorld:
+  var stream=pilot.woodland.streaming_state()
+  debug_label.text+="\nScenery: %d/%d tiles, %d pending\n%s"%[stream.resident,stream.total,stream.pending,stream.error]
 
 func update_place(travel:WorldTravel):
  var item=travel.place(travel.current_id)

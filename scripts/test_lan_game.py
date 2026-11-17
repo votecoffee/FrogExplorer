@@ -125,6 +125,9 @@ def main():
         send('host','disconnect')
         check(wait(lambda:state('client')['role']=='local' and len(state('client')['players'])==4 and all(p['physics'] for p in state('client')['players'])),'Losing the host restores local physics and removes remote frogs')
         send('host','travel',place='home_woodland_pond');check(wait(lambda:state('host')['place']=='home_woodland_pond'),'Host returns its four local frogs to the pond')
+    except Exception as error:
+        checks.append({'test':'Acceptance runner completed: '+str(error),'passed':False})
+        raise
     finally:
         for p in processes.values():
             if p.poll() is None:p.terminate()

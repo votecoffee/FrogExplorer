@@ -8,6 +8,12 @@ var pack:Dictionary
 var collision_count=0
 
 func _ready():
+ _configure_pack()
+ var scene=packed_scene.instantiate()
+ add_child(scene)
+ _colliders(scene)
+
+func _configure_pack():
  spawn_point=Vector3.ZERO
  for p in pack.get("spawn_candidates",[]):recovery_points.append(Vector3(float(p[0]),float(p[1]),float(p[2])))
  var b=pack.get("bounds",[-100,-100,100,100])
@@ -19,10 +25,6 @@ func _ready():
   surface_bottom=minf(surface_bottom,float(heights[0])-50)
   recovery_floor=minf(recovery_floor,float(heights[0])-30)
   flight_ceiling=maxf(flight_ceiling,float(heights[1])+60)
- var scene=packed_scene.instantiate()
- add_child(scene)
- _colliders(scene)
-
 func _colliders(node:Node):
  if node is MeshInstance3D and node.mesh:
   var body=StaticBody3D.new();body.collision_layer=2;body.collision_mask=0

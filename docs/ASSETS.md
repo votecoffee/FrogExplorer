@@ -40,6 +40,8 @@ Other exporters are `prepare_landmarks.py`, `prepare_us_cities.py` and `prepare_
 
 World scenes have finite edges, missing geometry and varying close-up detail. Models without a verified geographic transform explicitly use `LOCAL_MODEL` and approximate scale. A photograph of a tree, river, bridge or doorway does not supply corresponding gameplay semantics.
 
+The largest two single-surface exports, Tokyo and the Colosseum, can be split into optional streaming packs without modifying their GLBs. See [tile building and validation](TILING.md). The original reference lock and asset importer continue to describe the original assets; derived tile packs are separate local outputs.
+
 ## Rebuild original small assets
 
 `python scripts/make_audio.py` regenerates croak/woodland synthesis. The separate authored American-toad trill is included as a small audio asset. Run `scripts/rides/build_props.py` in Blender to rebuild the balloon, convertible and parachute. `game/scripts/starter_frog.gd` creates its own primitive geometry and simple animation keys at runtime; Blender is not required for starter play.

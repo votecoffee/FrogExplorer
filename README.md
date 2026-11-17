@@ -154,6 +154,8 @@ The catalog describes **12 city areas and four historic destinations**. Optional
 
 Worlds have bounded coverage and varying detail. Montréal is a short sidewalk scan; Shanghai is simplified architecture. Water and trees in imported scenes do not gain swimming or climbing volumes automatically. Travel restores every frog to default size and clears vehicles; failed or cancelled travel preserves the old world. City/history category preferences and recent visits influence random selection.
 
+Tokyo and the Colosseum support optional **streamed tiles**: full detail and collision near each frog, a coarse distant overview for balloon exploration, and unloading outside the group's active regions. Original scene imports remain compatible. Build or copy the derived packs using [the tiling guide](docs/TILING.md); they are local assets and are not included in Git. **F2** shows tile residency diagnostics.
+
 ## ROS interface
 
 After configuring ROS:

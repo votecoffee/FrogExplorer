@@ -233,3 +233,7 @@ func nearest_tree(p:Vector3,max_distance=.55):
   var tree=trees[i];var d=Vector2(p.x-tree.center.x,p.z-tree.center.z).length()-tree.radius
   if d<distance and p.y<tree.center.y+tree.height:best=i;distance=d
  return best
+
+func surface_ready(_point:Vector3,_radius:float)->bool:return true
+func allow_motion(_body:CharacterBody3D,_radius:float,_delta:float)->bool:return true
+func streaming_state()->Dictionary:return {"mode":"whole_scene"}

@@ -182,6 +182,7 @@ func _fits_size(size:float)->bool:
  var foot=_resized_position(size)
  if mode=="CLIMB" and not _can_climb(woodland.trees[tree_index],size):return false
  if not FrogPlacement.within_bounds(woodland,foot,size):return false
+ if not woodland.surface_ready(foot,FrogBodyMetrics.BASE_RADIUS*size):return false
  return FrogPlacement.fits(get_world_3d().direct_space_state,foot,size,1,[get_rid()])
 
 func _apply_size(factor:float):
@@ -305,6 +306,8 @@ func _physics_process(delta):
   if is_on_floor() and velocity.y<=0:coyote=.12
   else:coyote=maxf(0,coyote-delta)
   velocity.y-=9.0*delta
+ if not woodland.allow_motion(self,metrics.radius(),delta):
+  velocity=Vector3.ZERO;hop_impulse=Vector3.ZERO;return
  var was_grounded=is_on_floor();move_and_slide()
  if not was_grounded and is_on_floor() and velocity.y<=0:hop_impulse=Vector3.ZERO
  var bounds=woodland.travel_bounds.grow(-metrics.radius())
