@@ -33,10 +33,10 @@ def unpack(archive,destination):
 def install_engine(root,key,skip_download=False):
     manifest=json.loads((root/"config/godot.json").read_bytes())
     if key not in manifest["releases"]:raise ValueError("No pinned Godot archive for "+key+"; pass --godot with a suitable Godot 4.7+ executable")
-    entry=manifest["releases"][key];destination=root/"tools/godot";engine=destination/entry["executable"]
+    entry=manifest["releases"][key];destination=safe_path(root,"tools/godot");engine=destination/entry["executable"]
     if engine.is_file():return engine
     if skip_download:raise ValueError("Godot is missing. Supply --godot or allow the pinned official download")
-    cache=root/"tools/downloads";cache.mkdir(parents=True,exist_ok=True);archive=cache/entry["file"]
+    cache=safe_path(root,"tools/downloads");cache.mkdir(parents=True,exist_ok=True);archive=safe_path(cache,entry["file"])
     if not archive.is_file() or sha256(archive)!=entry["sha256"]:
         url="https://github.com/godotengine/godot-builds/releases/download/"+manifest["version"]+"/"+entry["file"]
         temporary=archive.with_suffix(".part")
@@ -46,13 +46,15 @@ def install_engine(root,key,skip_download=False):
         if sha256(temporary)!=entry["sha256"]:raise ValueError("Godot download checksum mismatch; archive was not installed")
         temporary.replace(archive)
     with tempfile.TemporaryDirectory(prefix="godot-",dir=cache) as staging:
-        stage=Path(staging);unpack(archive,stage)
+        stage=Path(staging).resolve()
+        if not stage.is_relative_to(cache.resolve()):raise ValueError("Engine staging directory escaped the project cache")
+        unpack(archive,stage)
         if not (stage/entry["executable"]).is_file():raise ValueError("Official archive does not contain the expected executable")
         destination.mkdir(parents=True,exist_ok=True)
-        for file in stage.iterdir():
-            target=destination/file.name
-            if target.exists():raise ValueError("Preserving an existing engine file: "+str(target))
-            shutil.move(str(file),target)
+        entries=list(stage.iterdir())
+        for file in entries:
+            if (destination/file.name).exists():raise ValueError("Preserving an existing engine file: "+str(destination/file.name))
+        for file in entries:shutil.move(str(file),destination/file.name)
     if os.name!="nt":engine.chmod(0o755)
     return engine
 

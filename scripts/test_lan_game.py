@@ -5,10 +5,11 @@ import os
 from pathlib import Path
 import subprocess
 import time
+from engine import resolve_engine
 
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'outputs/Multiplayer_20261117'
-GODOT=ROOT/'tools/godot/Godot_v4.7.2-stable_win64.exe'
+GODOT=resolve_engine(ROOT)
 
 
 def main():

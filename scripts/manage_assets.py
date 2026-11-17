@@ -25,6 +25,7 @@ def safe_path(root,relative):
 
 def import_assets(project,source,manifest=None):
     project=Path(project).resolve();source=Path(source).resolve()
+    if not (project/"game").resolve().is_relative_to(project):raise ValueError("Destination game directory escapes the project")
     manifest=manifest or json.loads((project/"config/assets.lock.json").read_bytes())
     roots=[source/"game",source,source.parent]
     origin=next((p for p in roots if (p/"assets/frogs").is_dir()),None)

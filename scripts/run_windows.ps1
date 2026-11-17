@@ -2,6 +2,7 @@ param([switch]$WithoutRos,[switch]$WithRos,[switch]$Editor,[switch]$Smoke,[switc
 $ErrorActionPreference="Stop"
 . "$PSScriptRoot\project_paths.ps1"
 $Godot=Resolve-FrogGodot
+$EnginePython=(Get-Command python -ErrorAction Stop).Source
 $UseRos=(!$WithoutRos -and ($WithRos -or $FrogSettings['use_ros']))
 if ($WithRos -and $WithoutRos) { throw "Choose WithRos or WithoutRos." }
 $Bridge=$null
@@ -15,7 +16,7 @@ try {
   . "$PSScriptRoot\environment.ps1" -DomainId $DomainId -RosPrefix $RosPrefix
   $Bridge=Start-Process -FilePath $RosPython -ArgumentList @('-m','frog_explorer.bridge') -WorkingDirectory $FrogRoot -PassThru -WindowStyle Hidden -RedirectStandardOutput "$FrogRoot\state\bridge.log" -RedirectStandardError "$FrogRoot\state\bridge_errors.log"
  }
- & $Godot --headless --editor --path "$FrogRoot\game" --import *> "$FrogRoot\state\import.log"
+ & $EnginePython "$PSScriptRoot\wait_engine.py" --log "$FrogRoot\state\import.log" -- $Godot --headless --editor --path "$FrogRoot\game" --import
  if ($LASTEXITCODE -ne 0) { throw "Game asset import failed; see state/import.log" }
  if ($Bridge -and $Bridge.HasExited) { throw "ROS bridge stopped; see state/bridge_errors.log" }
  $GameArgs=@('--path',"$FrogRoot\game")
@@ -35,7 +36,7 @@ try {
  if (!$UseRos -or $JoinLan) { $UserArgs+='--no-ros' }
  if ($UserArgs.Count) { $GameArgs+=@('--')+$UserArgs }
  Write-Host "Starting FrogExplorer. Close the game window to stop its ROS bridge."
- & $Godot @GameArgs *> "$FrogRoot\state\game.log"
+ & $EnginePython "$PSScriptRoot\wait_engine.py" --log "$FrogRoot\state\game.log" -- $Godot @GameArgs
  if ($LASTEXITCODE -ne 0) { throw "Game exited with an error; see state/game.log" }
 } finally {
  if ($Bridge -and !$Bridge.HasExited) { Stop-Process -Id $Bridge.Id -ErrorAction SilentlyContinue }

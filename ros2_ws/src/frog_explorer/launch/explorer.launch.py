@@ -38,7 +38,7 @@ def generate_launch_description():
         import json
         for parent in share.parents:
             settings = parent / ".local/settings.json"
-            if settings.is_file():
+            if settings.is_file() and (parent / "config/godot.json").is_file():
                 executable = json.loads(settings.read_bytes()).get("godot")
                 if executable:
                     break

@@ -23,7 +23,8 @@ Blender and Python GIS/image dependencies are development tools, not runtime gam
 ```powershell
 python -m venv tools/world_data_env
 .\tools\world_data_env\Scripts\python.exe -m pip install -r scripts/worlds/requirements.txt
-.\tools\world_data_env\Scripts\python.exe scripts/worlds/prepare_world_cities.py --city tokyo_imperial_palace --blender "C:\path\to\blender.exe"
+.\tools\world_data_env\Scripts\python.exe scripts/worlds/prepare_world_cities.py --blender "C:\path\to\blender.exe"
+# Optional: --city tokyo_imperial_palace for one pack. The validator below checks all six.
 ```
 
 The six international-city recipes in `config/worlds/` record approximate scale, reviewed arrival area, triangle budget, source credits and exclusions. Originals, packed Blender files and receipts are cached under ignored `data/world_sources/`. Downloads verify archive size/MD5 and retain SHA-256 identities. Optional country packs originate from their linked public Zenodo/Sketchfab archives; source licenses vary.

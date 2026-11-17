@@ -7,10 +7,11 @@ from rclpy.qos import qos_profile_sensor_data
 from geometry_msgs.msg import PoseStamped,Twist
 from sensor_msgs.msg import Joy
 from std_msgs.msg import String,Float32
+from engine import resolve_engine
 
 ROOT=Path(__file__).resolve().parents[1]
 def main():
-    godot=os.environ.get("GODOT_BIN",str(ROOT/'tools/godot/Godot_v4.7.2-stable_win64.exe'))
+    godot=resolve_engine(ROOT)
     rclpy.init();probe=Node('frog_explorer_acceptance');states=[];poses=[];checks=[];joy_samples=[]
     probe.create_subscription(String,'/frog_explorer/state',lambda m:states.append(json.loads(m.data)),10)
     probe.create_subscription(PoseStamped,'/frog_explorer/pose',lambda m:poses.append(m),10)
