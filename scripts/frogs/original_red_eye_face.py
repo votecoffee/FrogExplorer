@@ -2,22 +2,22 @@
 
 Photographs guide proportions only. No image, mesh or animation is read here.
 """
-from math import sin, cos, pi
+from math import sin, cos, pi, sqrt
 
 import numpy as np
 from mathutils import Vector
 
-EYE_RADIUS = .0118
+EYE_RADIUS = .0085
 EYE_ASPECT = (.94, 1.02, .72)
 EYE_APERTURE = 1.31
 FACE_SECTIONS = [
-    [-.083,.0060,.0455,.0490],[-.078,.0155,.0448,.0520],
-    [-.069,.0255,.0430,.0578],[-.049,.0380,.0405,.0625],
-    [-.030,.0355,.0390,.0640]]
+    [-.083,.0045,.0435,.0475],[-.078,.0145,.0425,.0515],
+    [-.069,.0240,.0400,.0560],[-.049,.0340,.0385,.0590],
+    [-.030,.0315,.0345,.0570]]
 
 
 def eye_frame(sign):
-    normal = Vector((sign*.87,-.48,.12)).normalized()
+    normal = Vector((sign*.76,-.64,.10)).normalized()
     horizontal = normal.cross(Vector((0,0,1))).normalized()
     return normal,horizontal,horizontal.cross(normal).normalized()
 
@@ -37,19 +37,33 @@ def shorten_muzzle(point):
     return point
 
 
+def orbital_recess(point,centers):
+    """Keep the continuous cranial skin behind the elliptical eye apertures."""
+    point=Vector(point)
+    for sign,center in centers:
+        normal,horizontal,vertical=eye_frame(sign);delta=point-center
+        radius=EYE_RADIUS*sin(EYE_APERTURE)
+        rho=sqrt((delta.dot(horizontal)/EYE_ASPECT[0])**2
+                 +(delta.dot(vertical)/EYE_ASPECT[1])**2)/radius
+        if rho>=1.18:continue
+        blend=min(1,max(0,(1.18-rho)/.18));blend=blend*blend*(3-2*blend)
+        point-=normal*(max(0,delta.dot(normal)-.0010)*blend)
+    return point
+
+
 def add_features(frog):
     for side,sign in [('L',-1),('R',1)]:
         center = frog.bones['FX_eye.'+side][0];n,u,v = eye_frame(sign)
-        frog.cap('Green orbital socket '+side,center,-n,.0121,pi-1.25,
+        frog.cap('Green orbital socket '+side,center,-n,EYE_RADIUS+.0003,pi-1.25,
                  frog.orbit_mat,'Head',24,48,aspect=EYE_ASPECT,disk_uv=False)
         frog.cap('Red corneal surface '+side,center,n,EYE_RADIUS,EYE_APERTURE,
                  frog.iris,'FX_eye.'+side,24,64,aspect=EYE_ASPECT)
-        frog.cap('Mobile upper eyelid '+side,center,lid_axis(sign),.0123,1.36,
+        frog.cap('Mobile upper eyelid '+side,center,lid_axis(sign),EYE_RADIUS+.0005,1.36,
                  frog.orbit_mat,'Lid.'+side,24,48,aspect=EYE_ASPECT)
-        ring = [center+n*(.01205*cos(EYE_APERTURE)*EYE_ASPECT[2])
-                +(u*(cos(a)*EYE_ASPECT[0])+v*(sin(a)*EYE_ASPECT[1]))*(.01205*sin(EYE_APERTURE))
+        ring = [center+n*((EYE_RADIUS+.00025)*cos(EYE_APERTURE)*EYE_ASPECT[2])
+                +(u*(cos(a)*EYE_ASPECT[0])+v*(sin(a)*EYE_ASPECT[1]))*((EYE_RADIUS+.00025)*sin(EYE_APERTURE))
                 for a in np.linspace(0,2*pi,81)]
-        frog.tube('Fine eye rim '+side,ring,[.00018]*len(ring),['Head']*(len(ring)-1),frog.rim_mat,1,8)
+        frog.tube('Fine eye rim '+side,ring,[.00013]*len(ring),['Head']*(len(ring)-1),frog.rim_mat,1,8)
         lip = []
         for y in np.linspace(-.0827,-.034,48):
             x = sign*frog.jaw_width(y)

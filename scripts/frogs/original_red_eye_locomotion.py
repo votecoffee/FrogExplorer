@@ -84,9 +84,10 @@ def kick(frog, side, extension, torso, recovery=0, settle=1):
     # behind the torso rather than sweeping forward across the face.
     distal = Quaternion((0,0,1), sign*pi*extension)
     tarsus = Quaternion((0,0,1), sign*pi*extension)
-    base_y = .027 if settle==1 else .009+.018*settle
-    palm = (sign*(.052+.018*sin(pi*extension)+.006*recovery),
-            base_y+.180*extension, .005+.009*extension+.008*recovery)
+    rest = frog.limbs[(side,'leg')][0][-1]
+    base_y = rest.y+.018*settle
+    palm = (sign*(abs(rest.x)+.018*sin(pi*extension)+.006*recovery),
+            base_y+.170*extension, rest.z+.009*extension+.008*recovery)
     place(frog, side, 'leg', palm, torso, distal, tarsus, settle)
 
 
@@ -103,6 +104,11 @@ def jump(frog, t):
         place(frog,side,'arm',palm,torso)
 
 
+def swim_hand(frog,side):
+    rest=frog.limbs[(side,'arm')][0][-1];sign=-1 if side=='L' else 1
+    return Vector((sign*(abs(rest.x)-.007),rest.y+.020,.018))
+
+
 def swim(frog, t):
     # Quick paired power stroke, brief glide, then slower recovery.
     extension = smooth(0,.32,t)*(1-smooth(.48,1,t))
@@ -112,7 +118,7 @@ def swim(frog, t):
         sign = -1 if side=='L' else 1
         kick(frog,side,extension,torso,recovery)
         # Small steering sweep; forefeet stay lateral and below the mouth.
-        palm = (sign*(.061+.007*recovery),-.045+.006*extension,.018)
+        palm = swim_hand(frog,side)+Vector((sign*.007*recovery,.006*extension,0))
         place(frog,side,'arm',palm,torso)
 
 
@@ -138,7 +144,7 @@ def water_entry(frog, t):
     for side in ['L','R']:
         sign = -1 if side=='L' else 1
         kick(frog,side,extension,torso,settle=settle)
-        palm = frog.limbs[(side,'arm')][0][-1].lerp(Vector((sign*.061,-.045,.018)),approach)
+        palm = frog.limbs[(side,'arm')][0][-1].lerp(swim_hand(frog,side),approach)
         palm.z += .014*extension*(1-approach)
         place(frog,side,'arm',palm,torso,pole_blend=settle)
 
@@ -153,6 +159,6 @@ def shore_exit(frog, t):
     for side in ['L','R']:
         sign = -1 if side=='L' else 1
         kick(frog,side,extension,torso,settle=settle)
-        palm = Vector((sign*.061,-.045,.018)).lerp(frog.limbs[(side,'arm')][0][-1],plant)
+        palm = swim_hand(frog,side).lerp(frog.limbs[(side,'arm')][0][-1],plant)
         palm.z += .018*reach
         place(frog,side,'arm',palm,torso,pole_blend=settle)

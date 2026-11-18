@@ -63,6 +63,12 @@ their pixels are not included, sampled or redistributed with the model.
 The same references guided the v9 slimmer hind-thigh and knee/calf surfaces,
 shallower lower cheek and subtler tympanic fold. The changes remain authored
 interpretations of the photographs, with all prior painted images retained.
+For v10, the earlier locally retained red-eyed frog was reviewed from
+corresponding front, side and top views as a visual guide to proportions.
+The new lofts, orbital recesses, joint
+landmarks, feet and motion keys are authored in FrogExplorer's own generator,
+which takes no source-model input. The historical model's terms below continue
+to apply to its separate files.
 The v3 foot review used the [Wildlife Conservation Society's frog photograph](https://blog.wcs.org/photo/2020/11/30/living-color-red-eyed-tree-frog-amphbian/)
 and the STRI species description. General pad structure was informed by
 [tree-frog toe-pad research](https://pmc.ncbi.nlm.nih.gov/articles/PMC2720997/)

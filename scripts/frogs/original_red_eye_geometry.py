@@ -11,7 +11,7 @@ import bpy
 import numpy as np
 from mathutils import Vector
 from original_red_eye_feet import adhesive_pad, digital_web
-from original_red_eye_face import EYE_RADIUS, EYE_ASPECT, FACE_SECTIONS, eye_frame, lid_axis, shorten_muzzle, add_features
+from original_red_eye_face import EYE_RADIUS, EYE_ASPECT, FACE_SECTIONS, eye_frame, lid_axis, shorten_muzzle, orbital_recess, add_features
 
 
 def profile(controls, y):
@@ -210,15 +210,15 @@ class Frog:
         self.bone('Tongue', (0, -.068, .039), (0, -.049, .040), 'FX-jaw')
         self.bone('TongueTip', (0, -.049, .040), (0, -.039, .041), 'Tongue')
         for side, sign in [('L', -1), ('R', 1)]:
-            shoulder = Vector((sign*.031, -.022, .048))
-            elbow = Vector((sign*.058, .001, .024))
-            wrist = Vector((sign*.068, -.056, .007))
-            hand = Vector((sign*.070, -.065, .005))
-            hip = Vector((sign*.025, .044, .042))
-            knee = Vector((sign*.060, .010, .027))
-            ankle = Vector((sign*.059, .073, .013))
-            heel = Vector((sign*.047, .028, .006))
-            foot = Vector((sign*.052, .009, .005))
+            shoulder = Vector((sign*.028, -.024, .047))
+            elbow = Vector((sign*.048, -.001, .025))
+            wrist = Vector((sign*.059, -.052, .007))
+            hand = Vector((sign*.061, -.060, .005))
+            hip = Vector((sign*.021, .044, .0415))
+            knee = Vector((sign*.054, .013, .0265))
+            ankle = Vector((sign*.054, .073, .013))
+            heel = Vector((sign*.044, .028, .007))
+            foot = Vector((sign*.047, .010, .005))
             for label, points, names in [
                 ('arm', [shoulder, elbow, wrist, hand], ['upper_arm', 'forearm', 'hand']),
                 ('leg', [hip, knee, ankle, heel, foot], ['thigh', 'shin', 'tarsus', 'foot'])]:
@@ -229,11 +229,11 @@ class Frog:
                     self.bone(name, points[i], points[i+1], parent);parent = name;full.append(name)
                 self.limbs[(side, label)] = (points, full)
             for label, palm, parent, lengths in [
-                ('hand', hand, 'DEF-hand.'+side, [.021, .029, .030, .023]),
-                ('foot', foot, 'DEF-foot.'+side, [.020, .028, .036, .033, .024])]:
+                ('hand', hand, 'DEF-hand.'+side, [.0168, .0232, .0240, .0184]),
+                ('foot', foot, 'DEF-foot.'+side, [.0166, .0232, .0299, .0274, .0199])]:
                 digits = []
                 for i, length in enumerate(lengths):
-                    fan = (i-(len(lengths)-1)/2)*.43
+                    fan = (i-(len(lengths)-1)/2)*.48
                     base = palm+Vector((sign*(i-(len(lengths)-1)/2)*.0028, -.002, 0))
                     end = base+Vector((sign*sin(fan)*length, -cos(fan)*length, -.0003))
                     middle = base.lerp(end, .55)+Vector((0, 0, .0016))
@@ -242,7 +242,7 @@ class Frog:
                     self.bone(name+'_tip', middle, end, name)
                     digits.append(([base, middle, end], [name, name+'_tip']))
                 self.digits[(side, label)] = digits
-            center = Vector((sign*.031, -.049, .0665))
+            center = Vector((sign*.0285, -.048, .0605))
             self.bone('FX_eye.'+side, center, center+Vector((0, -.01, 0)), 'Head')
             self.bone('Lid.'+side, center, center+Vector((0, 0, .01)), 'Head')
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -290,9 +290,7 @@ class Frog:
         return self.mesh(name, vertices, faces, uv, [{bone:1} for _ in vertices], mat)
 
     def section_at(self,y):
-        section = profile(self.body_sections,y);blend = float(1-smooth(-.038,-.014,y))
-        if blend<=0:return section
-        return section*(1-blend)+profile(self.face_sections,y)*blend
+        return profile(self.body_sections,y)
 
     def body_height(self, x, y, upper=True, section=None):
         section = self.section_at(y) if section is None else section
@@ -310,27 +308,22 @@ class Frog:
             roof = top-.0012*(ratio/.72)**2
             cheek = top-.0012-(top-.0012-(top+bottom)/2)*(ratio-.72)/.28
             plane = .5*(roof+cheek-sqrt((roof-cheek)**2+.00060**2))
-            planes = .70*float(1-smooth(-.060,-.045,y))
+            planes = .12*float(1-smooth(-.060,-.045,y))
             z = z*(1-planes)+plane*planes
-            blend = float(1-smooth(-.038,-.014,y))
-            old = .0125*np.exp(-((abs(x)-.029)/.011)**2-((y+.039)/.019)**2)*s**.8
-            brow = .0145*np.exp(-((abs(x)-.027)/.010)**2-((y+.046)/.017)**2)*s**.8
-            z += old*(1-blend)+brow*blend
+            brow = .0115*np.exp(-((abs(x)-.0265)/.0095)**2-((y+.047)/.011)**2)
+            z += brow*float(smooth(0,.22,s))*(1-float(smooth(-.030,-.012,y)))
             ridge = .72*width
-            z += .00030*np.exp(-((abs(x)-ridge)/.0013)**2)*float(smooth(-.080,-.075,y))*(1-float(smooth(-.056,-.047,y)))*s**.4
+            z += .00025*np.exp(-((abs(x)-ridge)/.0013)**2)*float(smooth(-.080,-.075,y))*(1-float(smooth(-.056,-.047,y)))*s**.4
+            z += .0012*np.exp(-(x/.006)**2-((y-.041)/.027)**2)*float(smooth(-.003,.013,y))*s**.6
         return float(z)
 
     def body(self):
         # Smooth longitudinal sections include the head: there is no neck seam.
-        controls = np.array([
-            [-.083, .0003, .043, .044], [-.078, .021, .0415, .059],
-            [-.069, .034, .039, .067], [-.049, .0405, .0375, .073],
-            [-.030, .0355, .038, .070], [-.008, .0305, .025, .065],
-            [.020, .0275, .022, .059], [.047, .0245, .023, .0555],
-            [.060, .019, .026, .051], [.070, .012, .029, .044],
-            [.074, .0055, .033, .039], [.075, .0001, .0355, .0355]])
+        controls = np.array([*FACE_SECTIONS,[-.008,.0255,.0265,.0560],
+            [.020,.0225,.0265,.0528],[.047,.0205,.0290,.0515],
+            [.060,.0160,.0310,.0470],[.070,.0105,.0325,.0420],
+            [.074,.0050,.0350,.0390],[.075,.0001,.0370,.0370]])
         self.body_sections = controls
-        self.face_sections = controls.copy();self.face_sections[:5] = FACE_SECTIONS
         vertices = [];faces = [];uv = [];weights = []
         rings, segments = 96, 96
         for i in range(rings+1):
@@ -340,7 +333,8 @@ class Frog:
             for j in range(segments+1):
                 theta = 2*pi*j/segments;x = width*cos(theta)
                 z = self.body_height(x, y, sin(theta)>=0, section)
-                vertices.append((x, y, z));uv.append((u, j/segments))
+                centers=[(sign,self.bones['FX_eye.'+side][0]) for side,sign in [('L',-1),('R',1)]]
+                vertices.append(orbital_recess((x,y,z),centers));uv.append((u, j/segments))
                 head = float(1-smooth(-.038, -.015, y))
                 weights.append({'Head':head, 'DEF-spine.003':1-head})
         for i in range(rings):
@@ -485,27 +479,28 @@ class Frog:
     def limbs_and_digits(self):
         for (side, label), (points, bones) in self.limbs.items():
             if label == 'arm':
-                radii = [.0068, .0046, .0030, .0036];bulges = [.16, .14, .0];flatten = [.84,.78,.65,.32]
-                inset = .0065
+                radii = [.0059, .0041, .0028, .0033];bulges = [.18, .16, .0];flatten = [.84,.78,.65,.32]
+                inset = .0095
             else:
-                radii = [.0084, .0046, .0031, .0028, .0046];bulges = [.18, .12, .05, .0];flatten = [.78,.76,.70,.56,.30]
+                radii = [.0084, .0048, .0035, .0030, .0042];bulges = [.18, .12, .05, .0];flatten = [.78,.76,.76,.60,.30]
                 inset = .0100
             self.tube('Continuous '+label+' '+side, points, radii, bones, self.limb_mat, 12, 24, bulges, flatten, True,
                       (-1 if side=='L' else 1, inset))
             palm = points[-1]
-            self.ellipsoid('Orange '+label+' palm '+side, palm+Vector((0,0,.00025)), (.0067, .0061, .00165), self.orange, bones[-1])
+            size = (.0058,.0056,.00165) if label=='arm' else (.0062,.0057,.00165)
+            self.ellipsoid('Orange '+label+' palm '+side, palm+Vector((0,0,.00025)), size, self.orange, bones[-1])
         for (side, label), digits in self.digits.items():
             sizes = [.84,1.0,1.03,.91] if label=='hand' else [.80,.93,1.06,1.0,.88]
             for number, (points, bones) in enumerate(digits, 1):
                 size = sizes[number-1]
-                self.tube(f'{label} digit {number} {side}', points, [r*size for r in [.00165,.00135,.00160]], bones, self.orange, 10, 16, [.16,.12], [.88,.84,.65], True)
-                adhesive_pad(self, f'{label} adhesive disc {number} {side}', points, bones[-1], size)
+                self.tube(f'{label} digit {number} {side}', points, [r*size for r in [.00145,.00110,.00125]], bones, self.orange, 10, 16, [.16,.12], [.88,.84,.65], True)
+                adhesive_pad(self, f'{label} adhesive disc {number} {side}', points, bones[-1], size*(.82 if label=='hand' else .85))
             digital_web(self, side, label, digits)
 
     def build(self):
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v9'
+        self.arm['model_revision'] = 'original-red-eye-v10'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self

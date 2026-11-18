@@ -82,9 +82,26 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v9**, stored in the GLB's
-metadata and build receipt. It slims and flattens the hind thighs, reduces the
-knee/calf bulk and tapers the ankle while retaining the terminal foot surfaces.
+The current authored revision is **original-red-eye-v10**, stored in the GLB's
+metadata and build receipt. A visual review of the earlier local frog guided
+a broader proportion pass: a narrower skull and waist, smaller forward-facing
+eyes in cranial recesses, fitted brows, a leaner belly/rump, a more compact
+forelimb stance, shorter digits and smaller palms and pads. The body uses one
+continuous loft profile rather than blending revised facial sections back into
+the older bulky head profile. Subtle dorsal relief gives the back more shape.
+The current export has 75 mesh objects, 61 joints, 92,176 triangles, twelve
+embedded images and 28 clips.
+
+The 61 joint names/hierarchy, 75 mesh part names, 28 clip durations and 7,140
+animation-channel key times remain compatible. Most joint landmarks and the
+IK curve values are regenerated for the new proportions; the paired kick and
+swimming hand targets are adjusted with the stance. Eleven painted images are
+identical to v9; the trunk albedo's naris marks follow the new head width.
+The builder still opens no reference model. The earlier frog is retained only
+as a local visual reference, with its original terms and files kept separate.
+
+The v9 pass slimmed and flattened the hind thighs, reduced the
+knee/calf bulk and tapered the ankle while retaining the terminal foot surfaces.
 At the middle of each rest-mesh thigh, the major cross-section diameter is
 38 percent smaller and the minor diameter 45 percent smaller than v8. These
 measure the model change, rather than dimensions calibrated from photographs.
@@ -109,7 +126,7 @@ reduced the jaw depth, lowered and recessed the eyes, and added fitted nostrils
 and subtle cheek surfaces. Irregular iris fibers and crypts surround a wider
 vertical pupil; finer head pigment and less uniform gloss break up the skin.
 Open eyelids sit behind the cornea, then close over it with slight eye
-retraction. `Croak` uses a closed jaw and throat inflation. The model has
+retraction. `Croak` uses a closed jaw and throat inflation. The v7 export had
 75 mesh objects, 61 joints, 92,082 triangles, 12 embedded images and 28 clips.
 
 The face work preserves all 48 limb/contact meshes, the posterior trunk,
@@ -188,8 +205,9 @@ checks all eighteen pads in 44 planted-phase poses using the same contact
 tolerances as the gait check. The locomotion check includes both the v5 and
 v6 clips by default; `--clips` selects a smaller explicit set for diagnosis.
 The face check ray-tests the central 92 percent corneal radius in an open and
-closed blink: at most two percent lid occlusion when open, at least 98 percent
-coverage when closed. Seventeen `Croak` poses check a closed jaw and throat
+closed blink: at most two percent lid or cranial-skin occlusion when open,
+at least 98 percent lid coverage when closed. This detects head skin cutting
+through the iris as eye size or placement changes. Seventeen `Croak` poses check a closed jaw and throat
 inflation. This measures sampled geometry and animation behavior, not realism.
 Use `--face` on the preview tool for matched face close-ups, and `--clay` to
 separate silhouette changes from skin and eye shading.

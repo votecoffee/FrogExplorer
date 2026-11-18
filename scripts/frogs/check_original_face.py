@@ -40,6 +40,15 @@ def main():
             coverage[label][side]={'sampled_cornea_vertices':len(points),'lid_occluded_fraction':fraction}
             if label=='open' and fraction>.02:issues.append(side+': open lid covers the iris')
             if label=='closed' and fraction<.98:issues.append(side+': closed lid leaves the iris exposed')
+            if label=='open':
+                skin=bpy.data.objects['Original continuous trunk and muzzle'].evaluated_get(depsgraph);mesh=skin.to_mesh()
+                tree=BVHTree.FromPolygons([skin.matrix_world@v.co for v in mesh.vertices],[tuple(p.vertices) for p in mesh.polygons]);skin.to_mesh_clear()
+                hidden=0
+                for point in points:
+                    _,_,_,distance=tree.ray_cast(point+normal*.05,-normal,.10)
+                    if distance is not None and distance<.0499:hidden+=1
+                fraction=hidden/len(points);coverage[label][side]['cranial_skin_occluded_fraction']=fraction
+                if fraction>.02:issues.append(side+': cranial skin cuts across the open iris')
     action=bpy.data.actions['Croak'];arm.animation_data.action=action;arm.animation_data.action_slot=action.slots[0]
     jaw_angle=0.0;throat_scale=1.0
     for sample in range(17):
@@ -50,7 +59,7 @@ def main():
     if jaw_angle>.01:issues.append('Croak opens the jaw instead of keeping a closed mouth')
     if throat_scale<1.7:issues.append('Croak does not inflate the throat')
     report={'lid_coverage':coverage,'croak_maximum_jaw_angle_rad':jaw_angle,'croak_maximum_throat_scale':throat_scale,
-            'issues':issues,'scope':'Blender evaluated lid ray coverage over the central 92 percent corneal radius at open and closed blink poses; no more than 2 percent open-lid occlusion and at least 98 percent closed-lid coverage. Seventeen Croak poses check closed jaw and throat inflation. Geometry checks, not an image realism metric or continuous-time guarantee.'}
+            'issues':issues,'scope':'Blender evaluated rays over the central 92 percent corneal radius: at most 2 percent open-lid or cranial-skin occlusion and at least 98 percent closed-lid coverage. Seventeen Croak poses check closed jaw and throat inflation. Geometry checks, not an image realism metric or continuous-time guarantee.'}
     args.report.parent.mkdir(parents=True,exist_ok=True)
     args.report.write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8',newline='\n')
     print('ORIGINAL_FACE_CHECK '+json.dumps(report),flush=True)
