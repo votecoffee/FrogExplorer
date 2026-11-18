@@ -52,6 +52,9 @@ def animate(frog):
     for bone in frog.arm.pose.bones:bone.rotation_mode = 'QUATERNION'
     for clip in CLIPS:
         duration = 4.0 if clip in ['Idle', 'Living_Idle'] else 2.0 if clip in LOOPING else 1.6
+        # Match the game's 1.4x climbing / 1.2x swimming playback rates.
+        if clip == 'Climb':duration = 16/30
+        if clip == 'Swim':duration = 1.2
         if clip in ['Catch_Fly_Swallow', 'Face_Wipe', 'Victory_Ribbit', 'Breakdance']:duration = 2.4
         action = bpy.data.actions.new(clip);frog.arm.animation_data.action = action
         count = round(duration*30)
@@ -64,7 +67,9 @@ def animate(frog):
             global_rotation(frog, 'Head', (.008*wave, 0, .012*wave))
             jaw = 0.0;throat = 1.0;blink = pulse(t, .75, .83)
             if clip in ['Slow_Walk', 'Climb', 'Turn_Left', 'Turn_Right', 'Swamp_Shuffle']:
-                stride = .014 if clip != 'Climb' else .022
+                # 0.072 m hand travel * 2.8 model scale per stance second
+                # matches FrogPilot's 0.20 m/s nominal walking animation rate.
+                stride = .036 if clip != 'Climb' else .022
                 global_rotation(frog, 'DEF-spine.003', (.015*wave, .018*wave, .025*wave))
                 for side, sign in [('L', -1), ('R', 1)]:
                     phase = t*2*pi+(0 if side == 'L' else pi)
