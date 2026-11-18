@@ -181,7 +181,8 @@ def catalog_entry(config, folder, spawns, plan):
     relative = folder.relative_to(ROOT/'game').as_posix()
     return {'id': config['id'], 'name': config['name'], 'category': 'city', 'provider': 'local_mesh',
             'status': 'ready', 'profiles': ['windows'], 'random_eligible': True,
-            'distribution': 'optional_download', 'tile_manifest': 'res://'+relative+'/manifest.json',
+            'distribution': 'optional_download', 'detail_tier': 'high',
+            'tile_manifest': 'res://'+relative+'/manifest.json',
             'scene': 'res://assets/worlds/'+config['id']+'/source_only.glb',
             'spawn': spawns[0], 'spawn_candidates': spawns[1:], 'heading_degrees': config['heading_degrees'],
             'bounds': [config['bounds'][0]+1, config['bounds'][1]+1, config['bounds'][2]-1, config['bounds'][3]-1],

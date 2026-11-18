@@ -12,6 +12,11 @@ var destinations:Array[String]=[]
 var selected=0
 var was_paused=false
 const CATEGORIES=["any","city","history","nature"]
+const BADGE_ICONS={
+ "large":preload("res://ui/icons/place_large.svg"),
+ "detail":preload("res://ui/icons/place_detail.svg"),
+ "large_detail":preload("res://ui/icons/place_large_detail.svg")
+}
 
 func _ready():
  visible=false;layer=5
@@ -20,6 +25,10 @@ func _ready():
  var box=VBoxContainer.new();box.add_theme_constant_override("separation",10);panel.add_child(box)
  box.add_child(game.hud.label("WHERE SHALL WE HOP?",25,Color(.93,.92,.66)))
  box.add_child(game.hud.label("Installed places · left stick / arrows to choose · A / Enter to go",16))
+ var legend=HBoxContainer.new();legend.name="MapBadgeLegend";legend.add_theme_constant_override("separation",10);box.add_child(legend)
+ for kind in ["large","detail"]:
+  var icon=TextureRect.new();icon.texture=BADGE_ICONS[kind];icon.stretch_mode=TextureRect.STRETCH_KEEP_CENTERED;legend.add_child(icon)
+  legend.add_child(game.hud.label("Large area (1 km²+)" if kind=="large" else "High-detail photomesh",14))
  scroll=ScrollContainer.new();scroll.custom_minimum_size=Vector2(650,270);scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;box.add_child(scroll)
  rows=VBoxContainer.new();rows.size_flags_horizontal=Control.SIZE_EXPAND_FILL;rows.add_theme_constant_override("separation",8);scroll.add_child(rows)
  details=game.hud.label("",16);details.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;details.custom_minimum_size=Vector2(650,90);box.add_child(details)
@@ -37,7 +46,7 @@ func _populate():
  for button in buttons:rows.remove_child(button);button.queue_free()
  buttons.clear();destinations.clear()
  for item in game.travel.available_places():
-  destinations.append(str(item.id));_button(str(item.name)+( "  · you are here" if item.id==game.travel.current_id else ""))
+  destinations.append(str(item.id));_button(str(item.name)+( "  · you are here" if item.id==game.travel.current_id else ""),item)
  destinations.append("@random");_button("Take me somewhere new")
  destinations.append("@category");_button("Random travel category: "+game.travel.category.capitalize())
  destinations.append("@close");_button("Keep exploring")
@@ -47,8 +56,33 @@ func _populate():
   names.append(str(game.travel.place(id).get("name",id)))
  history_label.text="Recent visits: "+(" → ".join(names) if not names.is_empty() else "Your first journey awaits.")
 
-func _button(text:String):
+func _coverage(item:Dictionary)->Vector2:
+ var bounds=item.get("bounds",[])
+ if bounds.size()!=4:return Vector2.ZERO
+ return Vector2(maxf(0,float(bounds[2])-float(bounds[0])),maxf(0,float(bounds[3])-float(bounds[1])))
+
+func _badge_kind(item:Dictionary)->String:
+ var extent=_coverage(item)
+ var large=extent.x*extent.y>=1000000
+ var detail=item.get("detail_tier","")=="high"
+ return "large_detail" if large and detail else "large" if large else "detail" if detail else ""
+
+func _distance(meters:float)->String:
+ return "%.2f km"%(meters/1000) if meters>=1000 else "%.0f m"%meters
+
+func _place_details(item:Dictionary)->String:
+ var extent=_coverage(item);var summary=""
+ if extent.x>0 and extent.y>0:summary="Mapped extent: %s × %s"%[_distance(extent.x),_distance(extent.y)]
+ var kind=_badge_kind(item)
+ if kind in ["large","large_detail"]:summary+=" · Large area"
+ if kind in ["detail","large_detail"]:summary+=" · High-detail photomesh"
+ return (summary+"\n" if not summary.is_empty() else "")+str(item.get("description",""))
+
+func _button(text:String,item:Dictionary={}):
  var index=buttons.size();var button=Button.new();button.text=text;button.alignment=HORIZONTAL_ALIGNMENT_LEFT
+ var kind=_badge_kind(item)
+ if not kind.is_empty():button.icon=BADGE_ICONS[kind];button.add_theme_constant_override("h_separation",10)
+ button.tooltip_text=_place_details(item)
  button.custom_minimum_size=Vector2(650,39);button.add_theme_font_size_override("font_size",18);button.focus_mode=Control.FOCUS_NONE
  button.pressed.connect(_click.bind(index));rows.add_child(button);buttons.append(button)
 
@@ -58,7 +92,7 @@ func _highlight():
  for i in range(buttons.size()):buttons[i].modulate=Color(1,1,.60) if selected==i else Color(.78,.87,.81)
  scroll.ensure_control_visible.call_deferred(buttons[selected])
  var id=destinations[selected]
- if not id.begins_with("@"):details.text=str(game.travel.place(id).get("description",""))
+ if not id.begins_with("@"):details.text=_place_details(game.travel.place(id))
  elif id=="@category":details.text="Choose the kind of place for random travel. Only installed, checked packs are eligible. The 120-place research list is not playable yet."
  elif id=="@random":
   var count=game.travel.available_places().filter(func(item):return item.get("random_eligible",false)).size()

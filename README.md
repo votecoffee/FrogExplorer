@@ -167,6 +167,11 @@ Lyon Bellecour and Strasbourg cathedral district. See [coverage, preparation
 commands and limitations](docs/CITY_PACKS.md). The small Helsinki pack remains
 available alongside the expanded one.
 
+The Places list marks large maps (at least 1 km² of mapped bounds) with an
+expanding-map icon, and detailed municipal photomesh packs with an **HD** badge.
+The selected location shows its mapped dimensions. HD describes aerial mesh
+detail; close-up reconstruction artifacts can remain.
+
 Worlds have bounded coverage and varying detail. Montréal is a short sidewalk scan; Shanghai is simplified architecture. Water and trees in imported scenes do not gain swimming or climbing volumes automatically. Travel restores every frog to default size and clears vehicles; failed or cancelled travel preserves the old world. City/history category preferences and recent visits influence random selection.
 
 All 16 city/landmark packs use **streamed tiles**: full detail and collision near each frog, a coarse distant overview for balloon exploration, and unloading outside the group's active regions. Tile size follows the area's scale, from 16 m for short scans to 256 m for wide city cuts. Small scans can fit entirely in the nearby region. Original scene imports remain compatible. See [the tiling guide](docs/TILING.md); **F2** shows tile residency diagnostics.

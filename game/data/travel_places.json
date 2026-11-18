@@ -2022,6 +2022,7 @@
       ],
       "random_eligible": true,
       "distribution": "optional_download",
+      "detail_tier": "high",
       "tile_manifest": "res://assets/worlds/lyon_bellecour/tiles_city_4556a30599f1/manifest.json",
       "scene": "res://assets/worlds/lyon_bellecour/source_only.glb",
       "spawn": [
@@ -2122,6 +2123,7 @@
       ],
       "random_eligible": true,
       "distribution": "optional_download",
+      "detail_tier": "high",
       "tile_manifest": "res://assets/worlds/strasbourg_cathedral/tiles_city_689587f29aad/manifest.json",
       "scene": "res://assets/worlds/strasbourg_cathedral/source_only.glb",
       "spawn": [
@@ -2221,6 +2223,7 @@
       ],
       "random_eligible": true,
       "distribution": "optional_download",
+      "detail_tier": "high",
       "tile_manifest": "res://assets/worlds/helsinki_city_center/tiles_city_8a2667563397/manifest.json",
       "scene": "res://assets/worlds/helsinki_city_center/source_only.glb",
       "spawn": [
