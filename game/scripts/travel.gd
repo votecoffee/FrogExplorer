@@ -16,8 +16,10 @@ var category="any"
 var busy=false
 var ticket=0
 var staged:WoodlandWorld
+var verification
 var rng=RandomNumberGenerator.new()
 const CATALOG="res://data/travel_places.json"
+const TileCheck=preload("res://scripts/tile_check.gd")
 
 func _ready():
  rng.randomize()
@@ -95,6 +97,7 @@ func request(id:String):
 func cancel():
  if not busy:return
  ticket+=1;busy=false;status="cancelled";progress=0;message="Travel cancelled. You are still in "+str(place(current_id).get("name","the pond"))+"."
+ if verification:verification.cancel()
  _discard_stage();changed.emit();game.hud.toast(message)
 
 func _valid(token:int)->bool:return busy and token==ticket and not game.quitting
@@ -104,11 +107,12 @@ func _prepare(item:Dictionary,token:int):
  var scene:PackedScene
  var tiles=WorldTiles.manifest(item)
  if item.provider=="local_mesh":
-  status="loading";changed.emit()
-  if not _valid(token):return
   if not tiles.is_empty():
-   var integrity=WorldTiles.verify(tiles)
+   var integrity=await _verify_pack(tiles,token)
+   if not _valid(token):return
    if not integrity.is_empty():_fail(integrity);return
+  status="loading";message="Loading scenery...";changed.emit()
+  if not _valid(token):return
   var path=str(item.scene) if tiles.is_empty() else str(tiles.folder)+"/"+str(tiles.overview_scene)
   if DisplayServer.get_name()=="headless":
    # The dummy rendering backend cannot safely allocate mesh/texture RIDs
@@ -149,6 +153,27 @@ func _prepare(item:Dictionary,token:int):
  var spawn=_safe_spawn(staged,expected)
  if spawn.is_empty():_fail("There is no clear, walkable ground at this arrival point. Staying here.");return
  _commit(item,spawn)
+
+func _verify_pack(data:Dictionary,token:int)->String:
+ # At most one hashing worker exists, including a recently cancelled visit.
+ while verification:
+  if not _valid(token):return "cancelled"
+  await get_tree().process_frame
+ if not _valid(token):return "cancelled"
+ if WorldTiles.is_verified(data):return ""
+ var job=TileCheck.new();verification=job
+ if job.start(data)!=OK:verification=null;return "Could not start the scene integrity check."
+ status="checking";message="Checking scene pack...";changed.emit()
+ while job.is_alive():
+  if not _valid(token):job.cancel()
+  else:progress=.02+.08*job.fraction()
+  await get_tree().process_frame
+ var result=job.finish();verification=null
+ return result
+
+func _exit_tree():
+ if verification:
+  verification.cancel();verification.finish();verification=null
 
 func _load_scene(path:String,token:int)->PackedScene:
  var existing=ResourceLoader.load_threaded_get_status(path)

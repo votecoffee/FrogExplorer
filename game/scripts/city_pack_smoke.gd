@@ -12,7 +12,7 @@ func check(ok,text):
  if not ok:failures.append(text)
  print(("PASS " if ok else "FAIL ")+text)
 func idle():
- var end=Time.get_ticks_msec()+90000
+ var end=Time.get_ticks_msec()+900000
  while game.travel.busy and Time.get_ticks_msec()<end:await process_frame
 func stop():game.controls.remote_until=0;game.controls.velocity_until=0
 func move(value,aux=Vector2.ZERO):
@@ -27,7 +27,6 @@ func run():
   var item=travel.place(id);var data=WorldTiles.manifest(item)
   check(not data.is_empty() and not data.has("error"),id+": complete multi-LOD manifest")
   if data.is_empty() or data.has("error"):continue
-  check(WorldTiles.verify(data).is_empty(),id+": native render and collision checksums")
   check(data.lod_distances.size()==3 and data.tiles.size()>=64,id+": three streamed levels and a far overview")
   pilot.try_resize(4);var old=game.woodland
   travel.request(id);travel.cancel();await wait(.1)
@@ -35,6 +34,7 @@ func run():
   var started=Time.get_ticks_msec();travel.request(id);await idle();await wait(.7)
   check(travel.current_id==id and game.woodland is TiledMeshWorld,id+": checked atomic arrival")
   if travel.current_id!=id:print("ARRIVAL_ERROR ",travel.last_error);continue
+  check(WorldTiles.is_verified(data),id+": native render and collision checksums")
   var world=game.woodland
   check(pilot.is_on_floor() and pilot.position.is_finite(),id+": frog stands on photographed source collision")
   check(is_equal_approx(pilot.metrics.factor,1),id+": arrival resets size")

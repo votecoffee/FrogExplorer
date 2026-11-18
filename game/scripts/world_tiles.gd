@@ -2,6 +2,8 @@ class_name WorldTiles
 extends RefCounted
 
 static var cache={}
+static var verified={}
+static var verification_mutex=Mutex.new()
 
 static func manifest(item:Dictionary)->Dictionary:
  if "--whole-scenes" in OS.get_cmdline_user_args():return {}
@@ -33,7 +35,7 @@ static func _read(path:String)->Dictionary:
   previous=float(distance)
  var folder=path.get_base_dir()
  for file in parsed.files:
-  if not safe_relative(file) or str(parsed.files[file]).length()!=64 or not FileAccess.file_exists(folder+"/"+file):return invalid
+  if not safe_relative(file) or str(parsed.files[file]).length()!=64:return invalid
  var overview=str(parsed.get("overview_scene",""))
  if not safe_relative(overview) or not parsed.files.has(overview):return invalid
  var seen={}
@@ -55,9 +57,24 @@ static func _read(path:String)->Dictionary:
  parsed["folder"]=folder;parsed["path"]=path
  return parsed
 
-static func verify(data:Dictionary)->String:
- # Run once before travel, never once per frame. Collision and render inputs
- # are both covered; a damaged pack cannot replace the current world.
+static func verification_key(data:Dictionary)->String:
+ return (str(data.folder)+"\n"+JSON.stringify(data.files)).sha256_text()
+
+static func is_verified(data:Dictionary)->bool:
+ var key=verification_key(data)
+ verification_mutex.lock();var found=verified.has(key);verification_mutex.unlock()
+ return found
+
+static func verify(data:Dictionary,job=null)->String:
+ # Packs are immutable during play. Cache the exact expected file table for
+ # this process; a changed digest table always requires a new check.
+ var key=verification_key(data)
+ verification_mutex.lock();var found=verified.has(key);verification_mutex.unlock()
+ if found:return ""
  for file in data.files:
-  if FileAccess.get_sha256(data.folder+"/"+file)!=data.files[file]:return "Tile pack integrity check failed: "+str(file)
+  if job and job.is_cancelled():return "cancelled"
+  if not FileAccess.file_exists(data.folder+"/"+file) or FileAccess.get_sha256(data.folder+"/"+file)!=data.files[file]:return "Tile pack integrity check failed: "+str(file)
+  if job:job.advance()
+ if job and job.is_cancelled():return "cancelled"
+ verification_mutex.lock();verified[key]=true;verification_mutex.unlock()
  return ""

@@ -9,6 +9,10 @@ maps remain available. New downloads and generated meshes stay outside Git.
 | `lyon_bellecour` | 1.024 x 1.024 km | Lyon 2023 | Error thresholds 0.7 / 1.4 / 5.5 / 12 m |
 | `strasbourg_cathedral` | 1.024 x 1.024 km | Strasbourg 2022 | Error thresholds 1.4 / 2.8 / 5.5 / 12 m |
 
+Prepared native runtime sizes are approximately 8.0 GB for Helsinki, 1.62 GB for
+Lyon and 0.96 GB for Strasbourg. These exclude source archives, authoring files,
+Godot's import cache and additional installed ROS copies.
+
 These are bounded samples of larger datasets. Helsinki extends west and north
 of the Senate Square arrival. French samples center on Bellecour and the
 cathedral district. Coverage can include holes and photographed water. Error
@@ -44,6 +48,10 @@ network budget per command; `--max-download-gb` changes it. Helsinki's archive
 list is explicitly bounded and SHA-256 pinned. This is offline preparation;
 internet streaming is not required during play.
 
+Helsinki's first preparation can take several hours on a desktop, including
+source conversion and Godot mesh processing. Unchanged completed packs are
+reused on subsequent runs.
+
 An installed ROS game copy requires additional space for the active native
 packs. Source caches and intermediate geometry are retained for rebuilding.
 
@@ -66,6 +74,13 @@ Windows-qualified only. Linux and the 8 GB Raspberry Pi 5 need separate native
 graphics and memory qualification. Prepare these large packs on a desktop.
 
 ## Streaming and gameplay
+
+The first visit in each game session checks the pack's full checksum table.
+Helsinki's approximately 8 GB and 71,000 files can make this a lengthy step.
+The check runs in the background while the current world remains playable;
+Back / T can cancel it. Repeat visits reuse that session's successful result.
+Restart the game after changing pack files. Large-pack LAN sessions still need
+separate qualification.
 
 Three independent source levels stream over a non-colliding far overview.
 There is no map-wide triangle decimation. Helsinki uses 250 m cells with
@@ -120,3 +135,17 @@ balloon traversal, parachute landing, vehicles, residency, cancellation and
 return to the pond. Pass `--destination=PLACE` for one pack. Reports stay in
 ignored `state/`. Headless physics and offscreen appearance checks do not
 measure interactive FPS, physical gamepads, Linux or Pi performance.
+
+Windows 4.7.2 headless checks with an actual frog model, after the flight test
+and return to the checked arrival:
+
+| Pack | Finest triangles across the entire pack | Resident streamed cells | Resident detail triangles | Godot static allocation counter |
+|---|---:|---:|---:|---:|
+| Helsinki | 125,239,121 | 44 / 256 | 2,838,825 | 2.13 GB |
+| Lyon | 12,173,223 | 49 / 64 | 1,168,108 | 0.60 GB |
+| Strasbourg | 7,759,764 | 48 / 64 | 967,438 | 0.60 GB |
+
+The non-colliding far overview is additional. GB is decimal. Static allocations
+are not total process RAM or GPU memory; these figures do not qualify an 8 GB
+Pi or predict rendered FPS. Different locations, scales and player counts
+change residency.
