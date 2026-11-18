@@ -24,6 +24,7 @@ def main():
     parser.add_argument('--face', action='store_true', help='Frame the eyes and mouth for inspection')
     parser.add_argument('--feet', action='store_true', help='Frame the right front hand and wrist')
     parser.add_argument('--lift', type=float, default=0, help='Raise model and camera in metres for suspended motion review')
+    parser.add_argument('--span', type=float, default=.265, help='Minimum orthographic frame width in metres')
     args = parser.parse_args(sys.argv[sys.argv.index('--')+1:])
     args.output = args.output.resolve()
     bpy.ops.wm.open_mainfile(filepath=str(args.input.resolve()))
@@ -33,7 +34,7 @@ def main():
     scene.frame_set(args.frame)
     bpy.ops.object.camera_add()
     camera = bpy.context.object;camera.name = 'Review camera';scene.camera = camera
-    camera.data.type = 'ORTHO';camera.data.ortho_scale = .265
+    camera.data.type = 'ORTHO';camera.data.ortho_scale = args.span
     positions = {'three_quarter':(.23, -.32, .17), 'side':(.32, -.035, .115),
                  'front':(0, -.35, .13), 'top':(0, -.025, .40)}
     camera.location = positions[args.view];aim(camera, (0, -.006, .042))

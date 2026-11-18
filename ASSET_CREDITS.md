@@ -58,6 +58,12 @@ red-eyed frog microscopy dataset. No reference pixels or research figures
 are included in the model.
 Their photo copyrights remain with their respective owners.
 
+The v5 authored locomotion pass used general research on
+[jumping/swimming hindlimb timing in toads](https://pubmed.ncbi.nlm.nih.gov/11060216/)
+and [frog swimming power/recovery phases](https://doi.org/10.1242/jeb.138.1.399)
+as reference. These are different species, not red-eyed frog motion-capture
+datasets. No measured curves, video frames or animation files are incorporated.
+
 ## Historical local red-eyed tree frog
 
 Joachim Bornemann's [BlenderKit/Blendkit model](https://www.blendkit.com/asset-gallery-detail/4ef2f4ee-e5de-4174-ad8f-f947914625da/)

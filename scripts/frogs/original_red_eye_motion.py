@@ -8,6 +8,7 @@ from math import sin, cos, pi, sqrt, acos
 import bpy
 from mathutils import Vector, Euler, Quaternion
 from original_red_eye_geometry import eye_frame
+import original_red_eye_locomotion as locomotion
 
 CLIPS = ['Big_Jump', 'Breakdance', 'Catch_Fly', 'Catch_Fly_Swallow', 'Climb',
          'Croak', 'Death', 'Disco_Frog', 'Face_Wipe', 'Foot_Wave', 'Hit', 'Hop',
@@ -50,16 +51,18 @@ def two_joint(frog, side, target, kind='arm'):
 def animate(frog):
     scene = bpy.context.scene;scene.render.fps = 30
     frog.arm.animation_data_create()
+    frog.ik_residuals = []
     for bone in frog.arm.pose.bones:bone.rotation_mode = 'QUATERNION'
     for clip in CLIPS:
         duration = 4.0 if clip in ['Idle', 'Living_Idle'] else 2.0 if clip in LOOPING else 1.6
         # Match the game's 1.4x climbing / 1.2x swimming playback rates.
         if clip == 'Climb':duration = 16/30
         if clip == 'Swim':duration = 1.2
+        if clip == 'Slow_Walk':duration = 40/30
         if clip in ['Catch_Fly_Swallow', 'Face_Wipe', 'Victory_Ribbit', 'Breakdance']:duration = 2.4
         action = bpy.data.actions.new(clip);frog.arm.animation_data.action = action
         count = round(duration*30)
-        for frame in range(0, count+1, 1 if clip == 'Climb' else 2):
+        for frame in range(0, count+1, 1 if clip in ['Climb','Slow_Walk','Big_Jump','Swim'] else 2):
             t = frame/count;wave = sin(2*pi*t);bend = sin(pi*t)**2
             for bone in frog.arm.pose.bones:
                 bone.rotation_quaternion = Quaternion();bone.location = Vector((0, 0, 0));bone.scale = (1, 1, 1)
@@ -67,7 +70,8 @@ def animate(frog):
             spine.scale = (1+.005*wave, 1+.004*wave, 1+.012*wave)
             global_rotation(frog, 'Head', (.008*wave, 0, .012*wave))
             jaw = 0.0;throat = 1.0;blink = pulse(t, .75, .83)
-            if clip in ['Slow_Walk', 'Climb', 'Turn_Left', 'Turn_Right', 'Swamp_Shuffle']:
+            if clip == 'Slow_Walk':locomotion.walk(frog,t)
+            if clip in ['Climb', 'Turn_Left', 'Turn_Right', 'Swamp_Shuffle']:
                 # 0.072 m hand travel * 2.8 model scale per stance second
                 # matches FrogPilot's 0.20 m/s nominal walking animation rate.
                 stride = .036 if clip != 'Climb' else .022
@@ -91,7 +95,8 @@ def animate(frog):
                         for _, names in frog.digits[(side, label)]:global_rotation(frog, names[-1], (.25*curl, 0, 0))
                 if clip.startswith('Turn_'):
                     global_rotation(frog, 'DEF-spine.003', (0, 0, (.18 if clip == 'Turn_Left' else -.18)*bend))
-            if clip in ['Big_Jump', 'Hop', 'Shore_Exit', 'Water_Entry']:
+            if clip == 'Big_Jump':locomotion.jump(frog,t)
+            if clip in ['Hop', 'Shore_Exit', 'Water_Entry']:
                 crouch = pulse(t, 0, .36);extend = pulse(t, .24, .80)
                 amount = .6 if clip == 'Hop' else 1.0
                 global_rotation(frog, 'DEF-spine.003', ((-.18*crouch+.13*extend)*amount, 0, 0))
@@ -104,14 +109,7 @@ def animate(frog):
                     global_rotation(frog, 'DEF-forearm.'+side, (.55*extend*amount, 0, 0))
                 if clip == 'Water_Entry':global_rotation(frog, 'DEF-spine.003', (.25*bend, 0, 0))
             if clip == 'Swim':
-                kick = sin(2*pi*t)
-                global_rotation(frog, 'DEF-spine.003', (.035*kick, 0, 0))
-                for side, sign in [('L', -1), ('R', 1)]:
-                    global_rotation(frog, 'DEF-thigh.'+side, (-.65*kick, sign*.20*max(0, kick), 0))
-                    global_rotation(frog, 'DEF-shin.'+side, (1.05*kick, 0, 0))
-                    global_rotation(frog, 'DEF-tarsus.'+side, (-.35*kick, 0, 0))
-                    global_rotation(frog, 'DEF-upper_arm.'+side, (.25, sign*.15, -.1*sign))
-                    global_rotation(frog, 'DEF-forearm.'+side, (-.3, 0, 0))
+                locomotion.swim(frog,t)
             if clip in ['Catch_Fly', 'Catch_Fly_Swallow', 'Tongue_Snap']:
                 jaw = .60*pulse(t, .08, .62)
                 global_rotation(frog, 'Head', (-.06*pulse(t, .08, .62), 0, 0))

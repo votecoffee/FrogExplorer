@@ -68,6 +68,7 @@ they are not required to play the published asset.
 python scripts/frogs/validate_original_red_eye.py .local/red_eye_original/candidate/red_eye_original.glb
 & "C:\path\to\blender.exe" --background --python-exit-code 1 --python scripts/frogs/check_original_gait.py -- --input .local/red_eye_original/candidate/Original_Red_Eyed_Tree_Frog.blend --report state/original_gait.json
 & "C:\path\to\blender.exe" --background --python-exit-code 1 --python scripts/frogs/check_original_attachments.py -- --input .local/red_eye_original/candidate/Original_Red_Eyed_Tree_Frog.blend --report state/original_attachments.json
+& "C:\path\to\blender.exe" --background --python-exit-code 1 --python scripts/frogs/check_original_locomotion.py -- --input .local/red_eye_original/candidate/Original_Red_Eyed_Tree_Frog.blend --report state/original_locomotion.json
 & "C:\path\to\blender.exe" --background --python scripts/frogs/preview_original_red_eye.py -- --input .local/red_eye_original/candidate/Original_Red_Eyed_Tree_Frog.blend --output outputs/red_eye_review.png
 ```
 
@@ -79,8 +80,19 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v4**, stored in the GLB's
-metadata and build receipt. It refines the shoulder and hip attachments with
+The current authored revision is **original-red-eye-v5**, stored in the GLB's
+metadata and build receipt. It replaces `Slow_Walk`, `Big_Jump` and `Swim` with
+authored foot paths and parent-aware limb IK. Walking uses a shorter 40-frame
+cycle, rearward hind-foot placement and constant stance travel: 0.072 m/s at
+authored scale, approximately 0.20 m/s at the game's 2.8 model scale. Jumping
+extends the hind feet behind the torso before recovery; swimming has a paired
+power stroke, glide and slower recovery. These are artistic interpretations
+of general frog locomotion research, not captured red-eyed frog measurements.
+All v4 meshes, painted pixels and joint rests are retained, as are the curves
+in the other 25 clips. Godot still supplies world travel and jump height.
+The receipt records source hashes and the largest IK target residual.
+
+The v4 pass refined the shoulder and hip attachments with
 buried root rims and a gradual blend from torso skin weights into the upper
 limbs. Tapered calves, narrower ankles and softer joint folds distinguish the
 folded leg segments. The v3 face, feet, webbing and painted pixels are preserved,
@@ -110,11 +122,18 @@ and climbing. It also checks planted-pad clearance, using a 0.45 mm penetration
 tolerance and a 0.9 mm maximum stance gap at the authored metre scale; joint
 positions alone would miss skin crossing the support plane. These are sampled
 geometry checks against a flat plane, separate from world collision testing.
+For walking, it also checks the evaluated pad stance speed against the travel
+calibration, with a 0.007 m/s error tolerance. The locomotion check samples 48
+poses in each revised clip for distal skin/trunk intrusion, fore/hind pad
+clearance and hind feet crossing forward into the head region. It does not
+prove absence of all mesh self-intersections or continuous-time collisions.
 The attachment check samples the four proximal limb rims against the evaluated
 torso in nine poses per clip. It detects exposed root caps with a 0.45 mm
 tolerance; this is separate from checking mesh union or all self-intersections.
 Use the preview tool's `--lift 0.08` option to suspend the frog and camera for
 inspection of swimming or jumping poses away from the studio floor.
+`--span 0.44` provides a wider minimum frame; animated full-body previews fit
+the sampled motion with a steady camera so extended toes remain visible.
 Headless checks and offscreen renders
 do not measure interactive FPS or qualify Linux/Pi rendering.
 
