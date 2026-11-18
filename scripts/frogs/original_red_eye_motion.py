@@ -62,7 +62,7 @@ def animate(frog):
         if clip in ['Catch_Fly_Swallow', 'Face_Wipe', 'Victory_Ribbit', 'Breakdance']:duration = 2.4
         action = bpy.data.actions.new(clip);frog.arm.animation_data.action = action
         count = round(duration*30)
-        for frame in range(0, count+1, 1 if clip in ['Climb','Slow_Walk','Big_Jump','Swim'] else 2):
+        for frame in range(0, count+1, 1 if clip in ['Climb','Slow_Walk','Big_Jump','Swim','Hop','Water_Entry','Shore_Exit'] else 2):
             t = frame/count;wave = sin(2*pi*t);bend = sin(pi*t)**2
             for bone in frog.arm.pose.bones:
                 bone.rotation_quaternion = Quaternion();bone.location = Vector((0, 0, 0));bone.scale = (1, 1, 1)
@@ -96,18 +96,9 @@ def animate(frog):
                 if clip.startswith('Turn_'):
                     global_rotation(frog, 'DEF-spine.003', (0, 0, (.18 if clip == 'Turn_Left' else -.18)*bend))
             if clip == 'Big_Jump':locomotion.jump(frog,t)
-            if clip in ['Hop', 'Shore_Exit', 'Water_Entry']:
-                crouch = pulse(t, 0, .36);extend = pulse(t, .24, .80)
-                amount = .6 if clip == 'Hop' else 1.0
-                global_rotation(frog, 'DEF-spine.003', ((-.18*crouch+.13*extend)*amount, 0, 0))
-                spine.location = frog.rest['DEF-spine.003'].inverted() @ Vector((0, 0, (-.005*crouch+.006*extend)*amount))
-                for side in ['L', 'R']:
-                    global_rotation(frog, 'DEF-thigh.'+side, ((.4*crouch-.80*extend)*amount, 0, 0))
-                    global_rotation(frog, 'DEF-shin.'+side, ((-.4*crouch+1.35*extend)*amount, 0, 0))
-                    global_rotation(frog, 'DEF-tarsus.'+side, (-.5*extend*amount, 0, 0))
-                    global_rotation(frog, 'DEF-upper_arm.'+side, (-.45*extend*amount, 0, 0))
-                    global_rotation(frog, 'DEF-forearm.'+side, (.55*extend*amount, 0, 0))
-                if clip == 'Water_Entry':global_rotation(frog, 'DEF-spine.003', (.25*bend, 0, 0))
+            if clip == 'Hop':locomotion.hop(frog,t)
+            if clip == 'Water_Entry':locomotion.water_entry(frog,t)
+            if clip == 'Shore_Exit':locomotion.shore_exit(frog,t)
             if clip == 'Swim':
                 locomotion.swim(frog,t)
             if clip in ['Catch_Fly', 'Catch_Fly_Swallow', 'Tongue_Snap']:

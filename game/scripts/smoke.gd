@@ -35,9 +35,29 @@ func run(game):
  game.controls.remote_until=0;game.camera_rig.view_mode=0
  p.reset_position();await wait(.25);var y=p.position.y;p.request_action("jump");await wait(.12);check(p.position.y>y+.08,"Jump lifts the physical character")
  p.action_timer=0;p.position=Vector3(0,-.3,0);p.velocity=Vector3.ZERO;await wait(.12);check(p.mode=="SWIM","Entering pond switches to swimming")
+ check(p.current_clip=="Water_Entry","Pond entry plays its transition clip")
  game.controls.remote_aux=Vector2(0,1);game.controls.remote_move=Vector2.ZERO;game.controls.remote_until=Time.get_ticks_msec()/1000.0+1
  var depth=p.position.y;await wait(.35);check(p.position.y<depth-.03,"Right-stick down dives below the surface")
  game.controls.remote_until=0
+ await wait(.25);check(p.current_clip=="Swim","Water entry settles into swimming")
+ p.position=game.woodland.spawn_point;p.velocity=Vector3.ZERO;await wait(.12)
+ check(p.mode=="LAND" and p.current_clip=="Shore_Exit","Leaving the pond plays shore exit")
+ await wait(.65);check(p.current_clip=="Living_Idle","Shore exit returns to the land idle")
+ p.request_action("croak");p.position=Vector3(0,-.3,0);p.velocity=Vector3.ZERO;await wait(.12)
+ check(p.current_clip=="Croak" and p.mode=="SWIM","Pond entry preserves an active croak")
+ p.action_timer=0;p.mode="LAND";p.position=Vector3(0,-.3,0);await wait(.12)
+ p.position=game.woodland.spawn_point;p.velocity=Vector3.ZERO;await wait(.12)
+ check(p.current_clip=="Shore_Exit","Reversing a pond crossing replaces the transition")
+ p.position=Vector3(0,-.3,0);p.velocity=Vector3.ZERO;await wait(.12);p.request_action("croak")
+ check(p.current_clip=="Croak","Action buttons can interrupt a water transition")
+ p.action_timer=0;p.mode="LAND";p.position=Vector3(0,-.3,0);await wait(.12);p.request_action("jump")
+ check(p.current_clip=="Big_Jump" and p.mode=="LAND","Jump interrupts water entry and exits the pond")
+ for index in range(FrogPilot.SPECIES.size()):
+  p.reset_position();p.select_species(index);await wait(.05)
+  p.position=Vector3(0,-.3,0);p.velocity=Vector3.ZERO;await wait(.08)
+  check(p.current_clip=="Water_Entry","Water entry clip plays for "+FrogPilot.SPECIES[index].name)
+  p.position=game.woodland.spawn_point;p.velocity=Vector3.ZERO;await wait(.08)
+  check(p.current_clip=="Shore_Exit","Shore exit clip plays for "+FrogPilot.SPECIES[index].name)
  p.reset_position();await wait(.2)
  var tree=game.woodland.trees[0];p.position=tree.center+Vector3(0,0,tree.radius+.30);p.position.y=game.woodland.ground_height(p.position.x,p.position.z)+.01;p.grab_cooldown=0
  game.controls.remote_move=Vector2(0,-1);game.controls.remote_aux=Vector2.ZERO;game.controls.remote_until=Time.get_ticks_msec()/1000.0+3

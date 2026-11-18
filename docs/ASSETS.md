@@ -69,6 +69,7 @@ python scripts/frogs/validate_original_red_eye.py .local/red_eye_original/candid
 & "C:\path\to\blender.exe" --background --python-exit-code 1 --python scripts/frogs/check_original_gait.py -- --input .local/red_eye_original/candidate/Original_Red_Eyed_Tree_Frog.blend --report state/original_gait.json
 & "C:\path\to\blender.exe" --background --python-exit-code 1 --python scripts/frogs/check_original_attachments.py -- --input .local/red_eye_original/candidate/Original_Red_Eyed_Tree_Frog.blend --report state/original_attachments.json
 & "C:\path\to\blender.exe" --background --python-exit-code 1 --python scripts/frogs/check_original_locomotion.py -- --input .local/red_eye_original/candidate/Original_Red_Eyed_Tree_Frog.blend --report state/original_locomotion.json
+& "C:\path\to\blender.exe" --background --python-exit-code 1 --python scripts/frogs/check_original_transitions.py -- --input .local/red_eye_original/candidate/Original_Red_Eyed_Tree_Frog.blend --report state/original_transitions.json
 & "C:\path\to\blender.exe" --background --python scripts/frogs/preview_original_red_eye.py -- --input .local/red_eye_original/candidate/Original_Red_Eyed_Tree_Frog.blend --output outputs/red_eye_review.png
 ```
 
@@ -80,8 +81,21 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v5**, stored in the GLB's
-metadata and build receipt. It replaces `Slow_Walk`, `Big_Jump` and `Swim` with
+The current authored revision is **original-red-eye-v6**, stored in the GLB's
+metadata and build receipt. It replaces `Hop`, `Water_Entry` and `Shore_Exit`
+with coordinated foot paths and gradual changes between the resting and active
+limb bend planes. Hop returns to idle; water entry connects idle to the first
+swim pose; shore exit connects that swim pose to idle. All v5 meshes, painted
+pixels, joint rests and curves in the other 25 clips are retained, including
+the v5 walking, jumping and swimming work.
+
+Pond crossings now select the existing entry/exit clip for every frog, played
+over 0.60 seconds. Movement and diving continue during transitions. Action
+buttons interrupt them; an already-running action is preserved, and a rapid
+shoreline reversal replaces the previous transition. These animations do not
+change the physical water/shore detection or create water in imported maps.
+
+The v5 pass replaced `Slow_Walk`, `Big_Jump` and `Swim` with
 authored foot paths and parent-aware limb IK. Walking uses a shorter 40-frame
 cycle, rearward hind-foot placement and constant stance travel: 0.072 m/s at
 authored scale, approximately 0.20 m/s at the game's 2.8 model scale. Jumping
@@ -130,6 +144,11 @@ prove absence of all mesh self-intersections or continuous-time collisions.
 The attachment check samples the four proximal limb rims against the evaluated
 torso in nine poses per clip. It detects exposed root caps with a 0.45 mm
 tolerance; this is separate from checking mesh union or all self-intersections.
+The transition check compares all evaluated meshes at six endpoints against
+the neighboring idle/swim poses, with a 0.25 mm displacement tolerance. It
+checks all eighteen pads in 44 planted-phase poses using the same contact
+tolerances as the gait check. The locomotion check includes both the v5 and
+v6 clips by default; `--clips` selects a smaller explicit set for diagnosis.
 Use the preview tool's `--lift 0.08` option to suspend the frog and camera for
 inspection of swimming or jumping poses away from the studio floor.
 `--span 0.44` provides a wider minimum frame; animated full-body previews fit

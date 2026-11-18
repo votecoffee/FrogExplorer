@@ -108,6 +108,12 @@ func _play(clip,rate=1.0):
  player.speed_scale=rate
  if current_clip!=clip:player.play(clip,.12);current_clip=clip
 
+func _water_transition(clip):
+ if not player or not player.has_animation(clip):return
+ if action_timer>0 and not (action_name in ["Water_Entry","Shore_Exit"]):return
+ action_name=clip;action_timer=.60
+ _play(clip,player.get_animation(clip).length/action_timer)
+
 func request_action(action):
  if action=="next_frog":select_species(species+1);return
  if action=="reset":reset_position();return
@@ -127,7 +133,7 @@ func request_action(action):
   else:return
   jump_factor=metrics.factor;jump_duration=.68*launch
   action_timer=jump_duration;action_name="Big_Jump";_play("Big_Jump",player.get_animation("Big_Jump").length/jump_duration);event_occurred.emit("jump",{});return
- if action_timer>0:return
+ if action_timer>0 and not (action_name in ["Water_Entry","Shore_Exit"]):return
  match action:
   "catch_fly":
    catch_index=woodland.nearest_fly(eye_position(),metrics.tongue_range());catch_timer=.32
@@ -276,8 +282,11 @@ func _physics_process(delta):
   return
  var wet=woodland.in_water(position+Vector3.UP*(.08*(size-1)))
  if mode=="SWIM" and not wet:
-  mode="LAND";position.y=maxf(position.y,woodland.ground_height(position.x,position.z)+.02*size);event_occurred.emit("shore_exit",{})
- elif wet and mode!="SWIM":mode="SWIM";hop_impulse=Vector3.ZERO;event_occurred.emit("water_entry",{})
+  mode="LAND";position.y=maxf(position.y,woodland.ground_height(position.x,position.z)+.02*size)
+  _water_transition("Shore_Exit");event_occurred.emit("shore_exit",{})
+ elif wet and mode!="SWIM":
+  mode="SWIM";hop_impulse=Vector3.ZERO
+  _water_transition("Water_Entry");event_occurred.emit("water_entry",{})
  var frame_forward=camera_rig.planar_forward() if camera_rig else Vector3.FORWARD
  var frame_right=frame_forward.cross(Vector3.UP)
  var direction=(frame_right*m.x-frame_forward*m.y)

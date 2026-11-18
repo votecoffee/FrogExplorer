@@ -1,4 +1,4 @@
-"""Check the three revised clips for sampled distal skin/body intersections.
+"""Check locomotion clips for sampled distal skin/body intersections.
 
 Run in Blender with --input ORIGINAL.blend --report REPORT.json. Proximal
 attachments have a separate check; this checks pads and lower limb surfaces.
@@ -18,6 +18,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--input', type=Path, required=True)
     parser.add_argument('--report', type=Path, required=True)
+    parser.add_argument('--clips', nargs='+', default=['Slow_Walk','Big_Jump','Swim','Hop','Water_Entry','Shore_Exit'])
     args = parser.parse_args(sys.argv[sys.argv.index('--')+1:])
     bpy.ops.wm.open_mainfile(filepath=str(args.input.resolve()))
     arm = bpy.data.objects['Original_Red_Eye_Rig'];trunk = bpy.data.objects['Original continuous trunk and muzzle']
@@ -29,7 +30,7 @@ def main():
         uv = obj.data.uv_layers.active.data
         selected[obj.name] = sorted({loop.vertex_index for loop in obj.data.loops if uv[loop.index].uv.x>.40})
     clips = {};issues = []
-    for clip in ['Slow_Walk','Big_Jump','Swim']:
+    for clip in args.clips:
         action = bpy.data.actions[clip];arm.animation_data.action = action;arm.animation_data.action_slot = action.slots[0]
         penetration = 0.0;separation = float('inf');hind_y = float('inf');worst = None
         for sample in range(48):
@@ -61,7 +62,7 @@ def main():
         if penetration>.0008:issues.append(clip+': distal skin enters the trunk')
         if separation<.008:issues.append(clip+': hand and hind pads overlap')
         if hind_y<-.045:issues.append(clip+': hind pads sweep into the head region')
-    report = {'clips':clips,'issues':issues,'scope':'144 sampled Blender poses. Oriented nearest-surface distances on pads and lower limb vertices, 0.8 mm trunk intrusion tolerance; 8 mm minimum fore/hind pad center clearance; hind pads remain behind Y=-0.045 m. Authored metre scale. Does not prove all mesh self-intersections or continuous-time clearance.'}
+    report = {'clips':clips,'pose_samples':48*len(clips),'issues':issues,'scope':'Sampled Blender poses. Oriented nearest-surface distances on pads and lower limb vertices, 0.8 mm trunk intrusion tolerance; 8 mm minimum fore/hind pad center clearance; hind pads remain behind Y=-0.045 m. Authored metre scale. Does not prove all mesh self-intersections or continuous-time clearance.'}
     args.report.parent.mkdir(parents=True,exist_ok=True)
     args.report.write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8',newline='\n')
     print('ORIGINAL_LOCOMOTION_CHECK '+json.dumps(report),flush=True)

@@ -63,6 +63,10 @@ The v5 authored locomotion pass used general research on
 and [frog swimming power/recovery phases](https://doi.org/10.1242/jeb.138.1.399)
 as reference. These are different species, not red-eyed frog motion-capture
 datasets. No measured curves, video frames or animation files are incorporated.
+The v6 hop/transition pass also consulted research on
+[hindlimb recovery during toad hopping](https://pubmed.ncbi.nlm.nih.gov/25030045/)
+to guide recovery posing. It remains authored animation, without a measured
+red-eyed frog trajectory or a simulated elastic-recoil model.
 
 ## Historical local red-eyed tree frog
 
