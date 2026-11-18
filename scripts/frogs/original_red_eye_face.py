@@ -12,8 +12,8 @@ EYE_ASPECT = (.94, 1.02, .72)
 EYE_APERTURE = 1.31
 FACE_SECTIONS = [
     [-.083,.0060,.0455,.0490],[-.078,.0155,.0448,.0520],
-    [-.069,.0255,.0418,.0578],[-.049,.0380,.0365,.0625],
-    [-.030,.0355,.0380,.0640]]
+    [-.069,.0255,.0430,.0578],[-.049,.0380,.0405,.0625],
+    [-.030,.0355,.0390,.0640]]
 
 
 def eye_frame(sign):
@@ -37,7 +37,7 @@ def shorten_muzzle(point):
     return point
 
 
-def add_features(frog, profile):
+def add_features(frog):
     for side,sign in [('L',-1),('R',1)]:
         center = frog.bones['FX_eye.'+side][0];n,u,v = eye_frame(sign)
         frog.cap('Green orbital socket '+side,center,-n,.0121,pi-1.25,
@@ -69,21 +69,31 @@ def add_features(frog, profile):
             point = Vector((x,y,z))+rotation@Vector((.00078*cos(a),.00055*sin(a),.00004))
             rim.append(point)
         frog.tube('Soft naris rim '+side,rim,[.00009]*len(rim),['Head']*(len(rim)-1),frog.fold_mat,1,8)
-        # A subtle cheek disc and fold sit behind the eye, flush with the skin.
+        # A flush membrane and tapered upper fold replace a raised round disc.
         def cheek(radius,angle):
             y = -.0325+.0034*radius*cos(angle)
             theta = .17+.14*radius*sin(angle)
             width = frog.section_at(y)[1]
             x = sign*width*cos(theta)
             return Vector((x+sign*.00004,y,frog.body_height(x,y,theta>=0)))
+        def trunk_skin(point):
+            t=min(1,max(0,(point.y+.038)/.023));head=1-t*t*(3-2*t)
+            return {'Head':head,'DEF-spine.003':1-head}
         vertices=[];uv=[];faces=[]
         for i in range(13):
             for j in range(49):
                 a=2*pi*j/48;r=i/12
-                vertices.append(cheek(r,a));uv.append((.5+.5*r*cos(a),.5+.5*r*sin(a)))
+                point=cheek(r,a);vertices.append(point)
+                theta=.17+.14*r*sin(a)
+                uv.append(((point.y+.083)/.158,theta/(2*pi) if sign>0 else .5-theta/(2*pi)))
         for i in range(12):
             for j in range(48):
                 a=i*49+j;faces.append((a,a+1,a+50,a+49))
-        frog.mesh('Tympanic skin '+side,vertices,faces,uv,[{'Head':1} for _ in vertices],frog.fold_mat)
-        rim = [cheek(1,a) for a in np.linspace(0,2*pi,49)]
-        frog.tube('Tympanic fold '+side,rim,[.00007]*len(rim),['Head']*(len(rim)-1),frog.fold_mat,1,8)
+        frog.mesh('Tympanic skin '+side,vertices,faces,uv,[trunk_skin(p) for p in vertices],frog.body_mat)
+        rim = [cheek(1,a) for a in np.linspace(-.08,pi+.08,49)]
+        radii = [.000035+.00013*sin(pi*i/(len(rim)-1))**2 for i in range(len(rim))]
+        fold=frog.tube('Tympanic fold '+side,rim,radii,['Head']*(len(rim)-1),frog.fold_mat,1,8)
+        spine=fold.vertex_groups.new(name='DEF-spine.003');head=fold.vertex_groups['Head']
+        for vertex in fold.data.vertices:
+            weights=trunk_skin(vertex.co)
+            head.add([vertex.index],weights['Head'],'REPLACE');spine.add([vertex.index],weights['DEF-spine.003'],'REPLACE')

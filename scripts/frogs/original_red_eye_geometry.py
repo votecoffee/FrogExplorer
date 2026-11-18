@@ -477,10 +477,10 @@ class Frog:
         self.jaw()
         self.palate()
         self.ellipsoid('Dark rear oral cavity', (0, -.027, .0355), (.026, .002, .004), self.oral_dark, 'Head')
-        self.ellipsoid('Gular breathing sac', (0, -.031, .0325), (.023, .022, .004), self.cream, 'Throat', 18, 36)
+        self.ellipsoid('Gular breathing sac', (0, -.031, .0355), (.023, .022, .0032), self.cream, 'Throat', 18, 36)
         self.ellipsoid('Tongue folded muscle', (0, -.056, self.body_height(0, -.056, False)+.0011), (.009, .012, .0018), self.pink, 'Tongue')
         self.ellipsoid('Tongue rounded tip', (0, -.044, self.body_height(0, -.044, False)+.0011), (.010, .007, .0018), self.pink, 'TongueTip')
-        add_features(self,profile)
+        add_features(self)
 
     def limbs_and_digits(self):
         for (side, label), (points, bones) in self.limbs.items():
@@ -488,7 +488,7 @@ class Frog:
                 radii = [.0068, .0046, .0030, .0036];bulges = [.16, .14, .0];flatten = [.84,.78,.65,.32]
                 inset = .0065
             else:
-                radii = [.0120, .0058, .0035, .0032, .0046];bulges = [.40, .24, .08, .0];flatten = [.91,.82,.76,.60,.30]
+                radii = [.0084, .0046, .0031, .0028, .0046];bulges = [.18, .12, .05, .0];flatten = [.78,.76,.70,.56,.30]
                 inset = .0100
             self.tube('Continuous '+label+' '+side, points, radii, bones, self.limb_mat, 12, 24, bulges, flatten, True,
                       (-1 if side=='L' else 1, inset))
@@ -506,6 +506,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v8'
+        self.arm['model_revision'] = 'original-red-eye-v9'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self

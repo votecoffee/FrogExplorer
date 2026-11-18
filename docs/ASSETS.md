@@ -82,9 +82,21 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v8**, stored in the GLB's
-metadata and build receipt. It narrows the anterior muzzle into a tapered
-wedge, brings the snout forward, and gives the forehead a flatter roof with
+The current authored revision is **original-red-eye-v9**, stored in the GLB's
+metadata and build receipt. It slims and flattens the hind thighs, reduces the
+knee/calf bulk and tapers the ankle while retaining the terminal foot surfaces.
+At the middle of each rest-mesh thigh, the major cross-section diameter is
+38 percent smaller and the minor diameter 45 percent smaller than v8. These
+measure the model change, rather than dimensions calibrated from photographs.
+The face has a shallower lower cheek and a higher, flatter resting throat.
+A flush cheek membrane uses the surrounding skin map and a tapered upper
+fold, with skin weights following the torso instead of a rigid circular rim.
+All 61 joint rests, all 7,140 animation curves, 46 unchanged forelimb/foot
+contact meshes, the posterior trunk and all twelve painted images are retained.
+Only the two continuous hind-limb skins change among the 48 contact meshes.
+
+The v8 pass narrowed the anterior muzzle into a tapered
+wedge, brought the snout forward, and gave the forehead a flatter roof with
 beveled transitions into angled cheeks. A finer canthus ridge runs toward
 each nostril. The closing jaw and mouth seam follow the tapered upper lip;
 interpolated jaw widths stay inside it at the rear mouth corners.
@@ -181,6 +193,9 @@ coverage when closed. Seventeen `Croak` poses check a closed jaw and throat
 inflation. This measures sampled geometry and animation behavior, not realism.
 Use `--face` on the preview tool for matched face close-ups, and `--clay` to
 separate silhouette changes from skin and eye shading.
+`--hindlegs` frames the right folded thigh, calf and ankle with a fixed camera
+for skin/clay comparisons. Full-body animated previews still fit the sampled
+motion so extended legs and toes stay visible.
 Use the preview tool's `--lift 0.08` option to suspend the frog and camera for
 inspection of swimming or jumping poses away from the studio floor.
 `--span 0.44` provides a wider minimum frame; animated full-body previews fit

@@ -60,6 +60,9 @@ This informs an authored call, not a species-specific measured vocal-sac model.
 Four user-supplied photographs guided the v8 snout taper, flatter forehead,
 canthus ridge and angled cheek planes. They are visual proportion references;
 their pixels are not included, sampled or redistributed with the model.
+The same references guided the v9 slimmer hind-thigh and knee/calf surfaces,
+shallower lower cheek and subtler tympanic fold. The changes remain authored
+interpretations of the photographs, with all prior painted images retained.
 The v3 foot review used the [Wildlife Conservation Society's frog photograph](https://blog.wcs.org/photo/2020/11/30/living-color-red-eyed-tree-frog-amphbian/)
 and the STRI species description. General pad structure was informed by
 [tree-frog toe-pad research](https://pmc.ncbi.nlm.nih.gov/articles/PMC2720997/)

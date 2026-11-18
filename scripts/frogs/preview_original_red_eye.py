@@ -23,6 +23,7 @@ def main():
     parser.add_argument('--size', type=int, default=960)
     parser.add_argument('--face', action='store_true', help='Frame the eyes and mouth for inspection')
     parser.add_argument('--feet', action='store_true', help='Frame the right front hand and wrist')
+    parser.add_argument('--hindlegs', action='store_true', help='Frame the right folded thigh, calf and ankle')
     parser.add_argument('--lift', type=float, default=0, help='Raise model and camera in metres for suspended motion review')
     parser.add_argument('--span', type=float, default=.265, help='Minimum orthographic frame width in metres')
     args = parser.parse_args(sys.argv[sys.argv.index('--')+1:])
@@ -42,8 +43,10 @@ def main():
         camera.data.ortho_scale = .135;aim(camera, (0, -.049, .060))
     if args.feet:
         camera.data.ortho_scale = .090;camera.location = (.18,-.20,.17);aim(camera, (.074,-.082,.010))
+    if args.hindlegs:
+        camera.data.ortho_scale = .140;camera.location = (.30,-.045,.14);aim(camera, (.05,.035,.027))
     arm.location.z += args.lift;camera.location.z += args.lift
-    if args.frames and not (args.face or args.feet):
+    if args.frames and not (args.face or args.feet or args.hindlegs):
         # Fit the whole sampled motion once, keeping a steady camera and all
         # extended toes in frame. The ground has not been added at this point.
         bpy.context.view_layer.update();camera_inverse = camera.matrix_world.inverted()
