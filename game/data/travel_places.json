@@ -2307,7 +2307,7 @@
       ],
       "quality": "Original municipal photomesh LODs; source holes, photographed water/vegetation and aerial facade limitations remain. No authored swimming or climbable trees.",
       "qualification": {
-        "windows": "Preparation recipe available; native acceptance pending.",
+        "windows": "Godot 4.7.2 Windows headless: full native mesh/collision/material audit and real-model movement, vehicles, balloon traversal and parachute landing passed. Interactive FPS and physical controllers untested.",
         "linux": "untested",
         "pi5": "untested"
       }

@@ -136,8 +136,14 @@ return to the pond. Pass `--destination=PLACE` for one pack. Reports stay in
 ignored `state/`. Headless physics and offscreen appearance checks do not
 measure interactive FPS, physical gamepads, Linux or Pi performance.
 
-Windows 4.7.2 headless checks with an actual frog model, after the flight test
-and return to the checked arrival:
+All three prepared packs passed the full native mesh, collision, material and
+dependency audit. The actual-frog gameplay checks passed for all three packs
+(20 checks each for Helsinki and Lyon, 21 for Strasbourg including its credit
+logos). The Windows ROS package passed all 17 tests. A fresh checkout also
+passed the base installer and ROS package tests.
+
+Windows 4.7.2 headless measurements with an actual frog model, after the flight
+test and return to the checked arrival:
 
 | Pack | Finest triangles across the entire pack | Resident streamed cells | Resident detail triangles | Godot static allocation counter |
 |---|---:|---:|---:|---:|
