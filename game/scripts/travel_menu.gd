@@ -82,7 +82,7 @@ func _button(text:String,item:Dictionary={}):
  var index=buttons.size();var button=Button.new();button.text=text;button.alignment=HORIZONTAL_ALIGNMENT_LEFT
  var kind=_badge_kind(item)
  if not kind.is_empty():button.icon=BADGE_ICONS[kind];button.add_theme_constant_override("h_separation",10)
- button.tooltip_text=_place_details(item)
+ button.tooltip_text=_place_details(item).get_slice("\n",0)
  button.custom_minimum_size=Vector2(650,39);button.add_theme_font_size_override("font_size",18);button.focus_mode=Control.FOCUS_NONE
  button.pressed.connect(_click.bind(index));rows.add_child(button);buttons.append(button)
 
