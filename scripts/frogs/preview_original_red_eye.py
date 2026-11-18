@@ -21,6 +21,7 @@ def main():
     parser.add_argument('--clay', action='store_true')
     parser.add_argument('--frames', type=int, default=0, help='Render a numbered loop for a GIF')
     parser.add_argument('--size', type=int, default=960)
+    parser.add_argument('--face', action='store_true', help='Frame the eyes and mouth for inspection')
     args = parser.parse_args(sys.argv[sys.argv.index('--')+1:])
     args.output = args.output.resolve()
     bpy.ops.wm.open_mainfile(filepath=str(args.input.resolve()))
@@ -34,6 +35,8 @@ def main():
     positions = {'three_quarter':(.23, -.32, .17), 'side':(.32, -.035, .115),
                  'front':(0, -.35, .13), 'top':(0, -.025, .40)}
     camera.location = positions[args.view];aim(camera, (0, -.006, .042))
+    if args.face:
+        camera.data.ortho_scale = .135;aim(camera, (0, -.049, .060))
     for name, location, energy, size, color in [
         ('Large softbox', (.10, -.16, .25), 1.0, .18, (1.0, .95, .83)),
         ('Cool fill', (-.18, -.09, .14), .4, .20, (.77, .88, 1.0)),

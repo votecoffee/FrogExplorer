@@ -3,10 +3,11 @@
 No animation files are imported. Clip names implement FrogExplorer's existing
 28-clip interface; motion curves below are authored analytically. MIT.
 """
-from math import sin, cos, pi, sqrt
+from math import sin, cos, pi, sqrt, acos
 
 import bpy
 from mathutils import Vector, Euler, Quaternion
+from original_red_eye_geometry import eye_frame
 
 CLIPS = ['Big_Jump', 'Breakdance', 'Catch_Fly', 'Catch_Fly_Swallow', 'Climb',
          'Croak', 'Death', 'Disco_Frog', 'Face_Wipe', 'Foot_Wave', 'Hit', 'Hop',
@@ -156,10 +157,10 @@ def animate(frog):
             global_rotation(frog, 'FX-jaw', (jaw, 0, 0))
             frog.arm.pose.bones['Throat'].scale = (1+.20*(throat-1), 1+.13*(throat-1), throat)
             for side, sign in [('L', -1), ('R', 1)]:
-                center = frog.bones['Lid.'+side][0]
-                n = Vector((sign*.63, -.69, .36)).normalized()
+                n, _, _ = eye_frame(sign)
                 axis = Vector((0, 0, 1)).cross(n).normalized()
-                global_rotation(frog, 'Lid.'+side, Quaternion(axis, 2.22*blink))
+                resting_lid = (Vector((0, 0, 1))*.55-n*.90).normalized()
+                global_rotation(frog, 'Lid.'+side, Quaternion(axis, acos(resting_lid.dot(n))*blink))
             for bone in frog.arm.pose.bones:
                 if bone.name == 'root':continue
                 bone.keyframe_insert('rotation_quaternion', frame=frame, group=bone.name)

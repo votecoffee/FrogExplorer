@@ -78,6 +78,13 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
+The current authored revision is **original-red-eye-v2**, stored in the GLB's
+metadata and build receipt. It refines the continuous brow/muzzle, oval corneal
+surfaces and fitted orbital skin, slimmer torso, tapered limb muscles, closing
+jaw rim, recessed palate and throat. The 28-clip interface and planted-foot
+geometry remain compatible; eyelid curves and eye/throat pivots are revised.
+The receipt and public runtime inventory identify the exact exported file.
+
 After the installer imports the published GLB, run its native rig/animation
 check with Godot (use `scripts/wait_engine.py` when launching the Windows exe):
 

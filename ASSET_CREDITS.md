@@ -47,6 +47,7 @@ Photographs and biological descriptions guide anatomy only; they are not
 included or sampled into the asset: [Smithsonian active/sleeping frogs](https://nationalzoo.si.edu/animals/news/new-zoo-red-eyed-tree-frogs),
 [STRI species description](https://panamabiota.org/stri/taxa/index.php?tid=10678),
 and [Joel Sartore's frog photograph](https://www.joelsartore.com/ani101-00200/).
+The v2 proportion review also used the [San Francisco Zoo species page](https://www.sfzoo.org/animals-exhibits/a-to-z/red-eyed-tree-frog/).
 Their photo copyrights remain with their respective owners.
 
 ## Historical local red-eyed tree frog

@@ -62,7 +62,11 @@ def validate(path):
             times = array(sampler['input']).ravel()
             assert len(times)>1 and (np.diff(times)>0).all()
             array(sampler['output'])
-    return {'meshes':len(doc['meshes']), 'bones':len(joints), 'clips':len(animations),
+    revisions = {node.get('extras', {}).get('model_revision') for node in doc['nodes']}
+    revisions.discard(None)
+    assert len(revisions)<=1
+    return {'revision':next(iter(revisions), None),
+            'meshes':len(doc['meshes']), 'bones':len(joints), 'clips':len(animations),
             'vertices_with_uv_seams':vertices, 'triangles':triangles,
             'embedded_images':len(doc['images']), 'bytes':len(raw),
             'checks':'Embedded dependencies, complete 28-clip contract, finite arrays, nondegenerate triangles, unit normals, normalized weights and valid joints'}

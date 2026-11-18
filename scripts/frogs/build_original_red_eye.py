@@ -49,6 +49,7 @@ def main():
         export_optimize_animation_size=True, export_cameras=False,
         export_lights=False, export_extras=True)
     report = {'model':'FrogExplorer original red-eyed tree frog', 'license':'MIT',
+              'revision':frog.arm['model_revision'],
               'input_assets':[], 'geometry':'Original analytic lofts and surfaces',
               'textures':'Original deterministic painted color, normal, roughness and iris pixels',
               'rig':'Original bone layout and skin weights',
