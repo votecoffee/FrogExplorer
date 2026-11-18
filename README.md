@@ -50,6 +50,12 @@ To use an existing engine or install offline:
 
 The repository includes **five realistic frogs and all 16 city/landmark tile packs**. The installer verifies their checksums and imports the Godot resources. No separate asset download is needed for those files. The red-eyed tree frog uses an authored starter model until you import your locally licensed model; its extractable GLB is excluded from public Git under its source terms. Models and scenery retain their individual licenses, including noncommercial restrictions for some assets; see [asset credits](ASSET_CREDITS.md).
 
+Optional municipal packs add **4 x 4 km of Helsinki**, plus photographed **Lyon
+and Strasbourg** samples about one kilometre square each. Prepare them using
+the [city pack installation guide](docs/CITY_PACKS.md). They use multiple source
+detail levels and precise nearby collision. Large downloads and generated
+meshes remain outside the base Git bundle.
+
 To add the locally licensed red-eyed model and retain the earlier full-scene reference files for rebuilding, the importer accepts an existing project directory, its `game/` directory, or its `game/assets/` directory:
 
 ```powershell
@@ -155,6 +161,11 @@ Hold movement keys or the D-pad to ramp up balloon speed over about four seconds
 ## World travel
 
 The catalog includes **12 city areas and four historic destinations**: Helsinki, five US cities, Tokyo, Shanghai, Berlin, Moscow, Montréal, Mexico City, Machu Picchu, a Great Wall section, Giza and the Colosseum. A fresh clone includes their runtime tiles and the pond; only present, device-qualified packs appear in the places list.
+
+Three additional optional entries provide the larger Helsinki city centre,
+Lyon Bellecour and Strasbourg cathedral district. See [coverage, preparation
+commands and limitations](docs/CITY_PACKS.md). The small Helsinki pack remains
+available alongside the expanded one.
 
 Worlds have bounded coverage and varying detail. Montréal is a short sidewalk scan; Shanghai is simplified architecture. Water and trees in imported scenes do not gain swimming or climbing volumes automatically. Travel restores every frog to default size and clears vehicles; failed or cancelled travel preserves the old world. City/history category preferences and recent visits influence random selection.
 

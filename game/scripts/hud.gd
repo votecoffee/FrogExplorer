@@ -3,6 +3,10 @@ extends CanvasLayer
 
 var place_label:Label
 var travel_label:Label
+var credit_logos:HBoxContainer
+var credit_layer:CanvasLayer
+var credit_text:Label
+var credit_place=""
 var species_label:Label
 var state_label:Label
 var size_label:Label
@@ -29,6 +33,12 @@ func _ready():
  box.add_child(label("F R O G  E X P L O R E R",23,Color(.89,.93,.65)))
  place_label=label("Woodland pond",16,Color(.65,.77,.64));box.add_child(place_label)
  travel_label=label("",13,Color(.88,.86,.66));box.add_child(travel_label)
+ travel_label.custom_minimum_size.x=520;travel_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ # Keep required source artwork visible even when split-screen hides this HUD.
+ credit_layer=CanvasLayer.new();credit_layer.layer=4;credit_layer.visible=false;get_parent().add_child.call_deferred(credit_layer)
+ var credits=panel();credits.position=Vector2(22,130);credit_layer.add_child(credits);var credits_box=VBoxContainer.new();credits.add_child(credits_box)
+ credit_text=label("",12);credit_text.custom_minimum_size.x=460;credit_text.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;credits_box.add_child(credit_text)
+ credit_logos=HBoxContainer.new();credit_logos.add_theme_constant_override("separation",16);credits_box.add_child(credit_logos)
  var status=panel();status.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT);status.position=Vector2(-345,20);status.custom_minimum_size=Vector2(323,105);root.add_child(status)
  var stack=VBoxContainer.new();status.add_child(stack);species_label=label("",20);state_label=label("",15);score_label=label("",15,Color(.88,.79,.42));stack.add_child(species_label);stack.add_child(state_label);size_label=label("",15,Color(.73,.87,.88));stack.add_child(size_label);stack.add_child(score_label)
  gamepad_legend=panel();gamepad_legend.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);gamepad_legend.position=Vector2(22,-148);gamepad_legend.visible=false;root.add_child(gamepad_legend)
@@ -72,6 +82,9 @@ func _ready():
 func toast(text):
  notice_label.text=text;toast_time=3.5
 
+func _exit_tree():
+ if is_instance_valid(credit_layer):credit_layer.queue_free()
+
 func update(delta,pilot,camera,controls,link):
  keyboard_legend.visible=controls.device<0
  gamepad_legend.visible=controls.device>=0
@@ -104,3 +117,12 @@ func update_place(travel:WorldTravel):
  var item=travel.place(travel.current_id)
  place_label.text=str(item.get("name","Woodland pond"))
  travel_label.text=(travel.message+"  %d%%"%int(travel.progress*100)) if travel.busy else str(item.get("attribution",""))
+ if not item.get("credit_logos",[]).is_empty() and not travel.busy:travel_label.text=""
+ if credit_place!=travel.current_id:
+  credit_place=travel.current_id
+  for child in credit_logos.get_children():credit_logos.remove_child(child);child.queue_free()
+  for path in item.get("credit_logos",[]):
+   if not ResourceLoader.exists(str(path)):continue
+   var image=TextureRect.new();image.texture=load(str(path));image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;image.custom_minimum_size=Vector2(140,40);credit_logos.add_child(image)
+  credit_text.text=str(item.get("attribution",""));credit_layer.visible=credit_logos.get_child_count()>0
+  debug_label.position.y=260 if credit_layer.visible else 150

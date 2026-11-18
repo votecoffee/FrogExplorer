@@ -30,9 +30,16 @@ func inspect(node:Node)->Dictionary:
 
 func run():
  var catalog=JSON.parse_string(FileAccess.get_file_as_string("res://data/travel_places.json"))
+ var expected=0
+ var destination=""
+ for arg in OS.get_cmdline_user_args():
+  if arg.begins_with("--destination="):destination=arg.trim_prefix("--destination=")
  for place in catalog.places:
   if place.provider!="local_mesh":continue
+  if not destination.is_empty() and place.id!=destination:continue
   var data=WorldTiles.manifest(place)
+  if data.is_empty() and place.get("distribution","")=="optional_download":continue
+  expected+=1
   if data.is_empty() or data.has("error"):failures.append("Missing/invalid tile pack: "+str(place.id));continue
   var reason=WorldTiles.verify(data)
   if not reason.is_empty():failures.append(reason);continue
@@ -48,15 +55,25 @@ func run():
    var node=source.instantiate();var geometry=inspect(node);node.free()
    if geometry.triangles!=int(tile.triangles) or geometry.collision!=geometry.triangles:failures.append("Render/collision triangle mismatch: "+path)
    count+=1;triangles+=geometry.triangles;materials.merge(geometry.materials)
+   if tile.has("lods"):
+    var expected_materials={}
+    for index in tile.materials:expected_materials["FrogExplorerMaterial_%06d"%int(index)]=true
+    if geometry.materials!=expected_materials:failures.append("Fine source material slots lost: "+path)
+    for level in range(1,tile.lods.size()):
+     var coarse_path=data.folder+"/"+str(tile.lods[level].scene)
+     dependencies(coarse_path,allowed,visited)
+     var coarse=(load(coarse_path) as PackedScene).instantiate();var coarse_geometry=inspect(coarse);coarse.free()
+     if coarse_geometry.collision!=0 or coarse_geometry.triangles!=int(tile.lods[level].triangles):failures.append("Invalid visual LOD geometry: "+coarse_path)
    await process_frame
   var overview=(load(data.folder+"/"+str(data.overview_scene)) as PackedScene).instantiate()
   var far=inspect(overview);overview.free()
   if far.collision!=0 or far.triangles!=int(data.overview_triangles):failures.append("Invalid overview geometry: "+str(place.id))
-  if materials.size()!=int(data.source_materials):failures.append("Source material slots lost: "+str(place.id))
+  if data.has("source_materials") and materials.size()!=int(data.source_materials):failures.append("Source material slots lost: "+str(place.id))
   if ResourceLoader.has_cached(str(place.scene)):failures.append("Original full mesh loaded: "+str(place.id))
   reports.append({"id":place.id,"tiles":count,"triangles":triangles,"materials":materials.size(),"runtime_dependencies":visited.size()})
   print("TILE_CATALOG_PACK "+JSON.stringify(reports.back()))
  var report={"places":reports,"failures":failures}
- var file=FileAccess.open("res://../state/tile_catalog_probe.json",FileAccess.WRITE);file.store_string(JSON.stringify(report," ")+"\n");file.close()
+ var suffix="_"+destination if not destination.is_empty() else ""
+ var file=FileAccess.open("res://../state/tile_catalog_probe"+suffix+".json",FileAccess.WRITE);file.store_string(JSON.stringify(report," ")+"\n");file.close()
  print("TILE_CATALOG_PROBE "+JSON.stringify({"places":reports.size(),"failures":failures}))
- quit(0 if failures.is_empty() and reports.size()==16 else 1)
+ quit(0 if failures.is_empty() and reports.size()==expected and expected>0 else 1)

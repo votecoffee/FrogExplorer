@@ -29,7 +29,7 @@ func run():
   var event=InputEventJoypadButton.new();event.device=device;event.button_index=JOY_BUTTON_START;event.pressed=true;Input.parse_input_event(event)
  await wait(.3)
  check(game.party.local_records().size()==4,"Four local frogs join before international city travel")
- check(t.available_places().size()==t.catalog.size(),"Every catalog destination is installed and available")
+ check(t.catalog.filter(func(item):return item.get("distribution","")!="optional_download" and not t.unavailable(item).is_empty()).is_empty(),"Every bundled destination is installed and available")
  var full_catalog=t.catalog.duplicate()
  t.catalog.assign(full_catalog.filter(func(item):return item.id in IDS or item.id=="home_woodland_pond"))
  t.category="city"
@@ -40,7 +40,7 @@ func run():
  countries.sort()
  check(countries==["CA","CN","DE","JP","MX","RU"],"Six new city entries cover all six requested countries")
  game.travel_menu.open();await wait(.05)
- check(game.travel_menu.buttons.size()==t.catalog.size()+3,"Scrollable places list includes all destinations and category controls")
+ check(game.travel_menu.buttons.size()==t.available_places().size()+3,"Scrollable places list includes all destinations and category controls")
  game.travel_menu.close()
  for id in IDS:
   var item=t.place(id)

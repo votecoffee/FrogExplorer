@@ -70,6 +70,22 @@ footprints, not an MIT relicensing of the source data. Retain the catalog's
 links. Scenery and White's noncommercial terms mean this bundled asset set must
 not be treated as an unrestricted commercial MIT asset pack.
 
+## Optional municipal city packs
+
+- Expanded Helsinki: City of Helsinki 3D Mesh 2017, CC BY 4.0.
+- Lyon Bellecour: Metropole de Lyon, 2023 photomesh, Licence Ouverte 2.0.
+- Strasbourg cathedral district: 2022 photomesh, Licence Ouverte 2.0.
+  Required notice: **Ville et Eurométropole de Strasbourg - Données produites
+  avec le soutien du FEDER et de DataGrandEst**. Retain the Eurometropole,
+  European Union and DataGrandEst logos on distribution supports. The preparation
+  tool downloads original logo artwork; the game displays it during visits.
+  Logos retain their respective identity terms, separately from MIT code.
+
+See [source links and preparation details](docs/CITY_PACKS.md). The importer
+rebases coordinates, clips exact grid boundaries, preserves photographs and
+independent source LODs, and bakes native collision. Generated data is optional
+and excluded from Git; these changes do not relicense the source data.
+
 ## Tools
 
 Godot is downloaded from its official release and is not committed. Its engine

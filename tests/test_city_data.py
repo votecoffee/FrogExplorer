@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 
 try:
@@ -19,6 +20,7 @@ from city_obj import read_obj
 from city_pack import CityPack
 from city_sources import Tileset
 from tile_geometry import write_gltf
+import prepare_city_mesh
 
 
 class CityDataTests(unittest.TestCase):
@@ -147,6 +149,22 @@ class CityDataTests(unittest.TestCase):
         self.assertEqual([x['url'] for x in coarse], ['https://city.test/data/coarse.b3dm'])
         self.assertEqual([x['url'] for x in fine], ['https://city.test/data/fine/tile.b3dm'])
         np.testing.assert_array_equal(np.asarray(fine[0]['transform']), parent@child)
+
+    def test_optional_registration_preserves_bundled_place_bytes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);path=root/'game/data/travel_places.json';path.parent.mkdir(parents=True)
+            retained='{"id":"original","spawn":[1.2300,2,3]}'
+            path.write_text('{"places":['+retained+']}\n',encoding='utf-8')
+            entry={'id':'new_city','distribution':'optional_download','spawn':[4,5,6]}
+            with patch.object(prepare_city_mesh,'ROOT',root):
+                prepare_city_mesh.register(entry)
+                entry['spawn']=[7,8,9];prepare_city_mesh.register(entry)
+                with self.assertRaisesRegex(ValueError,'bundled'):
+                    prepare_city_mesh.register({'id':'original','distribution':'optional_download'})
+            self.assertIn(retained,path.read_text(encoding='utf-8'))
+            data=json.loads(path.read_bytes())['places']
+            self.assertEqual(len(data),2)
+            self.assertEqual(data[1]['spawn'],[7,8,9])
 
 
 if __name__ == '__main__':unittest.main()

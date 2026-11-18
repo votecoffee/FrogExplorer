@@ -10,7 +10,7 @@
   "tile_size": 128,
   "bounds": [-512, -512, 512, 512],
   "lod_distances": [128, 256, 512],
-  "spawn_xy": [0, 0],
+  "spawn_xy": [-70, 20],
   "heading_degrees": 180,
   "license": {"id": "etalab-2.0", "url": "https://www.etalab.gouv.fr/licence-ouverte-open-licence/"},
   "attribution": "Metropole de Lyon - Photomaillage 2023 - Licence Ouverte 2.0; FrogExplorer conversion, rebasing and tile packaging",

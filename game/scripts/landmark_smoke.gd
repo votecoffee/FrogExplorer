@@ -29,11 +29,11 @@ func run():
   var event=InputEventJoypadButton.new();event.device=device;event.button_index=JOY_BUTTON_START;event.pressed=true;Input.parse_input_event(event)
  await wait(.3)
  check(game.party.local_records().size()==4,"Four local frogs join before landmark travel")
- check(t.available_places().size()==t.catalog.size(),"Every catalog destination is installed and available")
+ check(t.catalog.filter(func(item):return item.get("distribution","")!="optional_download" and not t.unavailable(item).is_empty()).is_empty(),"Every bundled destination is installed and available")
  t.category="history"
  check(t.choose_random() in IDS,"History random selection chooses an installed landmark")
  game.travel_menu.open();await wait(.05)
- check(game.travel_menu.buttons.size()==t.catalog.size()+3,"Scrollable places list includes all destinations and category controls")
+ check(game.travel_menu.buttons.size()==t.available_places().size()+3,"Scrollable places list includes all destinations and category controls")
  game.travel_menu.close()
  for id in IDS:
   var item=t.place(id)

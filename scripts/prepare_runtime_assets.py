@@ -30,6 +30,9 @@ def main():
         files[relative]={'path':relative,'size':size,'sha256':digest}
     for place in catalog['places']:
         if place.get('provider')!='local_mesh':continue
+        # Large municipal packs are reproducible optional downloads, not part
+        # of the reviewed ordinary-Git runtime bundle.
+        if place.get('distribution')=='optional_download':continue
         manifest=place['tile_manifest'].removeprefix('res://');path=asset_path(ROOT,manifest)
         pack=json.loads(path.read_bytes());folder=Path(manifest).parent;folders.append(folder.as_posix())
         add(manifest)

@@ -100,7 +100,7 @@ def main():
     if args.tile_size is not None and not 16<=args.tile_size<=512:parser.error('tile size must be 16..512 metres')
     catalog=json.loads((ROOT/'game/data/travel_places.json').read_bytes())
     sizes=json.loads((ROOT/'config/worlds/tiling.json').read_bytes())['tile_sizes']
-    places=[p for p in catalog['places'] if p.get('provider')=='local_mesh' and (args.all or p['id']==args.place)]
+    places=[p for p in catalog['places'] if p.get('provider')=='local_mesh' and p.get('distribution')!='optional_download' and (args.all or p['id']==args.place)]
     if not places:parser.error('No matching local-mesh place')
     for item in places:build(item,args.tile_size or sizes.get(item['id'],128),args.register)
 

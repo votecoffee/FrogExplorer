@@ -37,7 +37,7 @@ func run():
  game=load("res://main.tscn").instantiate();root.add_child(game);await wait(.3)
  var t:WorldTravel=game.travel;var p:FrogPilot=game.pilot;var rides:ExplorerRides=game.rides
  check(not t.persist_history,"City test leaves player travel history untouched")
- check(t.available_places().size()==t.catalog.size(),"All catalog destinations are available on Windows")
+ check(t.catalog.filter(func(item):return item.get("distribution","")!="optional_download" and not t.unavailable(item).is_empty()).is_empty(),"All bundled destinations are available on Windows")
  game.travel_menu.open();await wait(.1)
  var menu=game.travel_menu
  check(menu.panel.get_global_rect().position.y>=0 and menu.panel.get_global_rect().end.y<=root.get_visible_rect().size.y,"Places panel fits the viewport with all installed destinations")

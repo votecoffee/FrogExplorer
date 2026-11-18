@@ -18,6 +18,7 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--place', required=True)
 parser.add_argument('--pack', type=Path, required=True)
 parser.add_argument('--output', type=Path, required=True)
+parser.add_argument('--view', choices=['aerial', 'street'], default='aerial')
 args = parser.parse_args(sys.argv[sys.argv.index('--')+1:])
 config = json.loads((ROOT/'config/worlds'/(args.place+'.json')).read_bytes())
 plan = json.loads((args.pack/'build_plan.json').read_bytes())
@@ -39,6 +40,9 @@ target = Vector((cx+45, -cz+25, height+12))
 bpy.ops.object.camera_add(location=target+Vector((-290, -350, 330)))
 camera = bpy.context.object;camera.rotation_euler=(target-camera.location).to_track_quat('-Z', 'Y').to_euler()
 camera.data.lens=48;camera.data.clip_end=12000;bpy.context.scene.camera=camera
+if args.view=='street':
+    camera.location=Vector((cx,-cz,height+1.7));target=Vector((cx+55,-cz+35,height+14))
+    camera.rotation_euler=(target-camera.location).to_track_quat('-Z','Y').to_euler();camera.data.lens=24
 bpy.ops.object.light_add(type='SUN', location=(0, 0, 1000));sun=bpy.context.object
 sun.rotation_euler=(.35, -.5, -.5);sun.data.energy=2;sun.data.angle=.12
 world=bpy.data.worlds.new('Daylight');world.use_nodes=True

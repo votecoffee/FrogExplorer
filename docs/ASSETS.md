@@ -50,6 +50,13 @@ All 16 exports can be split into streaming packs without modifying their origina
 
 The earlier detailed frog retargeting/sculpting source archives are outside this code repository. Import their prepared GLBs to retain the established skins, rigs and 28-clip libraries. No realistic source model is silently replaced: the starter path runs only when a species GLB is absent, or when the explicit development flag `--starter-models` is supplied.
 
+## Larger municipal scenery
+
+The [city pack guide](CITY_PACKS.md) prepares an optional 4 x 4 km Helsinki area
+and photographed Lyon/Strasbourg samples from municipal data. Native resources,
+source caches and intermediates remain ignored. These entries are excluded
+from the public runtime inventory. Rebuild ROS after installing them locally.
+
 ## Refine the local red-eyed frog's shape
 
 `scripts/frogs/refine_red_eye_shape.py` applies a conservative rest-mesh pass to

@@ -1,5 +1,10 @@
 # Streamed world tiles
 
+The [optional municipal packs](CITY_PACKS.md) add independent source LODs to
+this loader: fine nearby collision, two coarser streamed visual levels and a
+far overview. A finer replacement becomes physical before movement is allowed
+onto it. The original single-detail manifests below remain compatible.
+
 All 16 city/landmark exports use streamed tiles. Per-place grid sizes are in `config/worlds/tiling.json`: 16 m for the Great Wall, Moscow and Montréal; 32 m for Berlin and Mexico City; 64 m for Helsinki, Machu Picchu and the Colosseum; 128 m for Tokyo, Giza and four US cities; 256 m for Washington and Shanghai. Spawns, geographic anchors and source coverage are preserved. Montréal is a short scan and fits into only four cells; tiling does not guarantee savings for such a small area.
 
 Full-resolution triangles are clipped at cell boundaries, including interpolated UVs, vertex colors and normals. All source meshes and material slots are retained. Each tile has its own baked collision shape. Tiles reuse shared textures and materials; each tile imports only the subset it uses. They do not reference or retain the original GLB. A simplified, non-colliding overview supplies distant scenery. Its shape and texture mapping are approximate; close scenery uses the original surface attributes.

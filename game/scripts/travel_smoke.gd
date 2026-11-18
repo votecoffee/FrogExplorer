@@ -20,7 +20,7 @@ func run(game):
  if t.profile()!="windows":
   push_error("Travel smoke currently requires the Windows-qualified Helsinki pack.");await game.shutdown(1);return
  check(t.current_id=="home_woodland_pond","Starts at the home pond")
- check(t.available_places().size()==t.catalog.size(),"Every installed catalog entry is ready on Windows")
+ check(t.catalog.filter(func(item):return item.get("distribution","")!="optional_download" and not t.unavailable(item).is_empty()).is_empty(),"Every bundled catalog entry is ready on Windows")
  check(ExplorerControls.BUTTONS[JOY_BUTTON_BACK]=="travel_random" and ExplorerControls.KEYS[KEY_T]=="travel_random","Back / Select and T request travel")
  check(ExplorerControls.KEYS[KEY_H]=="travel_home" and ExplorerControls.KEYS[KEY_N]=="travel_menu","Keyboard can return home and open places")
  t.category="nature";check(t.choose_random().is_empty(),"Uninstalled nature candidates are excluded")
