@@ -1,5 +1,6 @@
 """Select game runtime inputs, leaving original/obsolete local caches behind."""
 import json
+import os
 from pathlib import Path
 
 
@@ -20,9 +21,15 @@ def game_files(game):
             path=game/place['scene'].removeprefix('res://')
             if path.is_file():selected.add(path)
     selected.update((game/'assets/frogs').glob('*.glb'))
-    for path in game.rglob('*'):
-        if not path.is_file() or '.godot' in path.parts or path.suffix in ['.tmp','.import']:continue
-        relative=path.relative_to(game).as_posix()
-        if relative.startswith(('assets/worlds/','assets/frogs/')) and path.name!='README.md':continue
-        selected.add(path)
+    # Authoring caches can contain tens of thousands of municipal source parts.
+    # Prune them before walking, rather than statting every excluded file.
+    for directory,children,files in os.walk(game):
+        folder=Path(directory)
+        children[:]=[name for name in children if name!='.godot' and (folder/name).relative_to(game).as_posix() not in ['assets/worlds','assets/frogs']]
+        for name in files:
+            path=folder/name
+            if path.suffix not in ['.tmp','.import'] and path.is_file():selected.add(path)
+    for folder in ['assets/worlds','assets/frogs']:
+        readme=game/folder/'README.md'
+        if readme.is_file():selected.add(readme)
     return sorted(selected)
