@@ -48,6 +48,8 @@ included or sampled into the asset: [Smithsonian active/sleeping frogs](https://
 [STRI species description](https://panamabiota.org/stri/taxa/index.php?tid=10678),
 and [Joel Sartore's frog photograph](https://www.joelsartore.com/ani101-00200/).
 The v2 proportion review also used the [San Francisco Zoo species page](https://www.sfzoo.org/animals-exhibits/a-to-z/red-eyed-tree-frog/).
+The v4 limb review revisited these photographs and STRI's slender-limb
+description to guide the calf taper and torso attachment shapes.
 The v3 foot review used the [Wildlife Conservation Society's frog photograph](https://blog.wcs.org/photo/2020/11/30/living-color-red-eyed-tree-frog-amphbian/)
 and the STRI species description. General pad structure was informed by
 [tree-frog toe-pad research](https://pmc.ncbi.nlm.nih.gov/articles/PMC2720997/)

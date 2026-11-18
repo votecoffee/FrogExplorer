@@ -67,6 +67,7 @@ they are not required to play the published asset.
 & "C:\path\to\blender.exe" --background --python scripts/frogs/build_original_red_eye.py -- --output .local/red_eye_original/candidate
 python scripts/frogs/validate_original_red_eye.py .local/red_eye_original/candidate/red_eye_original.glb
 & "C:\path\to\blender.exe" --background --python-exit-code 1 --python scripts/frogs/check_original_gait.py -- --input .local/red_eye_original/candidate/Original_Red_Eyed_Tree_Frog.blend --report state/original_gait.json
+& "C:\path\to\blender.exe" --background --python-exit-code 1 --python scripts/frogs/check_original_attachments.py -- --input .local/red_eye_original/candidate/Original_Red_Eyed_Tree_Frog.blend --report state/original_attachments.json
 & "C:\path\to\blender.exe" --background --python scripts/frogs/preview_original_red_eye.py -- --input .local/red_eye_original/candidate/Original_Red_Eyed_Tree_Frog.blend --output outputs/red_eye_review.png
 ```
 
@@ -78,13 +79,18 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v3**, stored in the GLB's
-metadata and build receipt. It adds individually sized adhesive pads aligned
+The current authored revision is **original-red-eye-v4**, stored in the GLB's
+metadata and build receipt. It refines the shoulder and hip attachments with
+buried root rims and a gradual blend from torso skin weights into the upper
+limbs. Tapered calves, narrower ankles and softer joint folds distinguish the
+folded leg segments. The v3 face, feet, webbing and painted pixels are preserved,
+as are all 61 joint rest transforms and all 28 motion clips. The triangle count
+is unchanged. The receipt and public inventory identify the exact exported file.
+
+The v3 pass added individually sized adhesive pads aligned
 with each toe, flatter pad soles, finer digital skin, and partial webbing that
 deforms with the adjacent digits. Flatter wrists/ankles and softer joint folds
 refine the folded limbs while preserving the v2 head, trunk, mouth and eyes.
-All 61 joint rest transforms and all 28 motion clips remain unchanged from v2.
-The receipt and public runtime inventory identify the exact exported file.
 
 The v2 pass established the continuous brow/muzzle, oval corneal surfaces and
 fitted orbital skin, slimmer torso, tapered limb muscles, closing jaw rim,
@@ -104,6 +110,11 @@ and climbing. It also checks planted-pad clearance, using a 0.45 mm penetration
 tolerance and a 0.9 mm maximum stance gap at the authored metre scale; joint
 positions alone would miss skin crossing the support plane. These are sampled
 geometry checks against a flat plane, separate from world collision testing.
+The attachment check samples the four proximal limb rims against the evaluated
+torso in nine poses per clip. It detects exposed root caps with a 0.45 mm
+tolerance; this is separate from checking mesh union or all self-intersections.
+Use the preview tool's `--lift 0.08` option to suspend the frog and camera for
+inspection of swimming or jumping poses away from the studio floor.
 Headless checks and offscreen renders
 do not measure interactive FPS or qualify Linux/Pi rendering.
 

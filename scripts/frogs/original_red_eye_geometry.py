@@ -316,7 +316,7 @@ class Frog:
         faces.extend([tuple(reversed(range(segments))), tuple(rings*(segments+1)+j for j in range(segments))])
         return self.mesh('Original continuous trunk and muzzle', vertices, faces, uv, weights, self.body_mat)
 
-    def tube(self, name, points, radii, bones, mat, rings_per_span=8, segments=18, bulges=None, flatten=None, crease=False):
+    def tube(self, name, points, radii, bones, mat, rings_per_span=8, segments=18, bulges=None, flatten=None, crease=False, attachment=None):
         points = [Vector(p) for p in points]
         vertices = [];uv = [];weights = [];faces = []
         total = (len(points)-1)*rings_per_span
@@ -324,6 +324,14 @@ class Frog:
             value = ring/rings_per_span;span = min(len(points)-2, int(value));t = value-span
             p0 = points[max(0, span-1)];p1 = points[span];p2 = points[span+1];p3 = points[min(len(points)-1, span+2)]
             point = .5*(2*p1+(-p0+p2)*t+(2*p0-5*p1+4*p2-p3)*t*t+(-p0+3*p1-3*p2+p3)*t*t*t)
+            root = 0.0
+            if attachment:
+                sign, inset = attachment
+                # Bury the closed root within the torso; the emerging muscle
+                # follows the original joint landmarks without moving bones.
+                root = float(1-smooth(0, .70, value))
+                point.x -= sign*inset*root
+                if span==0:point.x += sign*.0010*sin(pi*t)**2
             tangent = (-p0+p2)+(2*p0-5*p1+4*p2-p3)*(2*t)+(-p0+3*p1-3*p2+p3)*(3*t*t)
             tangent.normalize();axis = tangent.cross(Vector((0, 0, 1)))
             if axis.length < .01:axis = tangent.cross(Vector((0, 1, 0)))
@@ -343,8 +351,18 @@ class Frog:
                 angle = 2*pi*j/segments
                 radial = radius
                 if crease:radial *= 1-.10*np.exp(-((value-1)/.10)**2)*max(0,sin(angle))
-                vertices.append(point+axis*(cos(angle)*radial)+up*(sin(angle)*radial*vertical))
-                uv.append((ring/total, j/segments));weights.append(skin)
+                if attachment and len(points)==5:
+                    radial *= 1-.08*np.exp(-((value-2)/.12)**2)*max(0,sin(angle))
+                vertex = point+axis*(cos(angle)*radial)+up*(sin(angle)*radial*vertical)
+                entry = skin
+                if root>0:
+                    # Match the trunk's longitudinal Head/spine skin field at
+                    # the actual vertex, then fade into the moving upper limb.
+                    head = float(1-smooth(-.038, -.015, vertex.y))
+                    entry = {bone:weight*(1-root) for bone,weight in skin.items()}
+                    entry.update({'Head':root*head, 'DEF-spine.003':root*(1-head)})
+                vertices.append(vertex)
+                uv.append((ring/total, j/segments));weights.append(entry)
         for i in range(total):
             for j in range(segments):
                 a = i*(segments+1)+j;b = a+segments+1;faces.append((a, a+1, b+1, b))
@@ -447,10 +465,13 @@ class Frog:
     def limbs_and_digits(self):
         for (side, label), (points, bones) in self.limbs.items():
             if label == 'arm':
-                radii = [.0074, .0047, .0030, .0036];bulges = [.14, .15, .0];flatten = [.84,.78,.65,.32]
+                radii = [.0068, .0046, .0030, .0036];bulges = [.16, .14, .0];flatten = [.84,.78,.65,.32]
+                inset = .0065
             else:
-                radii = [.0128, .0078, .0058, .0034, .0046];bulges = [.38, .11, .08, .0];flatten = [.84,.80,.84,.60,.30]
-            self.tube('Continuous '+label+' '+side, points, radii, bones, self.limb_mat, 12, 24, bulges, flatten, True)
+                radii = [.0120, .0058, .0035, .0032, .0046];bulges = [.40, .24, .08, .0];flatten = [.91,.82,.76,.60,.30]
+                inset = .0100
+            self.tube('Continuous '+label+' '+side, points, radii, bones, self.limb_mat, 12, 24, bulges, flatten, True,
+                      (-1 if side=='L' else 1, inset))
             palm = points[-1]
             self.ellipsoid('Orange '+label+' palm '+side, palm+Vector((0,0,.00025)), (.0067, .0061, .00165), self.orange, bones[-1])
         for (side, label), digits in self.digits.items():
@@ -465,6 +486,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v3'
+        self.arm['model_revision'] = 'original-red-eye-v4'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self

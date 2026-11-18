@@ -23,6 +23,7 @@ def main():
     parser.add_argument('--size', type=int, default=960)
     parser.add_argument('--face', action='store_true', help='Frame the eyes and mouth for inspection')
     parser.add_argument('--feet', action='store_true', help='Frame the right front hand and wrist')
+    parser.add_argument('--lift', type=float, default=0, help='Raise model and camera in metres for suspended motion review')
     args = parser.parse_args(sys.argv[sys.argv.index('--')+1:])
     args.output = args.output.resolve()
     bpy.ops.wm.open_mainfile(filepath=str(args.input.resolve()))
@@ -40,6 +41,21 @@ def main():
         camera.data.ortho_scale = .135;aim(camera, (0, -.049, .060))
     if args.feet:
         camera.data.ortho_scale = .090;camera.location = (.18,-.20,.17);aim(camera, (.074,-.082,.010))
+    arm.location.z += args.lift;camera.location.z += args.lift
+    if args.frames and not (args.face or args.feet):
+        # Fit the whole sampled motion once, keeping a steady camera and all
+        # extended toes in frame. The ground has not been added at this point.
+        bpy.context.view_layer.update();camera_inverse = camera.matrix_world.inverted()
+        extent = 0.0;aspect = int(args.size*.80)/args.size
+        for i in range(args.frames):
+            scene.frame_set(int(bpy.data.actions[args.clip].frame_range[1]*i/args.frames))
+            depsgraph = bpy.context.evaluated_depsgraph_get()
+            for part in [o for o in scene.objects if o.type=='MESH']:
+                obj = part.evaluated_get(depsgraph);matrix = camera_inverse@obj.matrix_world
+                for corner in obj.bound_box:
+                    point = matrix@Vector(corner);extent = max(extent, abs(point.x), abs(point.y)/aspect)
+        camera.data.ortho_scale = max(camera.data.ortho_scale, extent*2.16)
+        scene.frame_set(args.frame)
     for name, location, energy, size, color in [
         ('Large softbox', (.10, -.16, .25), 1.0, .18, (1.0, .95, .83)),
         ('Cool fill', (-.18, -.09, .14), .4, .20, (.77, .88, 1.0)),
