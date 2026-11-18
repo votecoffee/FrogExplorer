@@ -1,8 +1,11 @@
 # Runtime assets and optional source files
 
-The public game includes five realistic frog GLBs and all 16 runtime world tile packs, alongside starter frogs, vehicles, synthesized audio and the pond. `config/runtime_assets.lock.json` identifies the published files and their source notices. The installer verifies this inventory before importing Godot resources. Run `python scripts/runtime_assets.py` to check it manually.
+The public game includes six animated frog GLBs and all 16 runtime world tile packs, alongside starter frogs, vehicles, synthesized audio and the pond. `config/runtime_assets.lock.json` identifies the published files and their source notices. The installer verifies this inventory before importing Godot resources. Run `python scripts/runtime_assets.py` to check it manually.
 
-The red-eyed tree frog remains a locally licensed optional model; its source terms prohibit distribution as an extractable GLB. The public game uses its authored starter model. Original world GLBs, texture authoring files and previous tile builds remain local development inputs.
+The red-eyed species uses the original MIT `red_eye_original.glb`. The earlier
+third-party `red_eye.glb` and its derived shape passes remain local authoring
+archives under their original terms. Original world GLBs, texture authoring
+files and previous tile builds remain local development inputs.
 
 ## Import the existing reference set
 
@@ -48,7 +51,42 @@ All 16 exports can be split into streaming packs without modifying their origina
 
 `python scripts/make_audio.py` regenerates croak/woodland synthesis. The separate authored American-toad trill is included as a small audio asset. Run `scripts/rides/build_props.py` in Blender to rebuild the balloon, convertible and parachute. `game/scripts/starter_frog.gd` creates its own primitive geometry and simple animation keys at runtime; Blender is not required for starter play.
 
-The earlier detailed frog retargeting/sculpting source archives are outside this code repository. Import their prepared GLBs to retain the established skins, rigs and 28-clip libraries. No realistic source model is silently replaced: the starter path runs only when a species GLB is absent, or when the explicit development flag `--starter-models` is supplied.
+The earlier third-party frog retargeting/sculpting source archives are outside this code repository. Import their prepared GLBs to retain the established skins, rigs and 28-clip libraries. The starter path runs only when a species GLB is absent, or when the explicit development flag `--starter-models` is supplied.
+
+## Rebuild the original red-eyed tree frog
+
+The original model has a continuous lofted head/trunk, slender articulated
+limbs, four fingers per hand, five toes per foot, eighteen adhesive discs,
+scalloped partial webbing, a jaw, oral surfaces, tongue, gular sac and moving
+eyelids. The builder authors its own painted color/normal/roughness maps,
+red iris with a vertical pupil, 61-joint rig, skin weights and 28 action clips.
+Blender 5.0.1 was used for this build. Blender and NumPy are authoring tools;
+they are not required to play the published asset.
+
+```powershell
+& "C:\path\to\blender.exe" --background --python scripts/frogs/build_original_red_eye.py -- --output .local/red_eye_original/candidate
+python scripts/frogs/validate_original_red_eye.py .local/red_eye_original/candidate/red_eye_original.glb
+& "C:\path\to\blender.exe" --background --python scripts/frogs/preview_original_red_eye.py -- --input .local/red_eye_original/candidate/Original_Red_Eyed_Tree_Frog.blend --output outputs/red_eye_review.png
+```
+
+The builder starts with an empty Blender scene and opens no source asset.
+It writes a packed editable Blender file, self-contained GLB and a receipt
+with source-script and output hashes. Review clay, skin and animated poses
+before copying a candidate to `game/assets/frogs/red_eye_original.glb`; then
+update the public inventory with `python scripts/prepare_runtime_assets.py`
+and rerun the installer with `-Test`. Earlier models stay untouched.
+The historical reference lock continues to describe its own older file set.
+
+After the installer imports the published GLB, run its native rig/animation
+check with Godot (use `scripts/wait_engine.py` when launching the Windows exe):
+
+```powershell
+python scripts/wait_engine.py --log state/original_frog.log -- tools/godot/Godot_v4.7.2-stable_win64.exe --headless --path game --script res://scripts/original_frog_probe.gd -- --test-session --no-ros
+```
+
+The native check samples all 28 clips and checks joint transforms, skin bindings
+and all eighteen terminal digit joints. Headless checks and offscreen renders
+do not measure interactive FPS or qualify Linux/Pi rendering.
 
 ## Larger municipal scenery
 
@@ -57,7 +95,10 @@ and photographed Lyon/Strasbourg samples from municipal data. Native resources,
 source caches and intermediates remain ignored. These entries are excluded
 from the public runtime inventory. Rebuild ROS after installing them locally.
 
-## Refine the local red-eyed frog's shape
+## Archived local red-eyed shape work
+
+The following older passes refine the historical third-party model. They are
+separate from the original builder and do not modify the new default model.
 
 `scripts/frogs/refine_red_eye_shape.py` applies a conservative rest-mesh pass to
 the previously prepared skin/eyes v2 Blender model (111 joints, 28 actions).

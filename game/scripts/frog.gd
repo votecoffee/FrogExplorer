@@ -7,7 +7,7 @@ const SPECIES = [
  {"name":"Japanese toad","file":"toad","pitch":0.75},
  {"name":"American bullfrog","file":"bullfrog","pitch":0.65},
  {"name":"White’s tree frog","file":"whites","pitch":0.95},
- {"name":"Red-eyed tree frog","file":"red_eye","pitch":1.3},
+ {"name":"Red-eyed tree frog","file":"red_eye_original","pitch":1.3},
  {"name":"American toad","file":"american_toad","pitch":1.0,"call":"american_toad.wav"}]
 const LOOPING=["Idle","Living_Idle","Slow_Walk","Swim","Climb","Toe_Tap","Swamp_Shuffle","Disco_Frog"]
 const SILLY=["Toe_Tap","Foot_Wave","Swamp_Shuffle","Disco_Frog","Victory_Ribbit","Breakdance"]

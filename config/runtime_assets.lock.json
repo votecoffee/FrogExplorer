@@ -223,12 +223,21 @@
       "source": "https://sketchfab.com/3d-models/model-23-whites-tree-frog-ed77b869c1aa49cfa1305724b28f3b94",
       "credit": "DigitalLife3D; FrogExplorer adaptation",
       "changes": "FrogExplorer geometry, skin, mouth and eye refinements; retargeted AFK CC0 animations and original added motions."
+    },
+    {
+      "species": "red_eye",
+      "path": "assets/frogs/red_eye_original.glb",
+      "license": "MIT",
+      "source": "scripts/frogs/build_original_red_eye.py",
+      "credit": "FrogExplorer contributors",
+      "changes": "Original authored geometry, painted textures, rig, skin weights and 28 motion clips; no imported model or animation data."
     }
   ],
   "excluded_frogs": [
     {
-      "species": "red_eye",
-      "reason": "Blendkit royalty-free terms prohibit publicly extractable model distribution. Local import remains supported.",
+      "species": "red_eye_legacy",
+      "path": "assets/frogs/red_eye.glb",
+      "reason": "Historical Blendkit-derived model; royalty-free terms prohibit publicly extractable model distribution. The original authored replacement is included separately.",
       "source": "https://www.blendkit.com/terms-and-conditions-2026/"
     }
   ],
@@ -247,6 +256,11 @@
       "path": "assets/frogs/montane.glb",
       "size": 12849860,
       "sha256": "c9e1418e3beb26727e74deefe44c44fe78d9347d0b4bdfe92162620fcf0ea38e"
+    },
+    {
+      "path": "assets/frogs/red_eye_original.glb",
+      "size": 11360648,
+      "sha256": "637a65596711e453bb4411a60ff41ec2564151f75d76529e3b16e79aa85b04d6"
     },
     {
       "path": "assets/frogs/toad.glb",

@@ -38,7 +38,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install_windows.ps1 
 
 The installer downloads **Godot 4.7.2** from its official GitHub release, verifies the pinned SHA-256, unpacks it under ignored `tools/`, imports the project, and optionally runs a headless gameplay check. Settings go in ignored `.local/settings.json`; logs and test reports go in ignored `state/`. No administrator rights, global Python packages or global execution-policy changes are required.
 
-A fresh clone includes five realistic frogs, all 16 city/landmark tile packs, synthesized audio, the authored vehicles and the woodland pond. Procedural starter frogs supply all 28 animation names when a model is absent, including the optional red-eyed tree frog.
+A fresh clone includes six animated frogs, all 16 city/landmark tile packs, synthesized audio, the authored vehicles and the woodland pond. The red-eyed tree frog has original authored geometry, textures, rig and 28 motion clips. Procedural starter frogs supply all 28 animation names if a model is absent.
 
 To use an existing engine or install offline:
 
@@ -48,7 +48,7 @@ To use an existing engine or install offline:
 
 ### Included scenery and optional local assets
 
-The repository includes **five realistic frogs and all 16 city/landmark tile packs**. The installer verifies their checksums and imports the Godot resources. No separate asset download is needed for those files. The red-eyed tree frog uses an authored starter model until you import your locally licensed model; its extractable GLB is excluded from public Git under its source terms. Models and scenery retain their individual licenses, including noncommercial restrictions for some assets; see [asset credits](ASSET_CREDITS.md).
+The repository includes **six animated frogs and all 16 city/landmark tile packs**. The installer verifies their checksums and imports the Godot resources. No separate asset download is needed for those files. The original red-eyed tree frog is MIT-licensed and includes a reproducible Blender builder. Other models and scenery retain their individual licenses, including noncommercial restrictions for some assets; see [asset credits](ASSET_CREDITS.md).
 
 Optional municipal packs add **4 x 4 km of Helsinki**, plus photographed **Lyon
 and Strasbourg** samples about one kilometre square each. Prepare them using
@@ -56,13 +56,13 @@ the [city pack installation guide](docs/CITY_PACKS.md). They use multiple source
 detail levels and precise nearby collision. Large downloads and generated
 meshes remain outside the base Git bundle.
 
-To add the locally licensed red-eyed model and retain the earlier full-scene reference files for rebuilding, the importer accepts an existing project directory, its `game/` directory, or its `game/assets/` directory:
+To retain the earlier reference models and full-scene files for authoring, the importer accepts an existing project directory, its `game/` directory, or its `game/assets/` directory:
 
 ```powershell
 .\scripts\install_windows.ps1 -AssetSource "D:\path\to\existing\FrogExplorer" -Test
 ```
 
-It verifies every file against `config/assets.lock.json` before copying anything and preserves differing destination files. Existing bundled files already match that reference set; additional original scenes, texture sources and the restricted model remain ignored. Locally imported realistic models are selected automatically. Your originals remain intact. See [asset import and rebuild procedures](docs/ASSETS.md) and [asset credits](ASSET_CREDITS.md).
+It verifies every file against `config/assets.lock.json` before copying anything and preserves differing destination files. Existing third-party bundled files already match that reference set; additional original scenes, texture sources and the historical restricted model remain ignored. The red-eyed species selects the new `red_eye_original.glb`; importing the historical `red_eye.glb` does not replace it. Your originals remain intact. See [asset import and rebuild procedures](docs/ASSETS.md) and [asset credits](ASSET_CREDITS.md).
 
 ### Enable ROS 2 Lyrical on Windows
 
@@ -225,7 +225,7 @@ The public source has Windows headless and ROS checks. Physical controllers, ren
 
 | Path | Contents |
 |---|---|
-| `game/` | Godot gameplay, starter geometry, five realistic frogs and 16 runtime tile packs |
+| `game/` | Godot gameplay, starter geometry, six animated frogs and 16 runtime tile packs |
 | `ros2_ws/src/frog_explorer/` | Custom ROS bridge, launch and package source |
 | `scripts/` | Installers, launchers, exporters and validation tools |
 | `config/` | Engine checksums, optional-asset identities and world recipes |

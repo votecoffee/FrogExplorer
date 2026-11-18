@@ -15,7 +15,8 @@ FROGS={
     'toad':{'license':'CC-BY-4.0 (underlying scans); CC0 (RubenCUR rig contribution)','source':'https://blendswap.com/blend/29791','credit':'ffish.asia / floraZia.com; RubenCUR'},
     'american_toad':{'license':'CC-BY-4.0 (underlying toad lineage)','source':'https://blendswap.com/blend/29791','credit':'ffish.asia / floraZia.com; RubenCUR; FrogExplorer adaptation'},
     'bullfrog':{'license':'CC0-1.0 (scan)','source':'https://sketchfab.com/3d-models/12244c1e4f3a4bfdbc217acba90e8baa','credit':'ffish.asia / floraZia.com; FrogExplorer adaptation'},
-    'whites':{'license':'CC-BY-NC-4.0 (scan and derived model)','source':'https://sketchfab.com/3d-models/model-23-whites-tree-frog-ed77b869c1aa49cfa1305724b28f3b94','credit':'DigitalLife3D; FrogExplorer adaptation'}
+    'whites':{'license':'CC-BY-NC-4.0 (scan and derived model)','source':'https://sketchfab.com/3d-models/model-23-whites-tree-frog-ed77b869c1aa49cfa1305724b28f3b94','credit':'DigitalLife3D; FrogExplorer adaptation'},
+    'red_eye_original':{'species':'red_eye','license':'MIT','source':'scripts/frogs/build_original_red_eye.py','credit':'FrogExplorer contributors','changes':'Original authored geometry, painted textures, rig, skin weights and 28 motion clips; no imported model or animation data.'}
 }
 
 
@@ -45,8 +46,8 @@ def main():
         worlds.append({'id':place['id'],'manifest':manifest,'license':license_id,'attribution':place['attribution'],'sources':place.get('source_urls',[place['source_url']]),'changes':'Rebased/scaled source, clipped tile geometry, shared materials, baked collision and simplified distant overview. Original coverage and limitations retained.'})
     frogs=[]
     for species,notice in FROGS.items():
-        relative='assets/frogs/'+species+'.glb';add(relative);frogs.append({'species':species,'path':relative,**notice,'changes':'FrogExplorer geometry, skin, mouth and eye refinements; retargeted AFK CC0 animations and original added motions.'})
-    inventory={'version':1,'description':'Public runtime assets; source licenses apply separately from MIT code. Full originals and build intermediates are excluded.','worlds':worlds,'frogs':frogs,'excluded_frogs':[{'species':'red_eye','reason':'Blendkit royalty-free terms prohibit publicly extractable model distribution. Local import remains supported.','source':'https://www.blendkit.com/terms-and-conditions-2026/'}],'files':[files[key] for key in sorted(files)]}
+        relative='assets/frogs/'+species+'.glb';add(relative);frogs.append({'species':species,'path':relative,**notice,'changes':notice.get('changes','FrogExplorer geometry, skin, mouth and eye refinements; retargeted AFK CC0 animations and original added motions.')})
+    inventory={'version':1,'description':'Public runtime assets; source licenses apply separately from MIT code. Full originals and build intermediates are excluded.','worlds':worlds,'frogs':frogs,'excluded_frogs':[{'species':'red_eye_legacy','path':'assets/frogs/red_eye.glb','reason':'Historical Blendkit-derived model; royalty-free terms prohibit publicly extractable model distribution. The original authored replacement is included separately.','source':'https://www.blendkit.com/terms-and-conditions-2026/'}],'files':[files[key] for key in sorted(files)]}
     (ROOT/'config/runtime_assets.lock.json').write_text(json.dumps(inventory,indent=2,ensure_ascii=False)+'\n',encoding='utf-8',newline='\n')
     ignore=ROOT/'.gitignore';text=ignore.read_text(encoding='utf-8')
     rules=['# BEGIN PUBLISHED RUNTIME ASSETS (prepare_runtime_assets.py)',*[f'!/game/assets/frogs/{name}.glb' for name in FROGS],
