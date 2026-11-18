@@ -28,9 +28,9 @@ def global_rotation(frog, name, rotation):
     frog.arm.pose.bones[name].rotation_quaternion = rest.inverted() @ rotation @ rest
 
 
-def two_joint(frog, side, target):
-    """Solve a planted/swinging front hand, including the articulated elbow."""
-    points, names = frog.limbs[(side, 'arm')]
+def two_joint(frog, side, target, kind='arm'):
+    """Solve a hand/ankle and retain the distal palm's resting orientation."""
+    points, names = frog.limbs[(side, kind)]
     a, b, c = points[:3]
     target = Vector(target)
     length1, length2 = (b-a).length, (c-b).length
@@ -58,7 +58,7 @@ def animate(frog):
         if clip in ['Catch_Fly_Swallow', 'Face_Wipe', 'Victory_Ribbit', 'Breakdance']:duration = 2.4
         action = bpy.data.actions.new(clip);frog.arm.animation_data.action = action
         count = round(duration*30)
-        for frame in range(0, count+1, 2):
+        for frame in range(0, count+1, 1 if clip == 'Climb' else 2):
             t = frame/count;wave = sin(2*pi*t);bend = sin(pi*t)**2
             for bone in frog.arm.pose.bones:
                 bone.rotation_quaternion = Quaternion();bone.location = Vector((0, 0, 0));bone.scale = (1, 1, 1)
@@ -70,7 +70,10 @@ def animate(frog):
                 # 0.072 m hand travel * 2.8 model scale per stance second
                 # matches FrogPilot's 0.20 m/s nominal walking animation rate.
                 stride = .036 if clip != 'Climb' else .022
-                global_rotation(frog, 'DEF-spine.003', (.015*wave, .018*wave, .025*wave))
+                # Keep the support plane level. Roll/pitch and breathing scale
+                # would move planted pads below the ground after solving IK.
+                spine.scale = (1, 1, 1)
+                global_rotation(frog, 'DEF-spine.003', (0, 0, .018*wave))
                 for side, sign in [('L', -1), ('R', 1)]:
                     phase = t*2*pi+(0 if side == 'L' else pi)
                     swing = max(0, sin(phase));step = cos(phase)*stride
@@ -78,11 +81,13 @@ def animate(frog):
                     target = points[2]+Vector((0, step, .009*swing))
                     if clip == 'Swamp_Shuffle':target.x += sign*.009*wave
                     two_joint(frog, side, target)
-                    global_rotation(frog, 'DEF-thigh.'+side, (.22*cos(phase+pi), sign*.04*sin(phase), .025*wave))
-                    global_rotation(frog, 'DEF-shin.'+side, (-.30*cos(phase+pi), 0, 0))
-                    global_rotation(frog, 'DEF-tarsus.'+side, (.12*cos(phase+pi), 0, 0))
+                    hind_phase = phase+pi
+                    leg, _ = frog.limbs[(side, 'leg')]
+                    two_joint(frog, side, leg[2]+Vector((0, cos(hind_phase)*stride,
+                              .009*max(0, sin(hind_phase)))), 'leg')
                     for label in ['hand', 'foot']:
-                        for _, names in frog.digits[(side, label)]:global_rotation(frog, names[-1], (.25*swing, 0, 0))
+                        curl = swing if label == 'hand' else max(0, sin(hind_phase))
+                        for _, names in frog.digits[(side, label)]:global_rotation(frog, names[-1], (.25*curl, 0, 0))
                 if clip.startswith('Turn_'):
                     global_rotation(frog, 'DEF-spine.003', (0, 0, (.18 if clip == 'Turn_Left' else -.18)*bend))
             if clip in ['Big_Jump', 'Hop', 'Shore_Exit', 'Water_Entry']:

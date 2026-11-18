@@ -66,6 +66,7 @@ they are not required to play the published asset.
 ```powershell
 & "C:\path\to\blender.exe" --background --python scripts/frogs/build_original_red_eye.py -- --output .local/red_eye_original/candidate
 python scripts/frogs/validate_original_red_eye.py .local/red_eye_original/candidate/red_eye_original.glb
+& "C:\path\to\blender.exe" --background --python-exit-code 1 --python scripts/frogs/check_original_gait.py -- --input .local/red_eye_original/candidate/Original_Red_Eyed_Tree_Frog.blend --report state/original_gait.json
 & "C:\path\to\blender.exe" --background --python scripts/frogs/preview_original_red_eye.py -- --input .local/red_eye_original/candidate/Original_Red_Eyed_Tree_Frog.blend --output outputs/red_eye_review.png
 ```
 
@@ -85,7 +86,10 @@ python scripts/wait_engine.py --log state/original_frog.log -- tools/godot/Godot
 ```
 
 The native check samples all 28 clips and checks joint transforms, skin bindings
-and all eighteen terminal digit joints. Headless checks and offscreen renders
+and all eighteen terminal digit joints. The Blender gait check measures the
+evaluated toe-pad surfaces between keys during walking and climbing; joint
+positions alone would miss pads crossing the support plane.
+Headless checks and offscreen renders
 do not measure interactive FPS or qualify Linux/Pi rendering.
 
 ## Larger municipal scenery
