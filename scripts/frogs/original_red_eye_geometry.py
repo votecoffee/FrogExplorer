@@ -10,6 +10,7 @@ from pathlib import Path
 import bpy
 import numpy as np
 from mathutils import Vector
+from original_red_eye_feet import adhesive_pad, digital_web
 
 EYE_RADIUS = .0136
 EYE_ASPECT = (.91, 1.04, .90)
@@ -71,6 +72,15 @@ def painted_maps(name, width, height, kind):
     u, v = np.meshgrid(np.linspace(0, 1, width), np.linspace(0, 1, height))
     grain = value_noise(u, v, 32, 16, 9)*.6+value_noise(u, v, 96, 48, 19)*.4
     pores = value_noise(u, v, width//3, height//3, 71)*.6+value_noise(u, v, width//7, height//7, 72)*.4
+    if kind == 'digits':
+        rgb = np.broadcast_to([.91, .35, .065], (height, width, 3)).copy()
+        rgb *= (1+.11*grain+.03*pores)[:, :, None]
+        du, dv = np.gradient(pores)
+        normal = image(name+' micro normal', np.clip(np.stack([.5-du*.18, .5-dv*.18, np.ones_like(u)], axis=-1), 0, 1))
+        normal.colorspace_settings.name = 'Non-Color'
+        rough = image(name+' roughness', np.repeat((.43+.065*grain+.015*pores)[:, :, None], 3, axis=2))
+        rough.colorspace_settings.name = 'Non-Color'
+        return image(name+' color', np.clip(rgb, 0, 1)), normal, rough
     if kind == 'iris':
         x, y = (u-.5)*2, (v-.5)*2
         radius = np.sqrt(x*x+y*y)
@@ -121,8 +131,9 @@ def painted_maps(name, width, height, kind):
             fleck = np.exp(-((u-a)/.0022)**2-((v-b)/.0022)**2)*.65
             rgb = rgb*(1-fleck[:, :, None])+np.array([.85, .88, .58])*fleck[:, :, None]
     else:
-        blue = smooth(-.5, -.15, dorsal)*(1-smooth(.0, .25, dorsal))*.50
-        rgb = rgb*(1-blue[:, :, None])+np.array([.06, .29, .37])*blue[:, :, None]
+        blue = smooth(-.7, -.35, dorsal)*(1-smooth(.05, .35, dorsal))
+        blue *= .30+.40*(1-smooth(.25, .90, u))
+        rgb = rgb*(1-blue[:, :, None])+np.array([.045, .19, .39])*blue[:, :, None]
     du, dv = np.gradient(pores)
     normals = np.stack([.5-du*.25, .5-dv*.25, np.ones_like(u)], axis=-1)
     roughness = np.repeat((.40+.06*grain+.02*pores)[:, :, None], 3, axis=2)
@@ -163,8 +174,8 @@ class Frog:
         self.orbit_mat = material('Green orbital skin', (.07, .37, .016),
                                   maps=(orbital, limb_maps[1], limb_maps[2]))
         self.orbit_mat.use_backface_culling = True
-        self.orange = material('Orange digital pads', (.78, .15, .018), .40,
-                               maps=(None, limb_maps[1], limb_maps[2]), coat=.12)
+        self.orange = material('Orange digital pads', (.78, .15, .018), .43,
+                               maps=painted_maps('Original digital skin', 512, 512, 'digits'), coat=.10)
         ventral = painted_maps('Original ventral skin', 512, 256, 'ventral')[0]
         self.cream = material('Ivory granular throat', (.50, .54, .31), .48,
                               maps=(ventral, limb_maps[1], limb_maps[2]))
@@ -305,7 +316,7 @@ class Frog:
         faces.extend([tuple(reversed(range(segments))), tuple(rings*(segments+1)+j for j in range(segments))])
         return self.mesh('Original continuous trunk and muzzle', vertices, faces, uv, weights, self.body_mat)
 
-    def tube(self, name, points, radii, bones, mat, rings_per_span=8, segments=18, bulges=None):
+    def tube(self, name, points, radii, bones, mat, rings_per_span=8, segments=18, bulges=None, flatten=None, crease=False):
         points = [Vector(p) for p in points]
         vertices = [];uv = [];weights = [];faces = []
         total = (len(points)-1)*rings_per_span
@@ -320,6 +331,7 @@ class Frog:
             if up.z < 0:up = -up;axis = -axis
             radius = radii[span]*(1-t)+radii[span+1]*t
             if bulges:radius *= 1+bulges[span]*sin(pi*t)**2
+            vertical = .91 if flatten is None else flatten[span]*(1-t)+flatten[span+1]*t
             if span == 0:radius *= .75+.25*sin(min(1, t*3)*pi/2)
             current = min(span, len(bones)-1)
             skin = {bones[current]:1.0}
@@ -329,7 +341,9 @@ class Frog:
                 mix = .5*(t-.75)/.25;skin = {bones[current]:1-mix, bones[current+1]:mix}
             for j in range(segments+1):
                 angle = 2*pi*j/segments
-                vertices.append(point+axis*(cos(angle)*radius)+up*(sin(angle)*radius*.91))
+                radial = radius
+                if crease:radial *= 1-.10*np.exp(-((value-1)/.10)**2)*max(0,sin(angle))
+                vertices.append(point+axis*(cos(angle)*radial)+up*(sin(angle)*radial*vertical))
                 uv.append((ring/total, j/segments));weights.append(skin)
         for i in range(total):
             for j in range(segments):
@@ -432,34 +446,25 @@ class Frog:
 
     def limbs_and_digits(self):
         for (side, label), (points, bones) in self.limbs.items():
-            if label == 'arm':radii = [.0074, .0047, .0030, .0036];bulges = [.14, .15, .0]
-            else:radii = [.0128, .0078, .0058, .0034, .0046];bulges = [.35, .12, .08, .0]
-            self.tube('Continuous '+label+' '+side, points, radii, bones, self.limb_mat, 12, 24, bulges)
+            if label == 'arm':
+                radii = [.0074, .0047, .0030, .0036];bulges = [.14, .15, .0];flatten = [.84,.78,.65,.32]
+            else:
+                radii = [.0128, .0078, .0058, .0034, .0046];bulges = [.38, .11, .08, .0];flatten = [.84,.80,.84,.60,.30]
+            self.tube('Continuous '+label+' '+side, points, radii, bones, self.limb_mat, 12, 24, bulges, flatten, True)
             palm = points[-1]
-            self.ellipsoid('Orange '+label+' palm '+side, palm, (.0075, .007, .0025), self.orange, bones[-1])
+            self.ellipsoid('Orange '+label+' palm '+side, palm+Vector((0,0,.00025)), (.0067, .0061, .00165), self.orange, bones[-1])
         for (side, label), digits in self.digits.items():
+            sizes = [.84,1.0,1.03,.91] if label=='hand' else [.80,.93,1.06,1.0,.88]
             for number, (points, bones) in enumerate(digits, 1):
-                self.tube(f'{label} digit {number} {side}', points, [.00165, .00135, .0016], bones, self.orange, 7, 12)
-                self.ellipsoid(f'{label} adhesive disc {number} {side}', points[-1], (.0036, .0042, .00135), self.orange, bones[-1], 10, 20)
-            palm = self.limbs[(side, 'arm' if label == 'hand' else 'leg')][0][-1]
-            parent = 'DEF-'+label+'.'+side
-            boundary = []
-            for left, right in zip(digits[:-1], digits[1:]):
-                a = left[0][0].lerp(left[0][-1], .43)
-                b = right[0][0].lerp(right[0][-1], .43)
-                for t in np.linspace(0, 1, 9):
-                    point = a.lerp(b, float(t))
-                    boundary.append(palm+(point-palm)*(1-.40*sin(pi*t)))
-            verts = [palm+Vector((0, 0, -.0002)), *boundary]
-            faces = [(0, i, i+1) for i in range(1, len(verts)-1)]
-            self.mesh('Scalloped '+label+' webbing '+side, verts, faces,
-                      [(p.x*30+.5, p.y*30+.5) for p in verts],
-                      [{parent:1} for _ in verts], self.orange)
+                size = sizes[number-1]
+                self.tube(f'{label} digit {number} {side}', points, [r*size for r in [.00165,.00135,.00160]], bones, self.orange, 10, 16, [.16,.12], [.88,.84,.65], True)
+                adhesive_pad(self, f'{label} adhesive disc {number} {side}', points, bones[-1], size)
+            digital_web(self, side, label, digits)
 
     def build(self):
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v2'
+        self.arm['model_revision'] = 'original-red-eye-v3'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self

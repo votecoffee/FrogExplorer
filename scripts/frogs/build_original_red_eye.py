@@ -62,7 +62,8 @@ def main():
               'glb_sha256':hashlib.sha256(glb.read_bytes()).hexdigest(),
               'build_sources':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in
                   [Path(__file__), Path(__file__).with_name('original_red_eye_geometry.py'),
-                   Path(__file__).with_name('original_red_eye_motion.py')]}}
+                   Path(__file__).with_name('original_red_eye_motion.py'),
+                   Path(__file__).with_name('original_red_eye_feet.py')]}}
     (output/'build_receipt.json').write_text(json.dumps(report, indent=2)+'\n', encoding='utf-8', newline='\n')
     print('ORIGINAL_FROG_BUILD '+json.dumps(report), flush=True)
 

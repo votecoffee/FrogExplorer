@@ -1,4 +1,4 @@
-"""Measure evaluated toe-pad geometry against the authored support plane.
+"""Measure evaluated pads and surrounding skin against the support plane.
 
 Run in Blender with --input ORIGINAL.blend --report REPORT.json.
 This checks the skinned surfaces between keys, rather than joint positions.
@@ -23,28 +23,42 @@ def main():
     arm = bpy.data.objects['Original_Red_Eye_Rig']
     pads = [o for o in bpy.data.objects if o.type=='MESH' and 'adhesive disc' in o.name]
     assert len(pads)==18
+    contact = [o for o in bpy.data.objects if o.type=='MESH' and
+               any(token in o.name for token in ['adhesive disc','digit','palm','webbing','Continuous '])]
+    assert len(contact)==48, 'The full limb/contact mesh set must be checked'
     result = {};issues = []
     for clip in ['Slow_Walk', 'Climb']:
         action = bpy.data.actions[clip];arm.animation_data.action = action
         arm.animation_data.action_slot = action.slots[0]
-        minimum = float('inf');maximum = -float('inf')
+        minimum = float('inf');maximum = -float('inf');stance_gap = -float('inf')
+        skin_minimum = {o.name:float('inf') for o in contact}
         for sample in range(48):
             frame = float(action.frame_range[1])*sample/48
             bpy.context.scene.frame_set(floor(frame), subframe=frame-floor(frame))
             depsgraph = bpy.context.evaluated_depsgraph_get()
-            for pad in pads:
-                obj = pad.evaluated_get(depsgraph);mesh = obj.to_mesh()
+            for part in contact:
+                obj = part.evaluated_get(depsgraph);mesh = obj.to_mesh()
                 points = np.empty(len(mesh.vertices)*3, dtype=np.float32)
                 mesh.vertices.foreach_get('co', points);points = points.reshape(-1, 3)
                 matrix = np.asarray(obj.matrix_world)
                 height = points @ matrix[2, :3]+matrix[2, 3]
-                minimum = min(minimum, float(height.min()));maximum = max(maximum, float(height.max()))
+                lowest = float(height.min());skin_minimum[part.name] = min(skin_minimum[part.name], lowest)
+                if 'adhesive disc' in part.name:
+                    minimum = min(minimum, lowest);maximum = max(maximum, float(height.max()))
+                    phase = sample/48*2*np.pi+(0 if part.name.endswith('L') else np.pi)
+                    if part.name.startswith('foot'):phase += np.pi
+                    if np.sin(phase)<-.20:stance_gap = max(stance_gap, lowest)
                 obj.to_mesh_clear()
         result[clip] = {'minimum_pad_height_m':minimum, 'maximum_pad_height_m':maximum,
-                        'sampled_poses':48, 'pads_per_pose':len(pads)}
+                        'sampled_poses':48, 'pads_per_pose':len(pads),
+                        'maximum_stance_pad_gap_m':stance_gap,
+                        'minimum_contact_skin_height_m':min(skin_minimum.values()),
+                        'contact_meshes':len(contact), 'contact_mesh_minima':skin_minimum}
         if minimum < -.00045:issues.append(clip+' penetrates the support plane')
+        if stance_gap > .0009:issues.append(clip+' leaves planted pads above the support plane')
+        if min(skin_minimum.values()) < -.00045:issues.append(clip+' surrounding limb/digit skin penetrates the support plane')
     report = {'clips':result, 'issues':issues,
-              'scope':'Evaluated Blender skin geometry, authored metre scale. 0.45 mm penetration tolerance; no world collision or GPU performance test.'}
+              'scope':'Evaluated Blender pad, digit, web, palm and limb skin, authored metre scale. 0.45 mm penetration tolerance and 0.9 mm maximum stance-pad gap; no world collision or GPU performance test.'}
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(json.dumps(report, indent=2)+'\n', encoding='utf-8', newline='\n')
     print('ORIGINAL_GAIT_CHECK '+json.dumps(report), flush=True)
