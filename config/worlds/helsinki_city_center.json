@@ -1,0 +1,31 @@
+{
+  "id": "helsinki_city_center",
+  "name": "Helsinki - City Centre 4 x 4 km",
+  "source_type": "helsinki_obj",
+  "archive_base": "https://3d.hel.ninja/data/mesh/Helsinki3D-MESH_2017_OBJ_2km-250m_ZIP/",
+  "archives": ["672494", "672496", "674494", "674496"],
+  "archive_sha256": {
+    "672494": "195eace79aea386b600cc20199d14e05645bdf5049bfcb7da08761207b62fc5b",
+    "672496": "38cdce6d0a1570aa0b11bc74ba955d08ac422867d69cf0d1af1d19ad20110a32",
+    "674494": "485265b446d5863b0d33ff442140f93d97e031439ee86cc961c13519da7e2bee",
+    "674496": "3a80233db9ab3a1cec94569420a227929e4f417fe6f87177ff42c81744e0a4b5"
+  },
+  "source_offset": [4000, 4000, 6.4395913690821],
+  "source_levels": [21, 19, 17, 15],
+  "tile_size": 250,
+  "bounds": [0, -4000, 4000, 0],
+  "lod_distances": [220, 600, 1000],
+  "spawn_xy": [3363.062073022, -947.252662436],
+  "heading_degrees": 180,
+  "anchor": {
+    "horizontal_crs": "EPSG:3879",
+    "vertical_crs": "EPSG:5773",
+    "projected_origin": [25494000, 6672000, 6.4395913690821],
+    "local_axes": "X east, Y up, Z south",
+    "source_year": 2017
+  },
+  "license": {"id": "cc-by-4.0", "url": "https://creativecommons.org/licenses/by/4.0/"},
+  "attribution": "City of Helsinki - Helsinki 3D Mesh 2017 - CC BY 4.0; FrogExplorer local rebasing, clipping and LOD packaging",
+  "source_urls": ["https://www.hel.fi/en/decision-making/information-on-helsinki/maps-and-geospatial-data/helsinki-3d", "https://3d.hel.ninja/data/mesh/Helsinki3D-MESH_2017_OBJ_2km-250m_ZIP/"],
+  "description": "A 4 x 4 km central Helsinki area with original L21 nearby meshes and L19/L17/L15 source detail levels. Aerial reconstruction; water, tree climbing and bridge openings require separate gameplay authoring."
+}

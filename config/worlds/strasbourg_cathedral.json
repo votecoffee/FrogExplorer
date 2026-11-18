@@ -1,0 +1,62 @@
+{
+  "id": "strasbourg_cathedral",
+  "name": "Strasbourg - Cathedral and old town",
+  "source_type": "3d_tiles",
+  "tileset_url": "https://s3.eu-west-2.wasabisys.com/ems-sgct-photomaillage/ODACIT/EMS_PM2022/tileset.json",
+  "allowed_prefix": "https://s3.eu-west-2.wasabisys.com/ems-sgct-photomaillage/ODACIT/EMS_PM2022/",
+  "longitude": 7.74925,
+  "latitude": 48.58183,
+  "source_errors": [
+    1.4,
+    2.8,
+    5.5,
+    12.0
+  ],
+  "tile_size": 128,
+  "bounds": [
+    -512,
+    -512,
+    512,
+    512
+  ],
+  "lod_distances": [
+    128,
+    256,
+    512
+  ],
+  "spawn_xy": [
+    10,
+    0
+  ],
+  "heading_degrees": 90,
+  "license": {
+    "id": "etalab-2.0",
+    "url": "https://www.etalab.gouv.fr/licence-ouverte-open-licence/"
+  },
+  "attribution": "Ville et Eurométropole de Strasbourg - Données produites avec le soutien du FEDER et de DataGrandEst - Licence Ouverte 2.0",
+  "source_urls": [
+    "https://data.strasbourg.eu/explore/dataset/pm3d_2022/information/",
+    "https://s3.eu-west-2.wasabisys.com/ems-sgct-photomaillage/ODACIT/EMS_PM2022/tileset.json"
+  ],
+  "credit_requirement": "Include Eurometropole de Strasbourg, European Union and DataGrandEst logos on distribution supports, as specified by the source portal.",
+  "description": "A 1.024 x 1.024 km old-town quality sample from the 2022 metropolitan photomesh. Source geometry and photographs are retained at several detail levels. River swimming and tree climbing are not authored.",
+  "credit_images": [
+    {
+      "url": "https://www.strasbourg.eu/documents/976405/1066267/logo_eurometropolede_strasbourg.zip/66891572-6bc0-1dd8-74da-e4cdbaacf103?t=1655364731632",
+      "sha256": "83ae0342a69bcc3babc7ac5e42779c4096a177e7cb0544477c33bcf86a64975c",
+      "member": "Nouveau dossier/LOGO VERT/Strasbourg.eu_EuroMétropole Bandeau Signature.PNG",
+      "name": "eurometropole.png"
+    },
+    {
+      "url": "https://european-union.europa.eu/document/download/20a5ccf3-8960-49e4-95db-04642a9a5ae9_en?filename=normal-reproduction-low-resolution.zip",
+      "sha256": "e7447e6ab56606fd1c8e774818aafe6d3776041e1a6d8764da4d35db5a97cc6e",
+      "member": "normal-reproduction-low-resolution.jpg",
+      "name": "eu.jpg"
+    },
+    {
+      "url": "https://www.datagrandest.fr/site/wp-content/themes/web-ui/assets/static/logo.svg",
+      "sha256": "9d288f46cb65d91bff002ab9200c6f95e77ecd88379edb9451f4509db500c6b1",
+      "name": "datagrandest.svg"
+    }
+  ]
+}

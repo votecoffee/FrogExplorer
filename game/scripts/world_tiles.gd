@@ -25,6 +25,12 @@ static func _read(path:String)->Dictionary:
  if not parsed.get("detail_radius") is float and not parsed.get("detail_radius") is int:return invalid
  if float(parsed.detail_radius)<size or float(parsed.detail_radius)>size*4:return invalid
  if not parsed.get("overview_triangles") is float and not parsed.get("overview_triangles") is int:return invalid
+ var distances=parsed.get("lod_distances",[])
+ if not distances is Array or distances.size()>4:return invalid
+ var previous=0.0
+ for distance in distances:
+  if not (distance is float or distance is int) or not is_finite(float(distance)) or float(distance)<=previous or float(distance)>size*4:return invalid
+  previous=float(distance)
  var folder=path.get_base_dir()
  for file in parsed.files:
   if not safe_relative(file) or str(parsed.files[file]).length()!=64 or not FileAccess.file_exists(folder+"/"+file):return invalid
@@ -36,6 +42,15 @@ static func _read(path:String)->Dictionary:
   var scene=str(tile.get("scene",""));var id=str(tile.get("id",""));var cell=Vector2i(int(tile.cell[0]),int(tile.cell[1]))
   if id.is_empty() or seen.has(cell) or not safe_relative(scene) or not parsed.files.has(scene):return invalid
   if not is_equal_approx(float(tile.origin[0]),cell.x*size) or not is_zero_approx(float(tile.origin[1])) or not is_equal_approx(float(tile.origin[2]),cell.y*size):return invalid
+  if not distances.is_empty():
+   if not tile.get("lods") is Array or tile.lods.size()!=distances.size():return invalid
+   for level in tile.lods.size():
+    var lod=tile.lods[level]
+    if not lod is Dictionary or not safe_relative(str(lod.get("scene",""))) or not parsed.files.has(str(lod.scene)):return invalid
+    if not (lod.get("triangles") is int or lod.get("triangles") is float) or float(lod.triangles)<=0:return invalid
+    if lod.get("collision")!=(level==0):return invalid
+   if str(tile.lods[0].scene)!=scene or int(tile.lods[0].triangles)!=int(tile.triangles):return invalid
+  elif tile.has("lods"):return invalid
   seen[cell]=true
  parsed["folder"]=folder;parsed["path"]=path
  return parsed

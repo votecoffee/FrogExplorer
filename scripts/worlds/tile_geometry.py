@@ -164,6 +164,15 @@ def write_gltf(path,surfaces,materials,images,textures,samplers):
     for slot in texture_slots:slot['index']=texture_map[slot['index']]
     for texture in local_textures:texture['source']=image_map[texture['source']]
     doc={'asset':{'version':'2.0','generator':'FrogExplorer tile packer'},'scene':0,'scenes':[{'nodes':[0]}],'nodes':[{'mesh':0}],'buffers':[],'bufferViews':[],'accessors':[],'materials':local_materials,'meshes':[{'primitives':[]}]}
+    extensions=set()
+    def collect_extensions(value):
+        if isinstance(value,dict):
+            extensions.update(value.get('extensions',{}))
+            for child in value.values():collect_extensions(child)
+        elif isinstance(value,list):
+            for child in value:collect_extensions(child)
+    collect_extensions(local_materials)
+    if extensions:doc['extensionsUsed']=sorted(extensions)
     binary=bytearray()
     for surface in surfaces:
         primitive={'attributes':{},'material':material_map[surface['material']]};doc['meshes'][0]['primitives'].append(primitive)
