@@ -82,9 +82,18 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v7**, stored in the GLB's
-metadata and build receipt. The facial pass shortens and flattens the muzzle,
-reduces the jaw depth, lowers and recesses the eyes, and adds fitted nostrils
+The current authored revision is **original-red-eye-v8**, stored in the GLB's
+metadata and build receipt. It narrows the anterior muzzle into a tapered
+wedge, brings the snout forward, and gives the forehead a flatter roof with
+beveled transitions into angled cheeks. A finer canthus ridge runs toward
+each nostril. The closing jaw and mouth seam follow the tapered upper lip;
+interpolated jaw widths stay inside it at the rear mouth corners.
+All 61 joint rests, all 7,140 v7 animation curves, all 48 limb/contact meshes,
+the posterior trunk and eleven painted images are retained. Only the trunk
+albedo's naris marks move to follow the changed muzzle proportions.
+
+The v7 facial pass shortened and flattened the muzzle,
+reduced the jaw depth, lowered and recessed the eyes, and added fitted nostrils
 and subtle cheek surfaces. Irregular iris fibers and crypts surround a wider
 vertical pupil; finer head pigment and less uniform gloss break up the skin.
 Open eyelids sit behind the cornea, then close over it with slight eye

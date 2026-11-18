@@ -304,12 +304,20 @@ class Frog:
             blend = float(1-smooth(-.032, -.012, y))
             z = z*(1-blend)+flat*blend
         else:
+            # A shallow roof and steeper cheek meet at a softly bevelled
+            # canthus. An elliptical cross-section rounds this into a bulb.
+            ratio = min(1,abs(x)/width)
+            roof = top-.0012*(ratio/.72)**2
+            cheek = top-.0012-(top-.0012-(top+bottom)/2)*(ratio-.72)/.28
+            plane = .5*(roof+cheek-sqrt((roof-cheek)**2+.00060**2))
+            planes = .70*float(1-smooth(-.060,-.045,y))
+            z = z*(1-planes)+plane*planes
             blend = float(1-smooth(-.038,-.014,y))
             old = .0125*np.exp(-((abs(x)-.029)/.011)**2-((y+.039)/.019)**2)*s**.8
             brow = .0145*np.exp(-((abs(x)-.027)/.010)**2-((y+.046)/.017)**2)*s**.8
             z += old*(1-blend)+brow*blend
-            ridge = .016+.011*float(smooth(-.077,-.053,y))
-            z += .00065*np.exp(-((abs(x)-ridge)/.0018)**2)*float(smooth(-.079,-.074,y))*(1-float(smooth(-.057,-.052,y)))*s**.4
+            ridge = .72*width
+            z += .00030*np.exp(-((abs(x)-ridge)/.0013)**2)*float(smooth(-.080,-.075,y))*(1-float(smooth(-.056,-.047,y)))*s**.4
         return float(z)
 
     def body(self):
@@ -413,16 +421,21 @@ class Frog:
                 a = i*(segments+1)+j;b = a+segments+1;faces.append((a, a+1, b+1, b))
         return self.mesh(name, vertices, faces, uv, [{bone:1} for _ in vertices], mat)
 
+    def jaw_width(self,y):
+        # Interpolated jaw widths must remain inside the closing upper lip,
+        # including between controls near the rear mouth corner.
+        return min(float(profile(self.jaw_sections,y)[1]),.955*self.section_at(y)[1])
+
     def jaw(self):
-        sections = np.array([[-.0829, .0002, .0435], [-.078, .022, .0415],
-                             [-.069, .0315, .039], [-.049, .0355, .037],
+        sections = np.array([[-.0829, .0054, .0448], [-.078, .0140, .0440],
+                             [-.069, .0240, .0414], [-.049, .0355, .037],
                              [-.029, .0318, .037], [-.023, .0002, .037]])
         self.jaw_sections = sections
         vertices = [];faces = [];uv = [];inside = []
         rings, segments = 48, 64
         for i in range(rings+1):
             y = sections[0, 0]+i/rings*(sections[-1, 0]-sections[0, 0])
-            _, width, center = profile(sections, y)
+            width = self.jaw_width(y)
             rim = self.body_height(width, y, False)-.00020
             floor = self.body_height(0, y, False)-.0003
             chin = floor-(.0010+.0004*sin(pi*i/rings))
@@ -493,6 +506,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v7'
+        self.arm['model_revision'] = 'original-red-eye-v8'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self

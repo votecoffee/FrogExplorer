@@ -11,8 +11,8 @@ EYE_RADIUS = .0118
 EYE_ASPECT = (.94, 1.02, .72)
 EYE_APERTURE = 1.31
 FACE_SECTIONS = [
-    [-.083,.0003,.0440,.0475],[-.078,.0240,.0420,.0520],
-    [-.069,.0330,.0395,.0580],[-.049,.0390,.0365,.0625],
+    [-.083,.0060,.0455,.0490],[-.078,.0155,.0448,.0520],
+    [-.069,.0255,.0418,.0578],[-.049,.0380,.0365,.0625],
     [-.030,.0355,.0380,.0640]]
 
 
@@ -32,8 +32,8 @@ def shorten_muzzle(point):
     if point.y<-.061:
         front = min(1,max(0,(point.y+.083)/.008));front = front*front*(3-2*front)
         t = min(1,max(0,(point.y+.083)/.022));t = t*t*(3-2*t)
-        point.y += .0065*(1-t)
-        point.y += .0010*(point.x/.012)**2*(1-front)
+        point.y += .0025*(1-t)
+        point.y += .0006*(point.x/.012)**2*(1-front)
     return point
 
 
@@ -51,8 +51,8 @@ def add_features(frog, profile):
                 for a in np.linspace(0,2*pi,81)]
         frog.tube('Fine eye rim '+side,ring,[.00018]*len(ring),['Head']*(len(ring)-1),frog.rim_mat,1,8)
         lip = []
-        for y in np.linspace(-.0805,-.034,48):
-            x = sign*float(profile(frog.jaw_sections,y)[1])
+        for y in np.linspace(-.0827,-.034,48):
+            x = sign*frog.jaw_width(y)
             lip.append((x,y,frog.body_height(x,y,False)-.00005))
         frog.tube('Mouth commissure '+side,lip,[.00017]*len(lip),['Head']*(len(lip)-1),frog.dark,1,8)
         # Small, low-profile nares sit on the snout rather than on dark bumps.
