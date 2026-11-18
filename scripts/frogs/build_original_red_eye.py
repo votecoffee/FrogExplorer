@@ -66,7 +66,8 @@ def main():
                   [Path(__file__), Path(__file__).with_name('original_red_eye_geometry.py'),
                    Path(__file__).with_name('original_red_eye_motion.py'),
                    Path(__file__).with_name('original_red_eye_feet.py'),
-                   Path(__file__).with_name('original_red_eye_locomotion.py')]}}
+                   Path(__file__).with_name('original_red_eye_locomotion.py'),
+                   Path(__file__).with_name('original_red_eye_face.py')]}}
     (output/'build_receipt.json').write_text(json.dumps(report, indent=2)+'\n', encoding='utf-8', newline='\n')
     print('ORIGINAL_FROG_BUILD '+json.dumps(report), flush=True)
 

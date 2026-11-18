@@ -11,15 +11,7 @@ import bpy
 import numpy as np
 from mathutils import Vector
 from original_red_eye_feet import adhesive_pad, digital_web
-
-EYE_RADIUS = .0136
-EYE_ASPECT = (.91, 1.04, .90)
-
-
-def eye_frame(sign):
-    n = Vector((sign*.78, -.60, .16)).normalized()
-    u = n.cross(Vector((0, 0, 1))).normalized()
-    return n, u, u.cross(n).normalized()
+from original_red_eye_face import EYE_RADIUS, EYE_ASPECT, FACE_SECTIONS, eye_frame, lid_axis, shorten_muzzle, add_features
 
 
 def profile(controls, y):
@@ -85,22 +77,21 @@ def painted_maps(name, width, height, kind):
         x, y = (u-.5)*2, (v-.5)*2
         radius = np.sqrt(x*x+y*y)
         angle = np.arctan2(y, x)
-        fiber = np.sin(angle*103+radius*27+grain*8)*.5
-        fiber += np.sin(angle*189-radius*49+grain*3)*.25
-        crypts = value_noise(u, v, 220, 220, 216)
-        gold = smooth(.15, .68, fiber+crypts*.35)*(1-smooth(.72, 1.0, radius))
-        rgb = np.stack([.74+.10*fiber+.09*(1-radius)+.08*crypts,
-                        .095+.09*(1-radius)+.065*fiber+.11*gold,
-                        .018+.012*fiber], axis=-1)
-        pupil_width = .17*np.maximum(0, 1-(y/.73)**2)**.65
-        pupil = (abs(x) < pupil_width) & (abs(y) < .73)
-        rgb[pupil] = [.006, .008, .006]
-        rim = smooth(.94, .995, radius)
-        rgb = rgb*(1-rim[:, :, None])+np.array([.045, .025, .008])*rim[:, :, None]
+        crypts = value_noise(u,v,70,70,216)*.65+value_noise(u,v,200,200,217)*.35
+        fiber = np.sin(angle*137+radius*23+crypts*7)*.28+np.sin(angle*241-radius*31+grain*9)*.12
+        pupil_width = .25*np.maximum(0,1-(y/.61)**2)**.50
+        gold = np.exp(-((abs(x)-pupil_width-.045)/.045)**2)*(1-smooth(.56,.72,abs(y)))
+        orange = smooth(-.25,.55,crypts+fiber)*.55+.30*gold
+        rgb = np.stack([.52+.20*orange+.12*crypts+.07*fiber,
+                        .035+.115*orange+.020*crypts,
+                        .008+.012*orange],axis=-1)
+        rgb[(abs(x)<pupil_width)&(abs(y)<.61)] = [.002,.003,.002]
+        rim = smooth(.96,.997,radius)
+        rgb = rgb*(1-rim[:,:,None])+np.array([.034,.018,.009])*rim[:,:,None]
         return image(name+' color', np.clip(rgb, 0, 1)), None, None
     if kind == 'ventral':
-        rgb = np.broadcast_to([.74, .77, .59], (height, width, 3)).copy()
-        rgb *= (1+.035*grain+.018*pores)[:, :, None]
+        rgb = np.broadcast_to([.70, .70, .57], (height, width, 3)).copy()
+        rgb *= (1+.045*grain+.025*pores)[:, :, None]
         return image(name+' color', np.clip(rgb, 0, 1)), None, None
     dorsal = np.sin(v*2*pi)
     green = np.array([.075, .40, .018]) if kind == 'body' else np.array([.07, .37, .016])
@@ -130,6 +121,20 @@ def painted_maps(name, width, height, kind):
             a, b = rng.uniform(.25, .89), rng.uniform(.06, .43)
             fleck = np.exp(-((u-a)/.0022)**2-((v-b)/.0022)**2)*.65
             rgb = rgb*(1-fleck[:, :, None])+np.array([.85, .88, .58])*fleck[:, :, None]
+        # The upper muzzle stays green to its closing edge; the articulated
+        # lower jaw supplies the ivory lip, avoiding a second pale ledge.
+        head = (1-smooth(.28,.35,u))*np.maximum(smooth(-.55,-.35,dorsal),1-smooth(.14,.20,u))
+        glands = value_noise(u,v,460,220,448)
+        pigment = smooth(.36,.74,glands+pores*.20)
+        face = np.broadcast_to([.090,.355,.022],rgb.shape).copy()
+        face *= (1+.10*grain+.04*glands)[:,:,None]
+        face = face*(1-pigment[:,:,None]*.12)+np.array([.35,.44,.12])*pigment[:,:,None]*.12
+        rgb = rgb*(1-head[:,:,None])+face*head[:,:,None]
+        width = profile(np.asarray(FACE_SECTIONS),-.0715)[1]
+        naris_v = np.arccos(.0185/width)/(2*pi)
+        pits = sum(np.exp(-((u-(.0115/.158))/.0040)**2-((v-center)/.0050)**2)
+                   for center in [naris_v,.5-naris_v])
+        rgb = rgb*(1-pits[:,:,None])+np.array([.005,.010,.003])*pits[:,:,None]
     else:
         blue = smooth(-.7, -.35, dorsal)*(1-smooth(.05, .35, dorsal))
         blue *= .30+.40*(1-smooth(.25, .90, u))
@@ -137,6 +142,11 @@ def painted_maps(name, width, height, kind):
     du, dv = np.gradient(pores)
     normals = np.stack([.5-du*.25, .5-dv*.25, np.ones_like(u)], axis=-1)
     roughness = np.repeat((.40+.06*grain+.02*pores)[:, :, None], 3, axis=2)
+    if kind=='body':
+        gu,gv = np.gradient(glands)
+        normals[:,:,:2] += np.stack([-gu*.11,-gv*.11],axis=-1)*head[:,:,None]
+        face_roughness = .46+.04*grain+.015*glands
+        roughness = roughness*(1-head[:,:,None])+face_roughness[:,:,None]*head[:,:,None]
     normal = image(name+' micro normal', np.clip(normals, 0, 1));normal.colorspace_settings.name = 'Non-Color'
     rough = image(name+' roughness', roughness);rough.colorspace_settings.name = 'Non-Color'
     return image(name+' color', np.clip(rgb, 0, 1)), normal, rough
@@ -182,9 +192,11 @@ class Frog:
         self.oral = material('Warm oral mucosa', (.32, .19, .17), .43, coat=.12)
         self.oral_dark = material('Recessed oral tissue', (.055, .025, .023), .53)
         self.pink = material('Tongue muscle', (.48, .19, .16), .39, coat=.16)
-        self.dark = material('Mouth seam and nares', (.028, .05, .012), .5)
-        self.iris = material('Original red iris and vertical pupil', (.7, .07, .01), .13,
-                             maps=painted_maps('Original iris', 1024, 1024, 'iris'), coat=.7)
+        self.dark = material('Mouth seam and nares', (.006, .011, .004), .5)
+        self.fold_mat = material('Subtle facial folds',(.011,.086,.003),.50,coat=.03)
+        self.rim_mat = material('Muted gold palpebral margin',(.34,.40,.13),.48,coat=.025)
+        self.iris = material('Original red iris and vertical pupil', (.7, .07, .01), .17,
+                             maps=painted_maps('Original iris', 1024, 1024, 'iris'), coat=.45)
         arm_data = bpy.data.armatures.new('Original leaf-frog joint definitions')
         self.arm = bpy.data.objects.new('Original_Red_Eye_Rig', arm_data)
         bpy.context.collection.objects.link(self.arm)
@@ -230,7 +242,7 @@ class Frog:
                     self.bone(name+'_tip', middle, end, name)
                     digits.append(([base, middle, end], [name, name+'_tip']))
                 self.digits[(side, label)] = digits
-            center = Vector((sign*.0335, -.051, .070))
+            center = Vector((sign*.031, -.049, .0665))
             self.bone('FX_eye.'+side, center, center+Vector((0, -.01, 0)), 'Head')
             self.bone('Lid.'+side, center, center+Vector((0, 0, .01)), 'Head')
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -242,6 +254,8 @@ class Frog:
         self.bones[name] = (Vector(head), Vector(tail))
 
     def mesh(self, name, vertices, faces, uv, weights, mat):
+        if not name.startswith(('Continuous ','Orange ','hand ','foot ','Scalloped ')):
+            vertices = [shorten_muzzle(point) for point in vertices]
         mesh = bpy.data.meshes.new(name);mesh.from_pydata(vertices, [], faces);mesh.update()
         obj = bpy.data.objects.new(name, mesh);bpy.context.collection.objects.link(obj)
         mesh.materials.append(mat)
@@ -275,8 +289,13 @@ class Frog:
                 faces.append((a, b, b+1, a+1))
         return self.mesh(name, vertices, faces, uv, [{bone:1} for _ in vertices], mat)
 
+    def section_at(self,y):
+        section = profile(self.body_sections,y);blend = float(1-smooth(-.038,-.014,y))
+        if blend<=0:return section
+        return section*(1-blend)+profile(self.face_sections,y)*blend
+
     def body_height(self, x, y, upper=True, section=None):
-        section = profile(self.body_sections, y) if section is None else section
+        section = self.section_at(y) if section is None else section
         width, bottom, top = section[1:]
         s = sqrt(max(0, 1-(x/width)**2))*(1 if upper else -1)
         z = (top+bottom)/2+(top-bottom)/2*s
@@ -284,7 +303,13 @@ class Frog:
             flat = bottom+(top-bottom)/2*(1-(-s)**.30)
             blend = float(1-smooth(-.032, -.012, y))
             z = z*(1-blend)+flat*blend
-        else:z += .0125*np.exp(-((abs(x)-.029)/.011)**2-((y+.039)/.019)**2)*s**.8
+        else:
+            blend = float(1-smooth(-.038,-.014,y))
+            old = .0125*np.exp(-((abs(x)-.029)/.011)**2-((y+.039)/.019)**2)*s**.8
+            brow = .0145*np.exp(-((abs(x)-.027)/.010)**2-((y+.046)/.017)**2)*s**.8
+            z += old*(1-blend)+brow*blend
+            ridge = .016+.011*float(smooth(-.077,-.053,y))
+            z += .00065*np.exp(-((abs(x)-ridge)/.0018)**2)*float(smooth(-.079,-.074,y))*(1-float(smooth(-.057,-.052,y)))*s**.4
         return float(z)
 
     def body(self):
@@ -297,11 +322,12 @@ class Frog:
             [.060, .019, .026, .051], [.070, .012, .029, .044],
             [.074, .0055, .033, .039], [.075, .0001, .0355, .0355]])
         self.body_sections = controls
+        self.face_sections = controls.copy();self.face_sections[:5] = FACE_SECTIONS
         vertices = [];faces = [];uv = [];weights = []
         rings, segments = 96, 96
         for i in range(rings+1):
             u = i/rings;y = controls[0, 0]+u*(controls[-1, 0]-controls[0, 0])
-            section = profile(controls, y)
+            section = self.section_at(y)
             width, bottom, top = section[1:]
             for j in range(segments+1):
                 theta = 2*pi*j/segments;x = width*cos(theta)
@@ -388,9 +414,9 @@ class Frog:
         return self.mesh(name, vertices, faces, uv, [{bone:1} for _ in vertices], mat)
 
     def jaw(self):
-        sections = np.array([[-.082, .0002, .042], [-.078, .019, .041],
+        sections = np.array([[-.0829, .0002, .0435], [-.078, .022, .0415],
                              [-.069, .0315, .039], [-.049, .0355, .037],
-                             [-.029, .032, .037], [-.023, .0002, .037]])
+                             [-.029, .0318, .037], [-.023, .0002, .037]])
         self.jaw_sections = sections
         vertices = [];faces = [];uv = [];inside = []
         rings, segments = 48, 64
@@ -398,11 +424,11 @@ class Frog:
             y = sections[0, 0]+i/rings*(sections[-1, 0]-sections[0, 0])
             _, width, center = profile(sections, y)
             rim = self.body_height(width, y, False)-.00020
-            floor = self.body_height(0, y, False)-.0007
-            chin = floor-(.0016+.0007*sin(pi*i/rings))
+            floor = self.body_height(0, y, False)-.0003
+            chin = floor-(.0010+.0004*sin(pi*i/rings))
             for j in range(segments+1):
                 angle = j/segments*2*pi;s = sin(angle)
-                z = rim-(rim-floor)*s**.75 if s>=0 else rim-.0010-(rim-.0010-chin)*(-s)**.65
+                z = self.body_height(width*cos(angle),y,False)-.00020 if s>=0 else rim-.0006-(rim-.0006-chin)*(-s)**.65
                 vertices.append((width*cos(angle), y, z));uv.append((i/rings, j/segments))
         for i in range(rings):
             for j in range(segments):
@@ -441,26 +467,7 @@ class Frog:
         self.ellipsoid('Gular breathing sac', (0, -.031, .0325), (.023, .022, .004), self.cream, 'Throat', 18, 36)
         self.ellipsoid('Tongue folded muscle', (0, -.056, self.body_height(0, -.056, False)+.0011), (.009, .012, .0018), self.pink, 'Tongue')
         self.ellipsoid('Tongue rounded tip', (0, -.044, self.body_height(0, -.044, False)+.0011), (.010, .007, .0018), self.pink, 'TongueTip')
-        for side, sign in [('L', -1), ('R', 1)]:
-            center = self.bones['FX_eye.'+side][0];n, u, v = eye_frame(sign)
-            # A fitted back shell meets the corneal aperture. A separate round
-            # sphere leaves gaps and exposes the back of the iris in profile.
-            self.cap('Green orbital socket '+side, center, -n, .0139, pi-1.25,
-                     self.orbit_mat, 'Head', 24, 48, aspect=EYE_ASPECT, disk_uv=False)
-            self.cap('Red corneal surface '+side, center, n, EYE_RADIUS, 1.36, self.iris, 'FX_eye.'+side, aspect=EYE_ASPECT)
-            # The cap retracts above and behind the iris, then closes over it.
-            lid_axis = (Vector((0, 0, 1))*.55-n*.90).normalized()
-            self.cap('Mobile upper eyelid '+side, center, lid_axis, .0141, 1.30, self.orbit_mat, 'Lid.'+side, 20, 48, aspect=EYE_ASPECT)
-            ring = [center+n*(.0137*cos(1.36)*EYE_ASPECT[2])+(u*(cos(a)*EYE_ASPECT[0])+v*(sin(a)*EYE_ASPECT[1]))*(.0137*sin(1.36)) for a in np.linspace(0, 2*pi, 65)]
-            self.tube('Fine eye rim '+side, ring, [.00025]*len(ring), ['Head']*(len(ring)-1), self.cream, 1, 8)
-            lip = []
-            for y in np.linspace(-.0819, -.029, 36):
-                x = sign*float(profile(self.jaw_sections, y)[1])
-                lip.append((x, y, self.body_height(x, y, False)-.00005))
-            self.tube('Mouth commissure '+side, lip, [.00028]*len(lip), ['Head']*(len(lip)-1), self.dark, 1, 8)
-            x, y = sign*.018, -.071
-            z = self.body_height(x, y)
-            self.ellipsoid('Nostril '+side, (x, y, z+.00005), (.0010, .00065, .00018), self.dark, 'Head', 8, 16)
+        add_features(self,profile)
 
     def limbs_and_digits(self):
         for (side, label), (points, bones) in self.limbs.items():
@@ -486,6 +493,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v6'
+        self.arm['model_revision'] = 'original-red-eye-v7'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self

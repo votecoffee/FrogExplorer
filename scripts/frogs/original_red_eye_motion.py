@@ -7,7 +7,7 @@ from math import sin, cos, pi, sqrt, acos
 
 import bpy
 from mathutils import Vector, Euler, Quaternion
-from original_red_eye_geometry import eye_frame
+from original_red_eye_geometry import eye_frame, lid_axis
 import original_red_eye_locomotion as locomotion
 
 CLIPS = ['Big_Jump', 'Breakdance', 'Catch_Fly', 'Catch_Fly_Swallow', 'Climb',
@@ -111,6 +111,7 @@ def animate(frog):
                 croak = pulse(t, .06, .85)
                 if clip == 'Victory_Ribbit':croak = sin(t*pi*3)**2*bend
                 jaw = (.08 if clip == 'Swallow' else .28)*croak
+                if clip == 'Croak':jaw = 0.0
                 throat += (1.0 if clip != 'Swallow' else .55)*croak
             if clip == 'Puff_Up':
                 spine.scale = (1+.18*bend, 1+.06*bend, 1+.18*bend);throat += .55*bend
@@ -148,8 +149,11 @@ def animate(frog):
             for side, sign in [('L', -1), ('R', 1)]:
                 n, _, _ = eye_frame(sign)
                 axis = Vector((0, 0, 1)).cross(n).normalized()
-                resting_lid = (Vector((0, 0, 1))*.55-n*.90).normalized()
+                resting_lid = lid_axis(sign)
                 global_rotation(frog, 'Lid.'+side, Quaternion(axis, acos(resting_lid.dot(n))*blink))
+                eye = frog.arm.pose.bones['FX_eye.'+side]
+                eye.location = frog.rest[eye.name].inverted()@(-n*.0008*blink+Vector((0,0,-.0003*blink)))
+                eye.keyframe_insert('location',frame=frame,group=eye.name)
             for bone in frog.arm.pose.bones:
                 if bone.name == 'root':continue
                 bone.keyframe_insert('rotation_quaternion', frame=frame, group=bone.name)

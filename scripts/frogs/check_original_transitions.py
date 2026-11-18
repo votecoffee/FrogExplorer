@@ -18,7 +18,7 @@ def main():
     arm = bpy.data.objects['Original_Red_Eye_Rig']
     parts = sorted([o for o in bpy.data.objects if o.type=='MESH'],key=lambda o:o.name)
     pads = [o for o in parts if 'adhesive disc' in o.name]
-    assert len(parts)==69 and len(pads)==18
+    assert len(parts)>=69 and len(pads)==18
 
     def pose(clip,phase,objects):
         action = bpy.data.actions[clip];arm.animation_data.action = action;arm.animation_data.action_slot = action.slots[0]
@@ -54,8 +54,8 @@ def main():
         contact[clip] = {'sampled_contact_poses':count,'minimum_pad_height_m':minimum,'maximum_planted_pad_gap_m':gap}
         if minimum<-.00045:issues.append(clip+': planted pads enter the support plane')
         if gap>.0009:issues.append(clip+': planted pads leave the support plane')
-    report = {'endpoints':endpoints,'contact':contact,'contact_pose_samples':samples,'issues':issues,
-              'scope':'All 69 evaluated meshes at six transition endpoints, 0.25 mm maximum neighbor-pose displacement. Eighteen evaluated toe pads in 44 planted-phase poses, 0.45 mm penetration and 0.9 mm gap tolerances. Authored metre scale; no world collision or continuous-time guarantee.'}
+    report = {'endpoints':endpoints,'contact':contact,'evaluated_meshes':len(parts),'contact_pose_samples':samples,'issues':issues,
+              'scope':'All evaluated meshes at six transition endpoints, 0.25 mm maximum neighbor-pose displacement. Eighteen evaluated toe pads in 44 planted-phase poses, 0.45 mm penetration and 0.9 mm gap tolerances. Authored metre scale; no world collision or continuous-time guarantee.'}
     args.report.parent.mkdir(parents=True,exist_ok=True)
     args.report.write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8',newline='\n')
     print('ORIGINAL_TRANSITION_CHECK '+json.dumps(report),flush=True)

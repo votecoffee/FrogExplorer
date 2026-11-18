@@ -70,6 +70,7 @@ python scripts/frogs/validate_original_red_eye.py .local/red_eye_original/candid
 & "C:\path\to\blender.exe" --background --python-exit-code 1 --python scripts/frogs/check_original_attachments.py -- --input .local/red_eye_original/candidate/Original_Red_Eyed_Tree_Frog.blend --report state/original_attachments.json
 & "C:\path\to\blender.exe" --background --python-exit-code 1 --python scripts/frogs/check_original_locomotion.py -- --input .local/red_eye_original/candidate/Original_Red_Eyed_Tree_Frog.blend --report state/original_locomotion.json
 & "C:\path\to\blender.exe" --background --python-exit-code 1 --python scripts/frogs/check_original_transitions.py -- --input .local/red_eye_original/candidate/Original_Red_Eyed_Tree_Frog.blend --report state/original_transitions.json
+& "C:\path\to\blender.exe" --background --python-exit-code 1 --python scripts/frogs/check_original_face.py -- --input .local/red_eye_original/candidate/Original_Red_Eyed_Tree_Frog.blend --report state/original_face.json
 & "C:\path\to\blender.exe" --background --python scripts/frogs/preview_original_red_eye.py -- --input .local/red_eye_original/candidate/Original_Red_Eyed_Tree_Frog.blend --output outputs/red_eye_review.png
 ```
 
@@ -81,8 +82,23 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v6**, stored in the GLB's
-metadata and build receipt. It replaces `Hop`, `Water_Entry` and `Shore_Exit`
+The current authored revision is **original-red-eye-v7**, stored in the GLB's
+metadata and build receipt. The facial pass shortens and flattens the muzzle,
+reduces the jaw depth, lowers and recesses the eyes, and adds fitted nostrils
+and subtle cheek surfaces. Irregular iris fibers and crypts surround a wider
+vertical pupil; finer head pigment and less uniform gloss break up the skin.
+Open eyelids sit behind the cornea, then close over it with slight eye
+retraction. `Croak` uses a closed jaw and throat inflation. The model has
+75 mesh objects, 61 joints, 92,082 triangles, 12 embedded images and 28 clips.
+
+The face work preserves all 48 limb/contact meshes, the posterior trunk,
+seven limb/digital/orbital images and 57 joint rest transforms. Only the four
+eye/lid rests move. Lid curves, added eye-retraction curves and the `Croak`
+jaw rotation change; all other 6,744 existing curves are retained, including
+the v5/v6 locomotion. Photographs guide proportions rather than supplying
+geometry, texture pixels or measured motion. These remain authored likenesses.
+
+The v6 pass replaced `Hop`, `Water_Entry` and `Shore_Exit`
 with coordinated foot paths and gradual changes between the resting and active
 limb bend planes. Hop returns to idle; water entry connects idle to the first
 swim pose; shore exit connects that swim pose to idle. All v5 meshes, painted
@@ -120,7 +136,8 @@ refine the folded limbs while preserving the v2 head, trunk, mouth and eyes.
 
 The v2 pass established the continuous brow/muzzle, oval corneal surfaces and
 fitted orbital skin, slimmer torso, tapered limb muscles, closing jaw rim,
-recessed palate and throat. Its eye/throat pivots and eyelid curves are retained.
+recessed palate and throat. The v7 face revises its eye/lid pivots and lid curves
+while retaining the throat pivot and locomotion joints.
 
 After the installer imports the published GLB, run its native rig/animation
 check with Godot (use `scripts/wait_engine.py` when launching the Windows exe):
@@ -149,6 +166,12 @@ the neighboring idle/swim poses, with a 0.25 mm displacement tolerance. It
 checks all eighteen pads in 44 planted-phase poses using the same contact
 tolerances as the gait check. The locomotion check includes both the v5 and
 v6 clips by default; `--clips` selects a smaller explicit set for diagnosis.
+The face check ray-tests the central 92 percent corneal radius in an open and
+closed blink: at most two percent lid occlusion when open, at least 98 percent
+coverage when closed. Seventeen `Croak` poses check a closed jaw and throat
+inflation. This measures sampled geometry and animation behavior, not realism.
+Use `--face` on the preview tool for matched face close-ups, and `--clay` to
+separate silhouette changes from skin and eye shading.
 Use the preview tool's `--lift 0.08` option to suspend the frog and camera for
 inspection of swimming or jumping poses away from the studio floor.
 `--span 0.44` provides a wider minimum frame; animated full-body previews fit

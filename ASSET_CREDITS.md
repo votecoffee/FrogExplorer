@@ -50,6 +50,13 @@ and [Joel Sartore's frog photograph](https://www.joelsartore.com/ani101-00200/).
 The v2 proportion review also used the [San Francisco Zoo species page](https://www.sfzoo.org/animals-exhibits/a-to-z/red-eyed-tree-frog/).
 The v4 limb review revisited these photographs and STRI's slender-limb
 description to guide the calf taper and torso attachment shapes.
+The v7 facial review revisited the Smithsonian, Sartore, San Francisco Zoo
+and Wildlife Conservation Society photographs for the flattened muzzle,
+orbital proportions, fine lip edge, nostrils and iris detail. All revised
+surfaces and painted pixels are generated analytically by the builder.
+The closed-mouth `Croak` interpretation also consulted research on
+[closed- and open-mouth treefrog vocalization](https://pubmed.ncbi.nlm.nih.gov/18529205/).
+This informs an authored call, not a species-specific measured vocal-sac model.
 The v3 foot review used the [Wildlife Conservation Society's frog photograph](https://blog.wcs.org/photo/2020/11/30/living-color-red-eyed-tree-frog-amphbian/)
 and the STRI species description. General pad structure was informed by
 [tree-frog toe-pad research](https://pmc.ncbi.nlm.nih.gov/articles/PMC2720997/)
