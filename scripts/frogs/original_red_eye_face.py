@@ -30,13 +30,16 @@ def lid_axis(sign):
 
 
 def shorten_muzzle(point):
-    """Shorten the taper consistently across the snout, jaw and nares."""
+    """Shape the same shortened, rounded taper on the muzzle and jaw."""
     point = Vector(point)
     if point.y<-.061:
         front = min(1,max(0,(point.y+.083)/.008));front = front*front*(3-2*front)
         t = min(1,max(0,(point.y+.083)/.022));t = t*t*(3-2*t)
         point.y += .0072*(1-t)
-        point.y += .0006*(point.x/.012)**2*(1-front)
+        tip = 1-front
+        rounded_side = (point.x/.0095)**2
+        point.y += .0012*tip*rounded_side/(.30+rounded_side)
+        point.x *= 1-.18*(1-t)
     return point
 
 

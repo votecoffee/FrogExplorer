@@ -354,7 +354,9 @@ class Frog:
         vertices = [];faces = [];uv = [];weights = []
         base_y = np.linspace(controls[0,0], controls[-1,0], 97)
         midpoints = (base_y[:-1]+base_y[1:])*.5
-        rows = np.sort(np.concatenate((base_y,midpoints[abs(midpoints-NARIS_XY[1])<.004])))
+        near_nares = abs(midpoints-NARIS_XY[1]) < .004
+        near_tip = midpoints < controls[0,0]+.005
+        rows = np.sort(np.concatenate((base_y,midpoints[near_nares | near_tip])))
         rings, segments = len(rows)-1, 96
         for y in rows:
             u = (y-controls[0,0])/(controls[-1,0]-controls[0,0])
@@ -463,19 +465,25 @@ class Frog:
                              [-.029, .0318, .037], [-.023, .0002, .037]])
         self.jaw_sections = sections
         vertices = [];faces = [];uv = [];inside = []
-        rings, segments = 48, 64
-        for i in range(rings+1):
-            y = sections[0, 0]+i/rings*(sections[-1, 0]-sections[0, 0])
+        base_y = np.linspace(sections[0,0], sections[-1,0], 49)
+        midpoints = (base_y[:-1]+base_y[1:])*.5
+        rows = np.sort(np.concatenate((base_y,midpoints[midpoints<sections[0,0]+.004])))
+        rings, segments = len(rows)-1, 64
+        for y in rows:
+            u = (y-sections[0,0])/(sections[-1,0]-sections[0,0])
             width = self.jaw_width(y)
             # The front of the chin is rounded, with less depth by the hinge.
             depth = .00065+.00170*exp(-((y+.059)/.0155)**2)
+            inset = .00028*(1-smooth(-.082,-.069,y))
             for j in range(segments+1):
                 angle = j/segments*2*pi
                 x = width*cos(angle)
                 s = sin(angle)
                 surface = self.body_height(x,y,False)
                 z = surface+.00030*sqrt(s) if s>=0 else surface-(.00025+depth)*sqrt(-s)
-                vertices.append((x, y, z));uv.append((i/rings, j/segments))
+                # Seat the lip rim inside the curved nose at rest.
+                z += inset*exp(-(s/.63)**2)
+                vertices.append((x, y+.80*inset, z));uv.append((u, j/segments))
         for i in range(rings):
             for j in range(segments):
                 a = i*(segments+1)+j;b = a+segments+1
@@ -562,6 +570,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v17'
+        self.arm['model_revision'] = 'original-red-eye-v18'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self

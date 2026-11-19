@@ -82,7 +82,12 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v17**. A lower brow
+The current authored revision is **original-red-eye-v18**. The muzzle
+tapers more gradually in the overhead view and ends in a rounded tip.
+The upper and lower surfaces share the taper. The lower lip seats into
+the muzzle at rest, with additional mesh rows at the front of both surfaces.
+
+In v17 a lower brow
 extends farther behind the eye and joins a fuller rear crown. The taper
 toward the shoulders is more gradual in profile, following the supplied
 side photographs.
