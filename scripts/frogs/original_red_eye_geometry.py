@@ -318,6 +318,13 @@ class Frog:
             brow_length = .012 if brow_y < 0 else .019
             brow = .0060*exp(-((abs(x)-.0250)/.013)**2-(brow_y/brow_length)**2)
             z += brow*float(smooth(0,.22,s))*(1-float(smooth(-.030,-.012,y)))
+            if -.064 < y < -.022:
+                # The forehead bridges the brows and rolls down toward the
+                # snout and shoulders. Fade it out before the orbital rim.
+                forehead = s**8
+                crown = exp(-((y+.048)/.013)**2)
+                taper = smooth(-.064,-.053,y)*(1-smooth(-.034,-.022,y))
+                z += .00435*forehead*crown*taper
             # The canthus follows the edge between the upper snout and cheek.
             # A shallow falloff on its outer side defines that change of plane.
             if -.080 < y < -.045:
@@ -570,6 +577,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v18'
+        self.arm['model_revision'] = 'original-red-eye-v19'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self

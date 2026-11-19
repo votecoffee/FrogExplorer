@@ -82,7 +82,11 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v18**. The muzzle
+The current authored revision is **original-red-eye-v19**. A shallow dome
+between the brows fills out the forehead. It fades into the nose and rear
+skull, with the strongest change in the front view.
+
+In v18 the muzzle
 tapers more gradually in the overhead view and ends in a rounded tip.
 The upper and lower surfaces share the taper. The lower lip seats into
 the muzzle at rest, with additional mesh rows at the front of both surfaces.
