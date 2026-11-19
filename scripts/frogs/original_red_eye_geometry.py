@@ -212,14 +212,16 @@ class Frog:
         self.bone('TongueTip', (0, -.049, .045), (0, -.039, .046), 'Tongue')
         for side, sign in [('L', -1), ('R', 1)]:
             shoulder = Vector((sign*.028, -.024, .047))
-            elbow = Vector((sign*.048, -.001, .025))
-            wrist = Vector((sign*.059, -.052, .007))
-            hand = Vector((sign*.061, -.060, .005))
+            # In the resting crouch, the elbows support the shoulders while
+            # the knees fold forward and the shins lie alongside the flank.
+            elbow = Vector((sign*.042, -.013, .021))
+            wrist = Vector((sign*.046, -.041, .007))
+            hand = Vector((sign*.048, -.049, .005))
             hip = Vector((sign*.021, .044, .0415))
-            knee = Vector((sign*.054, .013, .0265))
-            ankle = Vector((sign*.054, .073, .013))
-            heel = Vector((sign*.044, .028, .007))
-            foot = Vector((sign*.047, .010, .005))
+            knee = Vector((sign*.038, -.001, .028))
+            ankle = Vector((sign*.042, .059, .014))
+            heel = Vector((sign*.039, .026, .007))
+            foot = Vector((sign*.042, .0095, .005))
             for label, points, names in [
                 ('arm', [shoulder, elbow, wrist, hand], ['upper_arm', 'forearm', 'hand']),
                 ('leg', [hip, knee, ankle, heel, foot], ['thigh', 'shin', 'tarsus', 'foot'])]:
@@ -488,7 +490,7 @@ class Frog:
     def limbs_and_digits(self):
         for (side, label), (points, bones) in self.limbs.items():
             if label == 'arm':
-                radii = [.0059, .0041, .0028, .0033];bulges = [.18, .16, .0];flatten = [.84,.78,.65,.32]
+                radii = [.0059, .0041, .0028, .0033];bulges = [.18, .30, .0];flatten = [.84,.78,.65,.32]
                 inset = .0095
             else:
                 radii = [.0084, .0048, .0035, .0030, .0042];bulges = [.18, .20, .05, .0];flatten = [.78,.76,.76,.60,.30]
@@ -510,6 +512,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v11'
+        self.arm['model_revision'] = 'original-red-eye-v12'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self

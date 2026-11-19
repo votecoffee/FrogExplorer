@@ -72,10 +72,33 @@ def walk(frog, t):
             else:travel = -1+4*(cycle-.5)
             # Constant rearward speed while planted matches Godot travel;
             # the swing has matching endpoint velocity and a soft toe lift.
-            palm.y += .024*travel+(.018 if kind=='leg' else 0)
+            palm.y += .024*travel+(.024 if kind=='leg' else 0)
             palm.z += .009*swing*swing
             place(frog, side, kind, palm, torso)
             for _,names in frog.digits[(side,label)]:rotate(frog,names[-1],Quaternion((1,0,0), .16*swing))
+
+
+def surface_steps(frog, t, yaw=0.0, sway=0.0):
+    """Alternate diagonal steps with the forefeet ahead of the folded knees."""
+    body_yaw = .012*sin(2*pi*t)
+    torso = body(frog, (0, 0, body_yaw))
+    for side, sign in [('L', -1), ('R', 1)]:
+        phase = 2*pi*t+(0 if side=='L' else pi)
+        for kind, label, offset in [('arm', 'hand', 0), ('leg', 'foot', pi)]:
+            step = phase+offset
+            lift = max(0, sin(step))
+            palm = frog.limbs[(side, kind)][0][-1].copy()
+            if kind == 'arm':
+                palm.x += sign*(.003+sway)
+                palm.y += .018*cos(step)-.004
+            else:
+                palm.y += .015*cos(step)+.022
+            palm.z += .009*lift**2
+            place(frog, side, kind, palm, torso)
+            for _, names in frog.digits[(side, label)]:
+                rotate(frog, names[-1], Quaternion((1, 0, 0), .16*lift))
+    if yaw:
+        body(frog, (0, 0, body_yaw+yaw))
 
 
 def kick(frog, side, extension, torso, recovery=0, settle=1):

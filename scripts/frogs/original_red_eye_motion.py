@@ -71,30 +71,13 @@ def animate(frog):
             global_rotation(frog, 'Head', (.008*wave, 0, .012*wave))
             jaw = 0.0;throat = 1.0;blink = pulse(t, .75, .83)
             if clip == 'Slow_Walk':locomotion.walk(frog,t)
-            if clip in ['Climb', 'Turn_Left', 'Turn_Right', 'Swamp_Shuffle']:
-                # 0.072 m hand travel * 2.8 model scale per stance second
-                # matches FrogPilot's 0.20 m/s nominal walking animation rate.
-                stride = .036 if clip != 'Climb' else .022
-                # Keep the support plane level. Roll/pitch and breathing scale
-                # would move planted pads below the ground after solving IK.
-                spine.scale = (1, 1, 1)
-                global_rotation(frog, 'DEF-spine.003', (0, 0, .018*wave))
-                for side, sign in [('L', -1), ('R', 1)]:
-                    phase = t*2*pi+(0 if side == 'L' else pi)
-                    swing = max(0, sin(phase));step = cos(phase)*stride
-                    points, _ = frog.limbs[(side, 'arm')]
-                    target = points[2]+Vector((0, step, .009*swing))
-                    if clip == 'Swamp_Shuffle':target.x += sign*.009*wave
-                    two_joint(frog, side, target)
-                    hind_phase = phase+pi
-                    leg, _ = frog.limbs[(side, 'leg')]
-                    two_joint(frog, side, leg[2]+Vector((0, cos(hind_phase)*stride,
-                              .009*max(0, sin(hind_phase)))), 'leg')
-                    for label in ['hand', 'foot']:
-                        curl = swing if label == 'hand' else max(0, sin(hind_phase))
-                        for _, names in frog.digits[(side, label)]:global_rotation(frog, names[-1], (.25*curl, 0, 0))
-                if clip.startswith('Turn_'):
-                    global_rotation(frog, 'DEF-spine.003', (0, 0, (.18 if clip == 'Turn_Left' else -.18)*bend))
+            if clip == 'Climb':
+                locomotion.surface_steps(frog,t)
+            if clip in ['Turn_Left', 'Turn_Right']:
+                yaw = (.18 if clip == 'Turn_Left' else -.18)*bend
+                locomotion.surface_steps(frog,t,yaw=yaw)
+            if clip == 'Swamp_Shuffle':
+                locomotion.surface_steps(frog,t,yaw=.08*wave,sway=.002*wave)
             if clip == 'Big_Jump':locomotion.jump(frog,t)
             if clip == 'Hop':locomotion.hop(frog,t)
             if clip == 'Water_Entry':locomotion.water_entry(frog,t)

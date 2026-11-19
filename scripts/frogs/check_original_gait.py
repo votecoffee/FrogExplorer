@@ -11,6 +11,7 @@ import sys
 
 import bpy
 import numpy as np
+from mathutils.bvhtree import BVHTree
 
 
 def main():
@@ -32,11 +33,13 @@ def main():
         arm.animation_data.action_slot = action.slots[0]
         minimum = float('inf');maximum = -float('inf');stance_gap = -float('inf')
         skin_minimum = {o.name:float('inf') for o in contact}
+        maximum_limb_overlap = 0
         previous = {};stance_speed = []
         for sample in range(48):
             frame = float(action.frame_range[1])*sample/48
             bpy.context.scene.frame_set(floor(frame), subframe=frame-floor(frame))
             depsgraph = bpy.context.evaluated_depsgraph_get()
+            limb_surfaces = {}
             for part in contact:
                 obj = part.evaluated_get(depsgraph);mesh = obj.to_mesh()
                 points = np.empty(len(mesh.vertices)*3, dtype=np.float32)
@@ -44,6 +47,10 @@ def main():
                 matrix = np.asarray(obj.matrix_world)
                 height = points @ matrix[2, :3]+matrix[2, 3]
                 lowest = float(height.min());skin_minimum[part.name] = min(skin_minimum[part.name], lowest)
+                if part.name.startswith('Continuous '):
+                    vertices = points @ matrix[:3, :3].T + matrix[:3, 3]
+                    faces = [tuple(polygon.vertices) for polygon in mesh.polygons]
+                    limb_surfaces[part.name] = BVHTree.FromPolygons(vertices, faces)
                 if 'adhesive disc' in part.name:
                     minimum = min(minimum, lowest);maximum = max(maximum, float(height.max()))
                     phase = sample/48*2*np.pi+(0 if part.name.endswith('L') else np.pi)
@@ -56,21 +63,27 @@ def main():
                         stance_speed.append((y-previous[part.name][0])/dt)
                     previous[part.name] = (y,planted)
                 obj.to_mesh_clear()
+            for side in ['L', 'R']:
+                arm_surface = limb_surfaces[f'Continuous arm {side}']
+                leg_surface = limb_surfaces[f'Continuous leg {side}']
+                maximum_limb_overlap = max(maximum_limb_overlap, len(arm_surface.overlap(leg_surface)))
         result[clip] = {'minimum_pad_height_m':minimum, 'maximum_pad_height_m':maximum,
                         'sampled_poses':48, 'pads_per_pose':len(pads),
                         'maximum_stance_pad_gap_m':stance_gap,
                         'minimum_contact_skin_height_m':min(skin_minimum.values()),
-                        'contact_meshes':len(contact), 'contact_mesh_minima':skin_minimum}
+                        'contact_meshes':len(contact), 'contact_mesh_minima':skin_minimum,
+                        'maximum_fore_hind_skin_intersection_pairs':maximum_limb_overlap}
         if minimum < -.00045:issues.append(clip+' penetrates the support plane')
         if stance_gap > .0009:issues.append(clip+' leaves planted pads above the support plane')
         if min(skin_minimum.values()) < -.00045:issues.append(clip+' surrounding limb/digit skin penetrates the support plane')
+        if maximum_limb_overlap:issues.append(clip+' forelimb and hind limb skins intersect on the same side')
         if clip=='Slow_Walk':
             assert stance_speed
             error = max(abs(speed-.072) for speed in stance_speed)
             result[clip].update({'expected_stance_speed_m_s':.072, 'maximum_stance_speed_error_m_s':error})
             if error>.007:issues.append(clip+' planted pads slide relative to the calibrated travel speed')
     report = {'clips':result, 'issues':issues,
-              'scope':'Evaluated Blender pad, digit, web, palm and limb skin, authored metre scale. 0.45 mm penetration tolerance, 0.9 mm maximum stance-pad gap and 0.007 m/s maximum walking stance-speed error against 0.072 m/s calibration; no world collision or GPU performance test.'}
+              'scope':'Evaluated Blender pad, digit, web, palm and limb skin at sampled poses. 0.45 mm penetration tolerance, 0.9 mm maximum stance-pad gap and 0.007 m/s maximum walking stance-speed error against 0.072 m/s calibration. Same-side forelimb and hind limb surfaces must have no intersecting triangles.'}
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(json.dumps(report, indent=2)+'\n', encoding='utf-8', newline='\n')
     print('ORIGINAL_GAIT_CHECK '+json.dumps(report), flush=True)

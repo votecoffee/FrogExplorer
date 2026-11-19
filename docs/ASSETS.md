@@ -82,8 +82,16 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v11**, stored in the GLB's
-metadata and build receipt. Real photographs are the primary shape reference:
+The current authored revision is **original-red-eye-v12**. The resting
+pose follows the crouch in the supplied frog photographs, with the front feet
+closer under the shoulders, the knees folded forward and the ankles tucked
+closer to the flanks. The forearms have a fuller muscle belly. Walking, climbing,
+turning and Swamp Shuffle give the forward-reaching knees room behind the elbows.
+The original 28 clip names and durations are retained, along with all twelve
+texture images.
+The export has 75 mesh objects, 61 joints and 96,848 triangles.
+
+The v11 pass used real photographs as the primary shape reference:
 the supplied front, side and overhead views, plus the credited photographer/zoo
 photographs. They guide a shallower cheek below the eye, a more tapered snout,
 repositioned nares, a rising mouth line, a rounder rump and a rounded ankle fold.
@@ -92,8 +100,7 @@ skin has a lateral soft-tissue roll with denser longitudinal samples.
 
 The jaw, tongue and throat pivots are refitted to the higher mouth floor.
 The palate follows the closing jaw width rather than a fixed ellipse, and
-the rear oral surface is enclosed at rest. The current export has 75 mesh
-objects, 61 joints, 96,848 triangles, twelve embedded images and 28 clips.
+the rear oral surface is enclosed at rest.
 The existing rig hierarchy, clip timing and eleven painted images are retained;
 the trunk naris marks follow the revised snout and body UV range. These are
 authored interpretations across different photographic poses and perspectives,
@@ -207,6 +214,8 @@ and climbing. It also checks planted-pad clearance, using a 0.45 mm penetration
 tolerance and a 0.9 mm maximum stance gap at the authored metre scale; joint
 positions alone would miss skin crossing the support plane. These are sampled
 geometry checks against a flat plane, separate from world collision testing.
+The check also rejects intersections between the forelimb and hind limb skin
+on either side in the sampled walk and climb poses.
 For walking, it also checks the evaluated pad stance speed against the travel
 calibration, with a 0.007 m/s error tolerance. The locomotion check samples 48
 poses in each revised clip for distal skin/trunk intrusion, fore/hind pad
