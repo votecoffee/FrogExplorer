@@ -82,14 +82,30 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v10**, stored in the GLB's
-metadata and build receipt. A visual review of the earlier local frog guided
+The current authored revision is **original-red-eye-v11**, stored in the GLB's
+metadata and build receipt. Real photographs are the primary shape reference:
+the supplied front, side and overhead views, plus the credited photographer/zoo
+photographs. They guide a shallower cheek below the eye, a more tapered snout,
+repositioned nares, a rising mouth line, a rounder rump and a rounded ankle fold.
+The slim thighs are retained; the calf has a modest muscle belly and the ankle
+skin has a lateral soft-tissue roll with denser longitudinal samples.
+
+The jaw, tongue and throat pivots are refitted to the higher mouth floor.
+The palate follows the closing jaw width rather than a fixed ellipse, and
+the rear oral surface is enclosed at rest. The current export has 75 mesh
+objects, 61 joints, 96,848 triangles, twelve embedded images and 28 clips.
+The existing rig hierarchy, clip timing and eleven painted images are retained;
+the trunk naris marks follow the revised snout and body UV range. These are
+authored interpretations across different photographic poses and perspectives,
+rather than a calibrated reconstruction from the photographs.
+
+The v10 pass used a visual review of the earlier local frog to guide
 a broader proportion pass: a narrower skull and waist, smaller forward-facing
 eyes in cranial recesses, fitted brows, a leaner belly/rump, a more compact
 forelimb stance, shorter digits and smaller palms and pads. The body uses one
 continuous loft profile rather than blending revised facial sections back into
 the older bulky head profile. Subtle dorsal relief gives the back more shape.
-The current export has 75 mesh objects, 61 joints, 92,176 triangles, twelve
+The v10 export had 75 mesh objects, 61 joints, 92,176 triangles, twelve
 embedded images and 28 clips.
 
 The 61 joint names/hierarchy, 75 mesh part names, 28 clip durations and 7,140
@@ -209,6 +225,9 @@ closed blink: at most two percent lid or cranial-skin occlusion when open,
 at least 98 percent lid coverage when closed. This detects head skin cutting
 through the iris as eye size or placement changes. Seventeen `Croak` poses check a closed jaw and throat
 inflation. This measures sampled geometry and animation behavior, not realism.
+Closed-palate vertices are also checked against the nearest oriented head/jaw
+surfaces, with a 0.20 mm exposure tolerance, to detect oral surfaces spilling
+through a narrowed or raised cheek while the mouth is closed.
 Use `--face` on the preview tool for matched face close-ups, and `--clay` to
 separate silhouette changes from skin and eye shading.
 `--hindlegs` frames the right folded thigh, calf and ankle with a fixed camera

@@ -69,6 +69,11 @@ The new lofts, orbital recesses, joint
 landmarks, feet and motion keys are authored in FrogExplorer's own generator,
 which takes no source-model input. The historical model's terms below continue
 to apply to its separate files.
+The v11 shape pass uses real photographs as the primary guide, especially the
+supplied front/side/overhead photographs and the Sartore, Smithsonian and WCS
+references above. They inform the cheek depth, rostrum, mouth line, rump and
+rounded hind-limb fold. The earlier 3D model is a secondary reference. No photo
+pixels or reference-model geometry are incorporated into the generator.
 The v3 foot review used the [Wildlife Conservation Society's frog photograph](https://blog.wcs.org/photo/2020/11/30/living-color-red-eyed-tree-frog-amphbian/)
 and the STRI species description. General pad structure was informed by
 [tree-frog toe-pad research](https://pmc.ncbi.nlm.nih.gov/articles/PMC2720997/)

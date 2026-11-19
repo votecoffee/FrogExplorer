@@ -18,6 +18,18 @@ def main():
     bpy.ops.wm.open_mainfile(filepath=str(args.input.resolve()))
     arm=bpy.data.objects['Original_Red_Eye_Rig'];issues=[];coverage={}
     action=bpy.data.actions['Living_Idle'];arm.animation_data.action=action;arm.animation_data.action_slot=action.slots[0]
+    bpy.context.scene.frame_set(0);depsgraph=bpy.context.evaluated_depsgraph_get();envelopes=[]
+    for name in ['Original continuous trunk and muzzle','Articulated jaw and recessed oral floor']:
+        obj=bpy.data.objects[name].evaluated_get(depsgraph);mesh=obj.to_mesh()
+        envelopes.append(BVHTree.FromPolygons([obj.matrix_world@v.co for v in mesh.vertices],[tuple(p.vertices) for p in mesh.polygons]));obj.to_mesh_clear()
+    palate=bpy.data.objects['Recessed curved palate'].evaluated_get(depsgraph);mesh=palate.to_mesh();palate_exposure=-float('inf')
+    for vertex in mesh.vertices:
+        point=palate.matrix_world@vertex.co;distances=[]
+        for tree in envelopes:
+            nearest,normal,_,_=tree.find_nearest(point);distances.append((point-nearest).dot(normal))
+        palate_exposure=max(palate_exposure,min(distances))
+    palate.to_mesh_clear()
+    if palate_exposure>.00020:issues.append('Closed palate protrudes beyond both head and jaw surfaces')
     for label,frame in [('open',0),('closed',float(action.frame_range[1])*.79)]:
         bpy.context.scene.frame_set(floor(frame),subframe=frame-floor(frame))
         depsgraph=bpy.context.evaluated_depsgraph_get();coverage[label]={}
@@ -59,7 +71,8 @@ def main():
     if jaw_angle>.01:issues.append('Croak opens the jaw instead of keeping a closed mouth')
     if throat_scale<1.7:issues.append('Croak does not inflate the throat')
     report={'lid_coverage':coverage,'croak_maximum_jaw_angle_rad':jaw_angle,'croak_maximum_throat_scale':throat_scale,
-            'issues':issues,'scope':'Blender evaluated rays over the central 92 percent corneal radius: at most 2 percent open-lid or cranial-skin occlusion and at least 98 percent closed-lid coverage. Seventeen Croak poses check closed jaw and throat inflation. Geometry checks, not an image realism metric or continuous-time guarantee.'}
+            'closed_palate_maximum_exposure_m':palate_exposure,
+            'issues':issues,'scope':'Blender evaluated rays over the central 92 percent corneal radius: at most 2 percent open-lid or cranial-skin occlusion and at least 98 percent closed-lid coverage. Closed-palate vertices are checked against nearest oriented head/jaw surfaces with 0.20 mm exposure tolerance. Seventeen Croak poses check closed jaw and throat inflation. Sampled geometry checks, not an image realism metric or continuous-time guarantee.'}
     args.report.parent.mkdir(parents=True,exist_ok=True)
     args.report.write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8',newline='\n')
     print('ORIGINAL_FACE_CHECK '+json.dumps(report),flush=True)

@@ -11,7 +11,7 @@ import bpy
 import numpy as np
 from mathutils import Vector
 from original_red_eye_feet import adhesive_pad, digital_web
-from original_red_eye_face import EYE_RADIUS, EYE_ASPECT, FACE_SECTIONS, eye_frame, lid_axis, shorten_muzzle, orbital_recess, add_features
+from original_red_eye_face import EYE_RADIUS, EYE_ASPECT, BODY_Y_RANGE, NARIS_XY, FACE_SECTIONS, eye_frame, lid_axis, shorten_muzzle, orbital_recess, add_features
 
 
 def profile(controls, y):
@@ -130,9 +130,10 @@ def painted_maps(name, width, height, kind):
         face *= (1+.10*grain+.04*glands)[:,:,None]
         face = face*(1-pigment[:,:,None]*.12)+np.array([.35,.44,.12])*pigment[:,:,None]*.12
         rgb = rgb*(1-head[:,:,None])+face*head[:,:,None]
-        width = profile(np.asarray(FACE_SECTIONS),-.0715)[1]
-        naris_v = np.arccos(.0185/width)/(2*pi)
-        pits = sum(np.exp(-((u-(.0115/.158))/.0040)**2-((v-center)/.0050)**2)
+        width = profile(np.asarray(FACE_SECTIONS),NARIS_XY[1])[1]
+        naris_v = np.arccos(NARIS_XY[0]/width)/(2*pi)
+        naris_u = (NARIS_XY[1]-BODY_Y_RANGE[0])/(BODY_Y_RANGE[1]-BODY_Y_RANGE[0])
+        pits = sum(np.exp(-((u-naris_u)/.0040)**2-((v-center)/.0050)**2)
                    for center in [naris_v,.5-naris_v])
         rgb = rgb*(1-pits[:,:,None])+np.array([.005,.010,.003])*pits[:,:,None]
     else:
@@ -205,10 +206,10 @@ class Frog:
         self.bone('root', (0, 0, 0), (0, 0, .015))
         self.bone('DEF-spine.003', (0, .025, .042), (0, -.022, .054), 'root')
         self.bone('Head', (0, -.022, .054), (0, -.069, .057), 'DEF-spine.003')
-        self.bone('FX-jaw', (0, -.024, .037), (0, -.072, .037), 'Head')
-        self.bone('Throat', (0, -.025, .036), (0, -.045, .033), 'FX-jaw')
-        self.bone('Tongue', (0, -.068, .039), (0, -.049, .040), 'FX-jaw')
-        self.bone('TongueTip', (0, -.049, .040), (0, -.039, .041), 'Tongue')
+        self.bone('FX-jaw', (0, -.024, .043), (0, -.072, .043), 'Head')
+        self.bone('Throat', (0, -.035, .0405), (0, -.052, .0390), 'FX-jaw')
+        self.bone('Tongue', (0, -.068, .044), (0, -.049, .045), 'FX-jaw')
+        self.bone('TongueTip', (0, -.049, .045), (0, -.039, .046), 'Tongue')
         for side, sign in [('L', -1), ('R', 1)]:
             shoulder = Vector((sign*.028, -.024, .047))
             elbow = Vector((sign*.048, -.001, .025))
@@ -321,8 +322,8 @@ class Frog:
         # Smooth longitudinal sections include the head: there is no neck seam.
         controls = np.array([*FACE_SECTIONS,[-.008,.0255,.0265,.0560],
             [.020,.0225,.0265,.0528],[.047,.0205,.0290,.0515],
-            [.060,.0160,.0310,.0470],[.070,.0105,.0325,.0420],
-            [.074,.0050,.0350,.0390],[.075,.0001,.0370,.0370]])
+            [.058,.0165,.0305,.0480],[.066,.0120,.0315,.0455],
+            [.071,.0065,.0335,.0420],[BODY_Y_RANGE[1],.0001,.0370,.0370]])
         self.body_sections = controls
         vertices = [];faces = [];uv = [];weights = []
         rings, segments = 96, 96
@@ -361,6 +362,13 @@ class Frog:
                 point.x -= sign*inset*root
                 if span==0:point.x += sign*.0010*sin(pi*t)**2
             tangent = (-p0+p2)+(2*p0-5*p1+4*p2-p3)*(2*t)+(-p0+3*p1-3*p2+p3)*(3*t*t)
+            if attachment and len(points)==5:
+                # A small lateral soft-tissue roll rounds the ankle hairpin;
+                # its derivative keeps the loft frame tangent to that roll.
+                roll = np.exp(-((value-2)/.20)**2)
+                shift = Vector((sign*.0030,0,.0010))
+                point += shift*roll
+                tangent += shift*(-4*(value-2)/.20**2*roll)
             tangent.normalize();axis = tangent.cross(Vector((0, 0, 1)))
             if axis.length < .01:axis = tangent.cross(Vector((0, 1, 0)))
             axis.normalize();up = tangent.cross(axis).normalized()
@@ -380,7 +388,7 @@ class Frog:
                 radial = radius
                 if crease:radial *= 1-.10*np.exp(-((value-1)/.10)**2)*max(0,sin(angle))
                 if attachment and len(points)==5:
-                    radial *= 1-.08*np.exp(-((value-2)/.12)**2)*max(0,sin(angle))
+                    radial *= 1+.30*np.exp(-((value-2)/.18)**2)
                 vertex = point+axis*(cos(angle)*radial)+up*(sin(angle)*radial*vertical)
                 entry = skin
                 if root>0:
@@ -435,7 +443,7 @@ class Frog:
             chin = floor-(.0010+.0004*sin(pi*i/rings))
             for j in range(segments+1):
                 angle = j/segments*2*pi;s = sin(angle)
-                z = self.body_height(width*cos(angle),y,False)-.00020 if s>=0 else rim-.0006-(rim-.0006-chin)*(-s)**.65
+                z = self.body_height(width*cos(angle),y,False)+.00025 if s>=0 else rim-.0006-(rim-.0006-chin)*(-s)**.65
                 vertices.append((width*cos(angle), y, z));uv.append((i/rings, j/segments))
         for i in range(rings):
             for j in range(segments):
@@ -451,14 +459,15 @@ class Frog:
         vertices = [];faces = [];uv = []
         rings, segments = 20, 64
         for i in range(rings+1):
-            r = i/rings
+            y = -.0805+(.0805-.0275)*i/rings
+            width = .96*self.jaw_width(y)
             for j in range(segments+1):
-                angle = 2*pi*j/segments;x = .030*r*cos(angle);y = -.051+.023*r*sin(angle)
+                x = width*(2*j/segments-1)
                 vertices.append((x, y, self.body_height(x, y, False)-.0003))
-                uv.append((.5+.5*r*cos(angle), .5+.5*r*sin(angle)))
+                uv.append((j/segments,i/rings))
         for i in range(rings):
             for j in range(segments):
-                a = i*(segments+1)+j;b = a+segments+1;faces.append((a, a+1, b+1, b))
+                a = i*(segments+1)+j;b = a+segments+1;faces.append((a,b,b+1,a+1))
         self.mesh('Recessed curved palate', vertices, faces, uv, [{'Head':1} for _ in vertices], self.oral)
         for sign in [-1, 1]:
             line = []
@@ -470,8 +479,8 @@ class Frog:
     def features(self):
         self.jaw()
         self.palate()
-        self.ellipsoid('Dark rear oral cavity', (0, -.027, .0355), (.026, .002, .004), self.oral_dark, 'Head')
-        self.ellipsoid('Gular breathing sac', (0, -.031, .0355), (.023, .022, .0032), self.cream, 'Throat', 18, 36)
+        self.ellipsoid('Dark rear oral cavity', (0, -.030, .0430), (.024, .002, .0028), self.oral_dark, 'Head')
+        self.ellipsoid('Gular breathing sac', (0, -.044, .0410), (.023, .018, .0035), self.cream, 'Throat', 18, 36)
         self.ellipsoid('Tongue folded muscle', (0, -.056, self.body_height(0, -.056, False)+.0011), (.009, .012, .0018), self.pink, 'Tongue')
         self.ellipsoid('Tongue rounded tip', (0, -.044, self.body_height(0, -.044, False)+.0011), (.010, .007, .0018), self.pink, 'TongueTip')
         add_features(self)
@@ -482,9 +491,9 @@ class Frog:
                 radii = [.0059, .0041, .0028, .0033];bulges = [.18, .16, .0];flatten = [.84,.78,.65,.32]
                 inset = .0095
             else:
-                radii = [.0084, .0048, .0035, .0030, .0042];bulges = [.18, .12, .05, .0];flatten = [.78,.76,.76,.60,.30]
+                radii = [.0084, .0048, .0035, .0030, .0042];bulges = [.18, .20, .05, .0];flatten = [.78,.76,.76,.60,.30]
                 inset = .0100
-            self.tube('Continuous '+label+' '+side, points, radii, bones, self.limb_mat, 12, 24, bulges, flatten, True,
+            self.tube('Continuous '+label+' '+side, points, radii, bones, self.limb_mat, 24 if label=='leg' else 12, 24, bulges, flatten, True,
                       (-1 if side=='L' else 1, inset))
             palm = points[-1]
             size = (.0058,.0056,.00165) if label=='arm' else (.0062,.0057,.00165)
@@ -501,6 +510,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v10'
+        self.arm['model_revision'] = 'original-red-eye-v11'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self

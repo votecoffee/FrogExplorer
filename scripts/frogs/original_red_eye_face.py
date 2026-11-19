@@ -10,10 +10,12 @@ from mathutils import Vector
 EYE_RADIUS = .0085
 EYE_ASPECT = (.94, 1.02, .72)
 EYE_APERTURE = 1.31
+BODY_Y_RANGE = (-.083,.073)
+NARIS_XY = (.0160,-.0725)
 FACE_SECTIONS = [
-    [-.083,.0045,.0435,.0475],[-.078,.0145,.0425,.0515],
-    [-.069,.0240,.0400,.0560],[-.049,.0340,.0385,.0590],
-    [-.030,.0315,.0345,.0570]]
+    [-.083,.0045,.0440,.0475],[-.078,.0125,.0440,.0515],
+    [-.069,.0215,.0450,.0560],[-.049,.0325,.0460,.0590],
+    [-.030,.0315,.0405,.0570]]
 
 
 def eye_frame(sign):
@@ -70,7 +72,7 @@ def add_features(frog):
             lip.append((x,y,frog.body_height(x,y,False)-.00005))
         frog.tube('Mouth commissure '+side,lip,[.00017]*len(lip),['Head']*(len(lip)-1),frog.dark,1,8)
         # Small, low-profile nares sit on the snout rather than on dark bumps.
-        x,y = sign*.0185,-.0715;z = frog.body_height(x,y)
+        x,y = sign*NARIS_XY[0],NARIS_XY[1];z = frog.body_height(x,y)
         delta = .0001
         gx = (frog.body_height(x+delta,y)-frog.body_height(x-delta,y))/(2*delta)
         gy = (frog.body_height(x,y+delta)-frog.body_height(x,y-delta))/(2*delta)
@@ -99,7 +101,7 @@ def add_features(frog):
                 a=2*pi*j/48;r=i/12
                 point=cheek(r,a);vertices.append(point)
                 theta=.17+.14*r*sin(a)
-                uv.append(((point.y+.083)/.158,theta/(2*pi) if sign>0 else .5-theta/(2*pi)))
+                uv.append(((point.y-BODY_Y_RANGE[0])/(BODY_Y_RANGE[1]-BODY_Y_RANGE[0]),theta/(2*pi) if sign>0 else .5-theta/(2*pi)))
         for i in range(12):
             for j in range(48):
                 a=i*49+j;faces.append((a,a+1,a+50,a+49))
