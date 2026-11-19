@@ -82,7 +82,12 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v16**. The mouth
+The current authored revision is **original-red-eye-v17**. A lower brow
+extends farther behind the eye and joins a fuller rear crown. The taper
+toward the shoulders is more gradual in profile, following the supplied
+side photographs.
+
+In v16 the mouth
 corner turns up into the cheek fold. The lower jaw is rounder under the
 front of the muzzle and shallower near the hinge. The throat surface is
 wider and sits farther forward under the chin. The head and lower jaw use

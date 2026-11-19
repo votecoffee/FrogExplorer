@@ -312,7 +312,11 @@ class Frog:
             plane = .5*(roof+cheek-sqrt((roof-cheek)**2+.00060**2))
             planes = .29*float(1-smooth(-.053,-.033,y))
             z = z*(1-planes)+plane*planes
-            brow = .0078*np.exp(-((abs(x)-.0260)/.0115)**2-((y+.049)/.013)**2)
+            # Broaden the brow toward the back of the skull so the eye
+            # sits on a low ridge that fades into the shoulder.
+            brow_y = y+.049
+            brow_length = .012 if brow_y < 0 else .019
+            brow = .0060*exp(-((abs(x)-.0250)/.013)**2-(brow_y/brow_length)**2)
             z += brow*float(smooth(0,.22,s))*(1-float(smooth(-.030,-.012,y)))
             # The canthus follows the edge between the upper snout and cheek.
             # A shallow falloff on its outer side defines that change of plane.
@@ -342,7 +346,7 @@ class Frog:
 
     def body(self):
         # Smooth longitudinal sections include the head: there is no neck seam.
-        controls = np.array([*FACE_SECTIONS,[-.008,.0255,.0265,.0560],
+        controls = np.array([*FACE_SECTIONS,[-.008,.0255,.0265,.0579],
             [.020,.0225,.0265,.0528],[.047,.0205,.0290,.0515],
             [.058,.0165,.0305,.0480],[.066,.0120,.0315,.0455],
             [.071,.0065,.0335,.0420],[BODY_Y_RANGE[1],.0001,.0370,.0370]])
@@ -558,6 +562,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v16'
+        self.arm['model_revision'] = 'original-red-eye-v17'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self
