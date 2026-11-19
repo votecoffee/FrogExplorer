@@ -550,6 +550,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v14'
+        self.arm['model_revision'] = 'original-red-eye-v15'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self

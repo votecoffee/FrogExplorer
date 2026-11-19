@@ -82,7 +82,14 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v14**. The head mesh has a
+The current authored revision is **original-red-eye-v15**. The eye socket has
+a thinner upper rim and a fuller lower rim that joins the cheek. A rounded
+tympanic membrane sits in the cheek behind each eye and follows the surface
+at its edges. The fold behind it curves toward the mouth corner. The face
+check tests the socket as well as the eyelid and cranial skin for obstruction
+of the open iris.
+
+The v14 head mesh introduced a
 defined ridge from the brow toward each naris, a steeper cheek below the ridge,
 and a rounded lower eye socket. The nares sit in depressions in the muzzle, with
 five additional mesh rings in that area. The export has 97,808 triangles. The

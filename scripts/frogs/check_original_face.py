@@ -86,14 +86,27 @@ def main():
             if label=='open' and fraction>.02:issues.append(side+': open lid covers the iris')
             if label=='closed' and fraction<.98:issues.append(side+': closed lid leaves the iris exposed')
             if label=='open':
-                skin=bpy.data.objects['Original continuous trunk and muzzle'].evaluated_get(depsgraph);mesh=skin.to_mesh()
-                tree=BVHTree.FromPolygons([skin.matrix_world@v.co for v in mesh.vertices],[tuple(p.vertices) for p in mesh.polygons]);skin.to_mesh_clear()
-                hidden=0
-                for point in points:
-                    _,_,_,distance=tree.ray_cast(point+normal*.05,-normal,.10)
-                    if distance is not None and distance<.0499:hidden+=1
-                fraction=hidden/len(points);coverage[label][side]['cranial_skin_occluded_fraction']=fraction
-                if fraction>.02:issues.append(side+': cranial skin cuts across the open iris')
+                surfaces = [
+                    ('Original continuous trunk and muzzle', 'cranial_skin', 'cranial skin'),
+                    ('Green orbital socket '+side, 'socket', 'eye socket'),
+                ]
+                for name, key, description in surfaces:
+                    skin = bpy.data.objects[name].evaluated_get(depsgraph)
+                    mesh = skin.to_mesh()
+                    tree = BVHTree.FromPolygons(
+                        [skin.matrix_world @ v.co for v in mesh.vertices],
+                        [tuple(p.vertices) for p in mesh.polygons],
+                    )
+                    skin.to_mesh_clear()
+                    hidden = 0
+                    for point in points:
+                        _, _, _, distance = tree.ray_cast(point+normal*.05, -normal, .10)
+                        if distance is not None and distance < .0499:
+                            hidden += 1
+                    fraction = hidden/len(points)
+                    coverage[label][side][key+'_occluded_fraction'] = fraction
+                    if fraction > .02:
+                        issues.append(side+': '+description+' cuts across the open iris')
     action=bpy.data.actions['Croak'];arm.animation_data.action=action;arm.animation_data.action_slot=action.slots[0]
     jaw_angle=0.0;throat_scale=1.0
     for sample in range(17):
@@ -108,7 +121,7 @@ def main():
         issues.append('Throat skin protrudes through the oral floor during Catch_Fly')
     report={'lid_coverage':coverage,'croak_maximum_jaw_angle_rad':jaw_angle,'croak_maximum_throat_scale':throat_scale,
             'closed_palate_maximum_exposure_m':palate_exposure,'open_oral_floor':oral_floor,
-            'issues':issues,'scope':'Blender evaluated rays over the central 92 percent corneal radius: at most 2 percent open-lid or cranial-skin occlusion and at least 98 percent closed-lid coverage. Closed-palate vertices are checked against nearest oriented head/jaw surfaces with 0.20 mm exposure tolerance. Oral floor faces are checked for throat skin obstruction at one open Catch_Fly pose with 0.20 mm tolerance. Seventeen Croak poses check closed jaw and throat inflation. All checks use sampled geometry.'}
+            'issues':issues,'scope':'Blender evaluated rays over the central 92 percent corneal radius: at most 2 percent open-lid, cranial-skin or socket occlusion and at least 98 percent closed-lid coverage. Closed-palate vertices are checked against nearest oriented head/jaw surfaces with 0.20 mm exposure tolerance. Oral floor faces are checked for throat skin obstruction at one open Catch_Fly pose with 0.20 mm tolerance. Seventeen Croak poses check closed jaw and throat inflation. All checks use sampled geometry.'}
     args.report.parent.mkdir(parents=True,exist_ok=True)
     args.report.write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8',newline='\n')
     print('ORIGINAL_FACE_CHECK '+json.dumps(report),flush=True)
