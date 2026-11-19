@@ -2,7 +2,7 @@
 
 Photographs guide proportions only. No image, mesh or animation is read here.
 """
-from math import sin, cos, pi, sqrt
+from math import sin, cos, exp, pi, sqrt
 
 import numpy as np
 from mathutils import Vector
@@ -41,16 +41,24 @@ def shorten_muzzle(point):
 
 
 def orbital_recess(point,centers):
-    """Keep the continuous cranial skin behind the elliptical eye apertures."""
+    """Recess the iris opening and roll the surrounding cheek into the socket."""
     point=Vector(point)
     for sign,center in centers:
         normal,horizontal,vertical=eye_frame(sign);delta=point-center
         radius=EYE_RADIUS*sin(EYE_APERTURE)
         rho=sqrt((delta.dot(horizontal)/EYE_ASPECT[0])**2
                  +(delta.dot(vertical)/EYE_ASPECT[1])**2)/radius
-        if rho>=1.18:continue
-        blend=min(1,max(0,(1.18-rho)/.18));blend=blend*blend*(3-2*blend)
-        point-=normal*(max(0,delta.dot(normal)-.0010)*blend)
+        if rho >= 1.60:
+            continue
+        depth = delta.dot(normal)
+        blend = min(1, max(0, (1.18-rho)/.18))
+        point -= normal*max(0, depth-.0010)*blend**2*(3-2*blend)
+        # The lower orbital margin rises out of the cheek and fades into the
+        # brow. It belongs to the continuous head, outside the iris opening.
+        margin = min(1, max(0, (rho-1.02)/.58))
+        lower = min(1, max(0, -delta.dot(vertical)/radius))
+        roll = .0015*sin(pi*margin)**2*(.34+.66*lower)
+        point += normal*roll*exp(-((depth+.001)/.0065)**2)
     return point
 
 
@@ -73,20 +81,22 @@ def add_features(frog):
             lip.append((x,y,frog.body_height(x,y,False)-.00005))
         lip_radii = [.000055+.000075*sin(pi*i/(len(lip)-1)) for i in range(len(lip))]
         frog.tube('Mouth commissure '+side,lip,lip_radii,['Head']*(len(lip)-1),frog.dark,1,8)
-        # Small, low-profile nares sit on the snout rather than on dark bumps.
+        # The dark aperture and soft inner rim sit in the sculpted skin dimple.
         x,y = sign*NARIS_XY[0],NARIS_XY[1];z = frog.body_height(x,y)
         delta = .0001
         gx = (frog.body_height(x+delta,y)-frog.body_height(x-delta,y))/(2*delta)
         gy = (frog.body_height(x,y+delta)-frog.body_height(x,y-delta))/(2*delta)
         normal = Vector((-gx,-gy,1)).normalized()
         rotation = Vector((0,0,1)).rotation_difference(normal).to_matrix()
-        center_naris = Vector((x,y,z))+normal*.00012
-        frog.ellipsoid('Nostril '+side,center_naris,(.00065,.00043,.00008),frog.dark,'Head',10,24,rotation)
+        center_naris = Vector((x,y,z))+normal*.00021
+        frog.ellipsoid('Nostril '+side,center_naris,(.00062,.00042,.00007),frog.dark,'Head',10,24,rotation)
         rim = []
         for a in np.linspace(0,2*pi,33):
-            point = Vector((x,y,z))+rotation@Vector((.00078*cos(a),.00055*sin(a),.00004))
-            rim.append(point)
-        frog.tube('Soft naris rim '+side,rim,[.00009]*len(rim),['Head']*(len(rim)-1),frog.fold_mat,1,8)
+            rim_x = x+.00078*cos(a)
+            rim_y = y+.00070*sin(a)
+            rim_z = frog.body_height(rim_x,rim_y)+.00007
+            rim.append((rim_x,rim_y,rim_z))
+        frog.tube('Soft naris rim '+side,rim,[.000075]*len(rim),['Head']*(len(rim)-1),frog.fold_mat,1,8)
         # A flush membrane and tapered upper fold replace a raised round disc.
         def cheek(radius,angle):
             y = -.0325+.0034*radius*cos(angle)

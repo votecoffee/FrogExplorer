@@ -82,9 +82,15 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v13**. The supplied frog
-photographs guide a shorter muzzle with a tapered tip, a fuller forehead
-between the eyes, and lower brow contours. The lower lip follows the muzzle's
+The current authored revision is **original-red-eye-v14**. The head mesh has a
+defined ridge from the brow toward each naris, a steeper cheek below the ridge,
+and a rounded lower eye socket. The nares sit in depressions in the muzzle, with
+five additional mesh rings in that area. The export has 97,808 triangles. The
+shapes follow the supplied photographs and the credited Sartore profile.
+
+The v13 pass used the supplied frog photographs to guide a shorter muzzle with
+a tapered tip, a fuller forehead between the eyes, and lower brow contours.
+The lower lip follows the muzzle's
 underside and the throat blends into the chin. The throat skin sits below the
 oral floor during feeding. The 28 clip durations, 61-joint hierarchy and the
 v12 limb surfaces are retained.

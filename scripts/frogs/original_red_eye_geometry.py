@@ -4,7 +4,7 @@ All coordinates, topology and pixels are generated here. No downloaded mesh,
 rig, animation or photograph is read by this module. Coordinates are metres,
 Blender Z up / -Y forward. The reference links are documented separately.
 """
-from math import cos, sin, pi, sqrt
+from math import cos, exp, sin, pi, sqrt
 from pathlib import Path
 
 import bpy
@@ -314,8 +314,22 @@ class Frog:
             z = z*(1-planes)+plane*planes
             brow = .0078*np.exp(-((abs(x)-.0260)/.0115)**2-((y+.049)/.013)**2)
             z += brow*float(smooth(0,.22,s))*(1-float(smooth(-.030,-.012,y)))
-            ridge = .72*width
-            z += .00025*np.exp(-((abs(x)-ridge)/.0013)**2)*float(smooth(-.080,-.075,y))*(1-float(smooth(-.056,-.047,y)))*s**.4
+            # The canthus follows the edge between the upper snout and cheek.
+            # A shallow falloff on its outer side defines that change of plane.
+            if -.080 < y < -.045:
+                along = float(smooth(-.076,-.052,y))
+                offset = abs(x)-width*(.62+.14*along)
+                envelope = float(smooth(-.080,-.074,y)*(1-smooth(-.055,-.045,y)))
+                crest = .00165*exp(-(offset/.0034)**2)
+                flank = .00075*exp(-((offset-.0054)/.0036)**2)
+                z += envelope*(crest-flank)*s**.4
+            # Both nares are sculpted into the same surface as the muzzle.
+            if abs(y-NARIS_XY[1]) < .006:
+                radius = sqrt(((abs(x)-NARIS_XY[0])/.00185)**2+((y-NARIS_XY[1])/.0022)**2)
+                if radius < 3:
+                    basin = -.00065*exp(-1.5*radius**2)
+                    edge = .00025*exp(-((radius-1.10)/.42)**2)
+                    z += (basin+edge)*s**.4
             z += .0012*np.exp(-(x/.006)**2-((y-.041)/.027)**2)*float(smooth(-.003,.013,y))*s**.6
         return float(z)
 
@@ -327,9 +341,12 @@ class Frog:
             [.071,.0065,.0335,.0420],[BODY_Y_RANGE[1],.0001,.0370,.0370]])
         self.body_sections = controls
         vertices = [];faces = [];uv = [];weights = []
-        rings, segments = 96, 96
-        for i in range(rings+1):
-            u = i/rings;y = controls[0, 0]+u*(controls[-1, 0]-controls[0, 0])
+        base_y = np.linspace(controls[0,0], controls[-1,0], 97)
+        midpoints = (base_y[:-1]+base_y[1:])*.5
+        rows = np.sort(np.concatenate((base_y,midpoints[abs(midpoints-NARIS_XY[1])<.004])))
+        rings, segments = len(rows)-1, 96
+        for y in rows:
+            u = (y-controls[0,0])/(controls[-1,0]-controls[0,0])
             section = self.section_at(y)
             width, bottom, top = section[1:]
             for j in range(segments+1):
@@ -533,6 +550,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v13'
+        self.arm['model_revision'] = 'original-red-eye-v14'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self
