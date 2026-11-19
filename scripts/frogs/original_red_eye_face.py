@@ -102,7 +102,7 @@ def add_features(frog):
                 for a in np.linspace(0,2*pi,81)]
         frog.tube('Fine eye rim '+side,ring,[.00013]*len(ring),['Head']*(len(ring)-1),frog.rim_mat,1,8)
         lip = []
-        for y in np.linspace(-.0827,-.034,48):
+        for y in np.linspace(-.0827,-.0315,48):
             x = sign*frog.jaw_width(y)
             lip.append((x,y,frog.body_height(x,y,False)-.00005))
         lip_radii = [.000055+.000075*sin(pi*i/(len(lip)-1)) for i in range(len(lip))]

@@ -82,7 +82,13 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v15**. The eye socket has
+The current authored revision is **original-red-eye-v16**. The mouth
+corner turns up into the cheek fold. The lower jaw is rounder under the
+front of the muzzle and shallower near the hinge. The throat surface is
+wider and sits farther forward under the chin. The head and lower jaw use
+the same mouth corner contour so the lip follows the cheek when it closes.
+
+The v15 eye socket has
 a thinner upper rim and a fuller lower rim that joins the cheek. A rounded
 tympanic membrane sits in the cheek behind each eye and follows the surface
 at its edges. The fold behind it curves toward the mouth corner. The face

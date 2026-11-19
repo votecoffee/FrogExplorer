@@ -331,6 +331,13 @@ class Frog:
                     edge = .00025*exp(-((radius-1.10)/.42)**2)
                     z += (basin+edge)*s**.4
             z += .0012*np.exp(-(x/.006)**2-((y-.041)/.027)**2)*float(smooth(-.003,.013,y))*s**.6
+        if -.055 < y < -.020:
+            # The lip turns upward behind the eye. The same relief is used on
+            # both halves of the head and on the fitted closing jaw.
+            corner = exp(-((y+.0345)/.0068)**2)
+            outer_cheek = exp(-(s/.41)**2)
+            taper = smooth(-.055,-.049,y)*(1-smooth(-.025,-.020,y))
+            z += .0017*corner*outer_cheek*taper
         return float(z)
 
     def body(self):
@@ -456,7 +463,8 @@ class Frog:
         for i in range(rings+1):
             y = sections[0, 0]+i/rings*(sections[-1, 0]-sections[0, 0])
             width = self.jaw_width(y)
-            depth = .0010+.0004*sin(pi*i/rings)
+            # The front of the chin is rounded, with less depth by the hinge.
+            depth = .00065+.00170*exp(-((y+.059)/.0155)**2)
             for j in range(segments+1):
                 angle = j/segments*2*pi
                 x = width*cos(angle)
@@ -504,9 +512,9 @@ class Frog:
             dome = cos(phi)
             for j in range(segments+1):
                 theta = 2*pi*j/segments
-                x = .022*sin(phi)*cos(theta)
-                y = -.044+.017*sin(phi)*sin(theta)
-                z = self.body_height(x,y,False)-.00095+dome*(.00055 if dome>=0 else .0053)
+                x = .0235*sin(phi)*cos(theta)
+                y = -.048+.0175*sin(phi)*sin(theta)
+                z = self.body_height(x,y,False)-.00095+dome*(.00055 if dome>=0 else .0074)
                 vertices.append((x,y,z))
                 uv.append((j/segments,i/rings))
         for i in range(rings):
@@ -550,6 +558,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v15'
+        self.arm['model_revision'] = 'original-red-eye-v16'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self
