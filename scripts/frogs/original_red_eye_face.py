@@ -8,7 +8,7 @@ import numpy as np
 from mathutils import Vector
 
 EYE_RADIUS = .0085
-EYE_ASPECT = (.94, 1.02, .72)
+EYE_ASPECT = (1.025, 1.00, .78)
 EYE_APERTURE = 1.31
 BODY_Y_RANGE = (-.083,.073)
 NARIS_XY = (.0140,-.0740)
@@ -19,7 +19,7 @@ FACE_SECTIONS = [
 
 
 def eye_frame(sign):
-    normal = Vector((sign*.76,-.64,.10)).normalized()
+    normal = Vector((sign*.72,-.695,.10)).normalized()
     horizontal = normal.cross(Vector((0,0,1))).normalized()
     return normal,horizontal,horizontal.cross(normal).normalized()
 

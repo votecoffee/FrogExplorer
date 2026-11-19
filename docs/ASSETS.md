@@ -82,7 +82,12 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v19**. A shallow dome
+The current authored revision is **original-red-eye-v20**. A rounder
+corneal surface faces slightly farther forward. The socket, rim and
+eyelid follow the revised eye shape. The blink rotation and eye retraction
+use the same eye axis as the geometry.
+
+In v19 a shallow dome
 between the brows fills out the forehead. It fades into the nose and rear
 skull, with the strongest change in the front view.
 
