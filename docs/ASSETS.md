@@ -82,7 +82,14 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v12**. The resting
+The current authored revision is **original-red-eye-v13**. The supplied frog
+photographs guide a shorter muzzle with a tapered tip, a fuller forehead
+between the eyes, and lower brow contours. The lower lip follows the muzzle's
+underside and the throat blends into the chin. The throat skin sits below the
+oral floor during feeding. The 28 clip durations, 61-joint hierarchy and the
+v12 limb surfaces are retained.
+
+The v12 pass revised the resting
 pose follows the crouch in the supplied frog photographs, with the front feet
 closer under the shoulders, the knees folded forward and the ankles tucked
 closer to the flanks. The forearms have a fuller muscle belly. Walking, climbing,
@@ -237,6 +244,8 @@ inflation. This measures sampled geometry and animation behavior, not realism.
 Closed-palate vertices are also checked against the nearest oriented head/jaw
 surfaces, with a 0.20 mm exposure tolerance, to detect oral surfaces spilling
 through a narrowed or raised cheek while the mouth is closed.
+At the sampled open feeding pose, the face check also casts rays toward the
+oral floor to detect throat skin showing through it by more than 0.20 mm.
 Use `--face` on the preview tool for matched face close-ups, and `--clay` to
 separate silhouette changes from skin and eye shading.
 `--hindlegs` frames the right folded thigh, calf and ankle with a fixed camera

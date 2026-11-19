@@ -245,7 +245,7 @@ class Frog:
                     self.bone(name+'_tip', middle, end, name)
                     digits.append(([base, middle, end], [name, name+'_tip']))
                 self.digits[(side, label)] = digits
-            center = Vector((sign*.0285, -.048, .0605))
+            center = Vector((sign*.0297, -.049, .0595))
             self.bone('FX_eye.'+side, center, center+Vector((0, -.01, 0)), 'Head')
             self.bone('Lid.'+side, center, center+Vector((0, 0, .01)), 'Head')
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -305,15 +305,14 @@ class Frog:
             blend = float(1-smooth(-.032, -.012, y))
             z = z*(1-blend)+flat*blend
         else:
-            # A shallow roof and steeper cheek meet at a softly bevelled
-            # canthus. An elliptical cross-section rounds this into a bulb.
+            # The flatter crown rolls into the canthus and cheek on either side.
             ratio = min(1,abs(x)/width)
             roof = top-.0012*(ratio/.72)**2
             cheek = top-.0012-(top-.0012-(top+bottom)/2)*(ratio-.72)/.28
             plane = .5*(roof+cheek-sqrt((roof-cheek)**2+.00060**2))
-            planes = .12*float(1-smooth(-.060,-.045,y))
+            planes = .29*float(1-smooth(-.053,-.033,y))
             z = z*(1-planes)+plane*planes
-            brow = .0115*np.exp(-((abs(x)-.0265)/.0095)**2-((y+.047)/.011)**2)
+            brow = .0078*np.exp(-((abs(x)-.0260)/.0115)**2-((y+.049)/.013)**2)
             z += brow*float(smooth(0,.22,s))*(1-float(smooth(-.030,-.012,y)))
             ridge = .72*width
             z += .00025*np.exp(-((abs(x)-ridge)/.0013)**2)*float(smooth(-.080,-.075,y))*(1-float(smooth(-.056,-.047,y)))*s**.4
@@ -428,10 +427,10 @@ class Frog:
     def jaw_width(self,y):
         # Interpolated jaw widths must remain inside the closing upper lip,
         # including between controls near the rear mouth corner.
-        return min(float(profile(self.jaw_sections,y)[1]),.955*self.section_at(y)[1])
+        return min(float(profile(self.jaw_sections,y)[1]),.975*self.section_at(y)[1])
 
     def jaw(self):
-        sections = np.array([[-.0829, .0054, .0448], [-.078, .0140, .0440],
+        sections = np.array([[-.0829, .0075, .0448], [-.078, .0160, .0440],
                              [-.069, .0240, .0414], [-.049, .0355, .037],
                              [-.029, .0318, .037], [-.023, .0002, .037]])
         self.jaw_sections = sections
@@ -440,13 +439,14 @@ class Frog:
         for i in range(rings+1):
             y = sections[0, 0]+i/rings*(sections[-1, 0]-sections[0, 0])
             width = self.jaw_width(y)
-            rim = self.body_height(width, y, False)-.00020
-            floor = self.body_height(0, y, False)-.0003
-            chin = floor-(.0010+.0004*sin(pi*i/rings))
+            depth = .0010+.0004*sin(pi*i/rings)
             for j in range(segments+1):
-                angle = j/segments*2*pi;s = sin(angle)
-                z = self.body_height(width*cos(angle),y,False)+.00025 if s>=0 else rim-.0006-(rim-.0006-chin)*(-s)**.65
-                vertices.append((width*cos(angle), y, z));uv.append((i/rings, j/segments))
+                angle = j/segments*2*pi
+                x = width*cos(angle)
+                s = sin(angle)
+                surface = self.body_height(x,y,False)
+                z = surface+.00030*sqrt(s) if s>=0 else surface-(.00025+depth)*sqrt(-s)
+                vertices.append((x, y, z));uv.append((i/rings, j/segments))
         for i in range(rings):
             for j in range(segments):
                 a = i*(segments+1)+j;b = a+segments+1
@@ -462,7 +462,7 @@ class Frog:
         rings, segments = 20, 64
         for i in range(rings+1):
             y = -.0805+(.0805-.0275)*i/rings
-            width = .96*self.jaw_width(y)
+            width = .93*self.jaw_width(y)
             for j in range(segments+1):
                 x = width*(2*j/segments-1)
                 vertices.append((x, y, self.body_height(x, y, False)-.0003))
@@ -478,11 +478,32 @@ class Frog:
                 line.append((x, y, self.body_height(x, y, False)-.00055))
             self.tube('Soft palatal fold '+str(sign), line, [.00032]*len(line), ['Head']*(len(line)-1), self.oral, 1, 8)
 
+    def gular_sac(self):
+        """Fit the inflatable throat to the underside of the resting chin."""
+        vertices, faces, uv = [], [], []
+        rings, segments = 18, 36
+        for i in range(rings+1):
+            phi = pi*i/rings
+            dome = cos(phi)
+            for j in range(segments+1):
+                theta = 2*pi*j/segments
+                x = .022*sin(phi)*cos(theta)
+                y = -.044+.017*sin(phi)*sin(theta)
+                z = self.body_height(x,y,False)-.00095+dome*(.00055 if dome>=0 else .0053)
+                vertices.append((x,y,z))
+                uv.append((j/segments,i/rings))
+        for i in range(rings):
+            for j in range(segments):
+                a = i*(segments+1)+j
+                b = a+segments+1
+                faces.append((a,b,b+1,a+1))
+        self.mesh('Gular breathing sac', vertices, faces, uv, [{'Throat':1} for _ in vertices], self.cream)
+
     def features(self):
         self.jaw()
         self.palate()
         self.ellipsoid('Dark rear oral cavity', (0, -.030, .0430), (.024, .002, .0028), self.oral_dark, 'Head')
-        self.ellipsoid('Gular breathing sac', (0, -.044, .0410), (.023, .018, .0035), self.cream, 'Throat', 18, 36)
+        self.gular_sac()
         self.ellipsoid('Tongue folded muscle', (0, -.056, self.body_height(0, -.056, False)+.0011), (.009, .012, .0018), self.pink, 'Tongue')
         self.ellipsoid('Tongue rounded tip', (0, -.044, self.body_height(0, -.044, False)+.0011), (.010, .007, .0018), self.pink, 'TongueTip')
         add_features(self)
@@ -512,6 +533,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v12'
+        self.arm['model_revision'] = 'original-red-eye-v13'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self

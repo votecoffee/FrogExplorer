@@ -11,11 +11,11 @@ EYE_RADIUS = .0085
 EYE_ASPECT = (.94, 1.02, .72)
 EYE_APERTURE = 1.31
 BODY_Y_RANGE = (-.083,.073)
-NARIS_XY = (.0160,-.0725)
+NARIS_XY = (.0140,-.0740)
 FACE_SECTIONS = [
-    [-.083,.0045,.0440,.0475],[-.078,.0125,.0440,.0515],
-    [-.069,.0215,.0450,.0560],[-.049,.0325,.0460,.0590],
-    [-.030,.0315,.0405,.0570]]
+    [-.083,.0064,.0444,.0481],[-.078,.0153,.0445,.0527],
+    [-.069,.0231,.0450,.0572],[-.049,.0325,.0459,.0628],
+    [-.030,.0315,.0405,.0580]]
 
 
 def eye_frame(sign):
@@ -30,11 +30,12 @@ def lid_axis(sign):
 
 
 def shorten_muzzle(point):
+    """Shorten the taper consistently across the snout, jaw and nares."""
     point = Vector(point)
     if point.y<-.061:
         front = min(1,max(0,(point.y+.083)/.008));front = front*front*(3-2*front)
         t = min(1,max(0,(point.y+.083)/.022));t = t*t*(3-2*t)
-        point.y += .0025*(1-t)
+        point.y += .0072*(1-t)
         point.y += .0006*(point.x/.012)**2*(1-front)
     return point
 
@@ -70,7 +71,8 @@ def add_features(frog):
         for y in np.linspace(-.0827,-.034,48):
             x = sign*frog.jaw_width(y)
             lip.append((x,y,frog.body_height(x,y,False)-.00005))
-        frog.tube('Mouth commissure '+side,lip,[.00017]*len(lip),['Head']*(len(lip)-1),frog.dark,1,8)
+        lip_radii = [.000055+.000075*sin(pi*i/(len(lip)-1)) for i in range(len(lip))]
+        frog.tube('Mouth commissure '+side,lip,lip_radii,['Head']*(len(lip)-1),frog.dark,1,8)
         # Small, low-profile nares sit on the snout rather than on dark bumps.
         x,y = sign*NARIS_XY[0],NARIS_XY[1];z = frog.body_height(x,y)
         delta = .0001

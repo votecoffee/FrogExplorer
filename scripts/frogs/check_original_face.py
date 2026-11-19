@@ -1,4 +1,4 @@
-"""Check eyelid coverage and closed-mouth calling on the authored Blender frog."""
+"""Check eyelid coverage and oral surfaces on the authored Blender frog."""
 import argparse
 import json
 from math import floor
@@ -8,6 +8,39 @@ import sys
 import bpy
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
+
+
+def check_open_oral_floor(arm):
+    """Count oral-floor faces obscured by the exterior throat skin."""
+    action = bpy.data.actions['Catch_Fly']
+    arm.animation_data.action = action
+    arm.animation_data.action_slot = action.slots[0]
+    bpy.context.scene.frame_set(18)  # Near peak gape in Catch_Fly.
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    throat = bpy.data.objects['Gular breathing sac'].evaluated_get(depsgraph)
+    mesh = throat.to_mesh()
+    surface = BVHTree.FromPolygons(
+        [throat.matrix_world @ vertex.co for vertex in mesh.vertices],
+        [tuple(face.vertices) for face in mesh.polygons],
+    )
+    throat.to_mesh_clear()
+    jaw = bpy.data.objects['Articulated jaw and recessed oral floor'].evaluated_get(depsgraph)
+    mesh = jaw.to_mesh()
+    oral_material = jaw.data.materials.find('Warm oral mucosa')
+    sampled = 0
+    obstructed = 0
+    for face in mesh.polygons:
+        if face.material_index != oral_material:
+            continue
+        sampled += 1
+        point = jaw.matrix_world @ face.center
+        normal = (jaw.matrix_world.to_3x3() @ face.normal).normalized()
+        _, _, _, hit = surface.ray_cast(point + normal*.004, -normal, .0038)
+        if hit is not None:
+            obstructed += 1
+    jaw.to_mesh_clear()
+    assert sampled, 'Missing oral-floor material on the articulated jaw'
+    return {'sampled_faces': sampled, 'obstructed_faces': obstructed}
 
 
 def main():
@@ -70,9 +103,12 @@ def main():
         throat_scale=max(throat_scale,float(arm.pose.bones['Throat'].scale.z))
     if jaw_angle>.01:issues.append('Croak opens the jaw instead of keeping a closed mouth')
     if throat_scale<1.7:issues.append('Croak does not inflate the throat')
+    oral_floor = check_open_oral_floor(arm)
+    if oral_floor['obstructed_faces']:
+        issues.append('Throat skin protrudes through the oral floor during Catch_Fly')
     report={'lid_coverage':coverage,'croak_maximum_jaw_angle_rad':jaw_angle,'croak_maximum_throat_scale':throat_scale,
-            'closed_palate_maximum_exposure_m':palate_exposure,
-            'issues':issues,'scope':'Blender evaluated rays over the central 92 percent corneal radius: at most 2 percent open-lid or cranial-skin occlusion and at least 98 percent closed-lid coverage. Closed-palate vertices are checked against nearest oriented head/jaw surfaces with 0.20 mm exposure tolerance. Seventeen Croak poses check closed jaw and throat inflation. Sampled geometry checks, not an image realism metric or continuous-time guarantee.'}
+            'closed_palate_maximum_exposure_m':palate_exposure,'open_oral_floor':oral_floor,
+            'issues':issues,'scope':'Blender evaluated rays over the central 92 percent corneal radius: at most 2 percent open-lid or cranial-skin occlusion and at least 98 percent closed-lid coverage. Closed-palate vertices are checked against nearest oriented head/jaw surfaces with 0.20 mm exposure tolerance. Oral floor faces are checked for throat skin obstruction at one open Catch_Fly pose with 0.20 mm tolerance. Seventeen Croak poses check closed jaw and throat inflation. All checks use sampled geometry.'}
     args.report.parent.mkdir(parents=True,exist_ok=True)
     args.report.write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8',newline='\n')
     print('ORIGINAL_FACE_CHECK '+json.dumps(report),flush=True)
