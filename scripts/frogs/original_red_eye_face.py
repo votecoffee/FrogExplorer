@@ -2,10 +2,10 @@
 
 Photographs guide proportions only. No image, mesh or animation is read here.
 """
-from math import sin, cos, exp, pi, sqrt
+from math import acos, sin, cos, exp, pi, sqrt
 
 import numpy as np
-from mathutils import Vector
+from mathutils import Quaternion, Vector
 
 EYE_RADIUS = .0085
 EYE_ASPECT = (1.025, 1.00, .78)
@@ -27,6 +27,12 @@ def eye_frame(sign):
 def lid_axis(sign):
     normal = eye_frame(sign)[0]
     return (Vector((0,0,1))*.18-normal).normalized()
+
+
+def lid_sweep(sign, amount):
+    normal = eye_frame(sign)[0]
+    hinge = Vector((0,0,1)).cross(normal).normalized()
+    return Quaternion(hinge, acos(lid_axis(sign).dot(normal))*amount)
 
 
 def shorten_muzzle(point):
@@ -92,14 +98,48 @@ def add_orbital_socket(frog, side, center, normal, horizontal, vertical):
               [{'Head':1} for _ in vertices], frog.orbit_mat)
 
 
+def add_upper_eyelid(frog, side, sign, center, normal, horizontal, vertical):
+    """Sculpt the arched fold with the lid shut, then turn it into its rest pose."""
+    radius = EYE_RADIUS+.0005
+    edge = sin(1.36)
+    to_rest = lid_sweep(sign, 1).inverted()
+    rows = np.concatenate((np.linspace(-1,-.18,10),
+                           (-.12,-.08,-.04,0,.035,.07,.12),
+                           np.linspace(.18,1,12)))
+    segments = 48
+    stride = segments+1
+    vertices, faces, uv = [], [], []
+    for row in rows:
+        for column in range(stride):
+            lateral = 2*column/segments-1
+            y = row+.19*(1-row*row)*(1-lateral*lateral)
+            x = lateral*sqrt(max(0,1-y*y))
+            squared_radius = x*x+y*y
+            depth = radius*EYE_ASPECT[2]*sqrt(max(0,1-edge*edge*squared_radius))
+            # Lower the crown. Fade the crease and raised upper edge into the corners.
+            depth -= .00040*max(0,1-squared_radius)
+            crease = -.00026*exp(-(row/.054)**2)
+            ridge = .00023*exp(-((row-.065)/.055)**2)
+            depth += (1-lateral**4)*(crease+ridge)
+            radial = horizontal*(x*EYE_ASPECT[0])+vertical*(y*EYE_ASPECT[1])
+            vertices.append(center+to_rest@(normal*depth+radial*(radius*edge)))
+            uv.append((.5+.5*x,.5+.5*y))
+    for row in range(len(rows)-1):
+        for column in range(segments):
+            a = row*stride+column
+            b = a+stride
+            faces.append((a,b,b+1,a+1))
+    frog.mesh('Mobile upper eyelid '+side,vertices,faces,uv,
+              [{'Lid.'+side:1} for _ in vertices], frog.orbit_mat)
+
+
 def add_features(frog):
     for side,sign in [('L',-1),('R',1)]:
         center = frog.bones['FX_eye.'+side][0];n,u,v = eye_frame(sign)
         add_orbital_socket(frog, side, center, n, u, v)
         frog.cap('Red corneal surface '+side,center,n,EYE_RADIUS,EYE_APERTURE,
                  frog.iris,'FX_eye.'+side,24,64,aspect=EYE_ASPECT)
-        frog.cap('Mobile upper eyelid '+side,center,lid_axis(sign),EYE_RADIUS+.0005,1.36,
-                 frog.orbit_mat,'Lid.'+side,24,48,aspect=EYE_ASPECT)
+        add_upper_eyelid(frog, side, sign, center, n, u, v)
         ring = [center+n*((EYE_RADIUS+.00025)*cos(EYE_APERTURE)*EYE_ASPECT[2])
                 +(u*(cos(a)*EYE_ASPECT[0])+v*(sin(a)*EYE_ASPECT[1]))*((EYE_RADIUS+.00025)*sin(EYE_APERTURE))
                 for a in np.linspace(0,2*pi,81)]

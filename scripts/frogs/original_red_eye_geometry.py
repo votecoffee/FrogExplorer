@@ -11,7 +11,7 @@ import bpy
 import numpy as np
 from mathutils import Vector
 from original_red_eye_feet import adhesive_pad, digital_web
-from original_red_eye_face import EYE_RADIUS, EYE_ASPECT, BODY_Y_RANGE, NARIS_XY, FACE_SECTIONS, eye_frame, lid_axis, shorten_muzzle, orbital_recess, add_features
+from original_red_eye_face import BODY_Y_RANGE, NARIS_XY, FACE_SECTIONS, shorten_muzzle, orbital_recess, add_features
 
 
 def profile(controls, y):
@@ -577,6 +577,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v20'
+        self.arm['model_revision'] = 'original-red-eye-v21'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self

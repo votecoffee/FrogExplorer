@@ -82,7 +82,12 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v20**. A rounder
+The current authored revision is **original-red-eye-v21**. Each upper eyelid
+has a curved crease, a raised edge and a flatter crown. The lids gain
+clearance over the corneas mid-blink and settle back into the sockets as
+they close.
+
+In v20 a rounder
 corneal surface faces slightly farther forward. The socket, rim and
 eyelid follow the revised eye shape. The blink rotation and eye retraction
 use the same eye axis as the geometry.

@@ -3,11 +3,11 @@
 No animation files are imported. Clip names implement FrogExplorer's existing
 28-clip interface; motion curves below are authored analytically. MIT.
 """
-from math import sin, cos, pi, sqrt, acos
+from math import sin, cos, pi, sqrt
 
 import bpy
 from mathutils import Vector, Euler, Quaternion
-from original_red_eye_geometry import eye_frame, lid_axis
+from original_red_eye_face import eye_frame, lid_sweep
 import original_red_eye_locomotion as locomotion
 
 CLIPS = ['Big_Jump', 'Breakdance', 'Catch_Fly', 'Catch_Fly_Swallow', 'Climb',
@@ -129,11 +129,16 @@ def animate(frog):
                 blink = hit
             global_rotation(frog, 'FX-jaw', (jaw, 0, 0))
             frog.arm.pose.bones['Throat'].scale = (1+.20*(throat-1), 1+.13*(throat-1), throat)
+            sweep = 4*blink*(1-blink)
             for side, sign in [('L', -1), ('R', 1)]:
                 n, _, _ = eye_frame(sign)
-                axis = Vector((0, 0, 1)).cross(n).normalized()
-                resting_lid = lid_axis(sign)
-                global_rotation(frog, 'Lid.'+side, Quaternion(axis, acos(resting_lid.dot(n))*blink))
+                lid = frog.arm.pose.bones['Lid.'+side]
+                global_rotation(frog, lid.name, lid_sweep(sign, blink))
+                # Give the shell clearance over the cornea midway through the sweep.
+                lid.scale = (1+.13*sweep,)*3
+                lid.location = frog.rest[lid.name].inverted()@Vector((0,0,.00055*sweep))
+                lid.keyframe_insert('location', frame=frame, group=lid.name)
+                lid.keyframe_insert('scale', frame=frame, group=lid.name)
                 eye = frog.arm.pose.bones['FX_eye.'+side]
                 eye.location = frog.rest[eye.name].inverted()@(-n*.0008*blink+Vector((0,0,-.0003*blink)))
                 eye.keyframe_insert('location',frame=frame,group=eye.name)
