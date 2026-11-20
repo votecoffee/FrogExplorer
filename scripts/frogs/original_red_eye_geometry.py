@@ -466,6 +466,8 @@ class Frog:
             hip = (exp(-((y-.042)/.011)**2) * float(smooth(.027,.036,y))
                    * float(1-smooth(.053,.063,y)))
             taper = .0095*float(smooth(.043,.073,y))
+            rump = float(smooth(.0490,.0615,y-taper))
+            shorten_rump = float(smooth(.0528,controls[-1,0]-.0095,y-taper))
             head = float(1-smooth(-.038, -.015, y))
             for theta in angles:
                 x = width*cos(theta)
@@ -480,6 +482,11 @@ class Frog:
                     point.y -= taper
                     point.z += (.00145*chest+.00118*pelvis)*max(0,arc)**1.6
                     point.z -= (.00165*waist+.00065*pelvis)*max(0,-arc)**1.4
+                if rump:
+                    # Shorten the free tip behind the hip and reduce its dome.
+                    point.y -= .0049*shorten_rump
+                    point.x *= 1-.22*rump
+                    point.z += (.34*(.0370-point.z)-.0011)*rump
                 skin = {'Head':head, 'DEF-spine.003':1-head}
                 if shoulder:
                     # Ease the outer chest into the upper arm and let the
@@ -782,6 +789,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v44'
+        self.arm['model_revision'] = 'original-red-eye-v45'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self

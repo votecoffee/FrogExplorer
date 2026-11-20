@@ -84,7 +84,11 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v44**. The
+The current authored revision is **original-red-eye-v45**. The rump
+tapers to a lower, narrower end and extends 4.9 mm less behind the
+hips at the authored scale.
+
+In v44 the
 haunch rounds into the top of the hind thigh. The flank near the hip
 follows part of the thigh rotation as the leg folds and extends.
 
