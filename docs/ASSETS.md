@@ -84,7 +84,12 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v47**. The skin
+The current authored revision is **original-red-eye-v48**. In the big jump,
+the front pads reach forward before the hind feet tuck underneath. The first
+and last poses match the resting crouch so the game can blend into and out of
+the jump.
+
+In v47 the skin
 support at each hind ankle slides slightly as the joint straightens,
 smoothing the calf-to-foot contour through the swim and jump clips.
 

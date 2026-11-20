@@ -39,7 +39,8 @@ def main():
 
     references = {clip:pose(clip,0,parts) for clip in ['Living_Idle','Swim']}
     endpoints = {};issues = []
-    for clip,start,end in [('Hop','Living_Idle','Living_Idle'),('Water_Entry','Living_Idle','Swim'),('Shore_Exit','Swim','Living_Idle')]:
+    for clip,start,end in [('Big_Jump','Living_Idle','Living_Idle'),('Hop','Living_Idle','Living_Idle'),
+                           ('Water_Entry','Living_Idle','Swim'),('Shore_Exit','Swim','Living_Idle')]:
         for phase,reference in [(0,start),(1,end)]:
             points = pose(clip,phase,parts)
             error = max(float(np.linalg.norm(points[name]-references[reference][name],axis=1).max()) for name in points)
@@ -47,7 +48,8 @@ def main():
             endpoints[key] = {'reference':reference+' frame 0','maximum_skin_displacement_m':error}
             if error>.00025:issues.append(key+': does not match its neighboring pose')
     contact = {};samples = 0
-    for clip,windows in [('Hop',[(0,.06),(.96,1)]),('Water_Entry',[(0,.04)]),('Shore_Exit',[(.94,1)])]:
+    for clip,windows in [('Big_Jump',[(0,.02),(.99,1)]),('Hop',[(0,.06),(.96,1)]),
+                         ('Water_Entry',[(0,.04)]),('Shore_Exit',[(.94,1)])]:
         minimum = float('inf');gap = -float('inf');count = 0
         for first,last in windows:
             for phase in np.linspace(first,last,11):
@@ -58,8 +60,25 @@ def main():
         contact[clip] = {'sampled_contact_poses':count,'minimum_pad_height_m':minimum,'maximum_planted_pad_gap_m':gap}
         if minimum<-.00045:issues.append(clip+': planted pads enter the support plane')
         if gap>.0009:issues.append(clip+': planted pads leave the support plane')
-    report = {'endpoints':endpoints,'contact':contact,'evaluated_meshes':len(parts),'contact_pose_samples':samples,'issues':issues,
-              'scope':'All evaluated meshes at six transition endpoints, 0.25 mm maximum neighbor-pose displacement. Eighteen evaluated toe pads in 44 planted-phase poses, 0.45 mm penetration and 0.9 mm gap tolerances. Authored metre scale; no world collision or continuous-time guarantee.'}
+    brace_phase = .85
+    brace = pose('Big_Jump', brace_phase, pads)
+    rest = references['Living_Idle']
+    fore_reach = min(float(rest[name][:,1].mean()-values[:,1].mean())
+                     for name,values in brace.items() if name.startswith('hand'))
+    front_heights = [float(values[:,2].min()) for name,values in brace.items() if name.startswith('hand')]
+    fore_gap = max(front_heights)
+    hind_gap = min(float(values[:,2].min()) for name,values in brace.items() if name.startswith('foot'))
+    if fore_reach<.010:issues.append('Big_Jump: front pads do not reach ahead on descent')
+    if min(front_heights)<-.00045 or fore_gap>.0009:issues.append('Big_Jump: reaching front pads miss the support plane')
+    if hind_gap-fore_gap<.004:issues.append('Big_Jump: hind pads do not clear the reaching front pads')
+    report = {'endpoints':endpoints,'contact':contact,'evaluated_meshes':len(parts),'contact_pose_samples':samples,
+              'jump_brace':{'phase':brace_phase,'minimum_fore_pad_reach_m':fore_reach,
+                            'maximum_fore_pad_gap_m':fore_gap,'minimum_hind_pad_gap_m':hind_gap},
+              'issues':issues,
+              'scope':('All evaluated meshes at eight transition endpoints, 0.25 mm maximum neighbor-pose displacement. '
+                       'Eighteen evaluated toe pads in 66 planted-phase poses, 0.45 mm penetration and 0.9 mm gap tolerances. '
+                       'One jump descent pose checks forefoot reach, front pad height and hind pad clearance. '
+                       'Authored metre scale; no world collision or continuous-time guarantee.')}
     args.report.parent.mkdir(parents=True,exist_ok=True)
     args.report.write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8',newline='\n')
     print('ORIGINAL_TRANSITION_CHECK '+json.dumps(report),flush=True)

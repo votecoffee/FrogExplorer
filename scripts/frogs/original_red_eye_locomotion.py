@@ -133,14 +133,20 @@ def kick(frog, side, extension, torso, recovery=0, settle=1):
 def jump(frog, t):
     crouch = smooth(0,.12,t)*(1-smooth(.12,.24,t))
     extension = smooth(.12,.40,t)*(1-smooth(.62,.94,t))
-    torso = body(frog, (.035*crouch-.025*extension,0,0), (0,0,-.003*crouch))
+    brace = smooth(.54, .85, t)*(1-smooth(.87, .98, t))
+    tuck = smooth(.71, .87, t)*(1-smooth(.91, .99, t))
+    settle = smooth(0, .10, t)*(1-smooth(.78, .96, t))
+    torso = body(frog, (.035*crouch-.025*extension+.065*brace, 0, 0),
+                 (0, 0, -.003*crouch-.0018*brace))
     for side in ['L','R']:
         sign = -1 if side=='L' else 1
-        kick(frog,side,extension,torso)
+        # Keep the hind pads clear as the forefeet reach down and ahead.
+        kick(frog, side, extension, torso, recovery=.7*tuck, settle=settle)
         palm = frog.limbs[(side,'arm')][0][-1].copy()
-        palm.y += .025*extension;palm.z += .022*extension
-        palm.x += sign*.002*extension
-        place(frog,side,'arm',palm,torso)
+        palm.y += .025*extension-.017*brace
+        palm.z += .022*extension*(1-brace)
+        palm.x += sign*(.002*extension+.003*brace)
+        place(frog, side, 'arm', palm, torso, pole_blend=settle)
 
 
 def swim_hand(frog,side):
