@@ -84,7 +84,12 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v39**. Four
+The current authored revision is **original-red-eye-v40**. The
+hind feet have an uneven toe fan, a tapered heel, and flatter adhesive
+pads. The webbing follows the toes as they spread for the swim power
+stroke and draw together during recovery.
+
+In v39 four
 additional skin joints follow the knee and ankle bends through the
 exported animations. During the swim kick and big jump, the thinnest
 sampled ankle section retains about 85 percent of its resting diameter.

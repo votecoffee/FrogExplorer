@@ -136,10 +136,15 @@ def swim(frog, t):
     # Quick paired power stroke, brief glide, then slower recovery.
     extension = smooth(0,.32,t)*(1-smooth(.48,1,t))
     recovery = sin(pi*smooth(.48,1,t))**2
+    # Open the toe fan before full extension. Pull the outer digits inward
+    # as the knees recover toward the body, then ease back to the resting fan.
+    spread = .27*smooth(.02,.26,t)*(1-smooth(.43,.68,t))-.24*recovery
     torso = body(frog, (.012*sin(2*pi*t),0,0))
     for side in ['L','R']:
         sign = -1 if side=='L' else 1
         kick(frog,side,extension,torso,recovery)
+        for (_, names), leverage in zip(frog.digits[(side,'foot')], (-.62,-.38,-.04,.48,1)):
+            rotate(frog, names[0], Quaternion((0,0,1), sign*leverage*spread))
         # Small steering sweep; forefeet stay lateral and below the mouth.
         palm = swim_hand(frog,side)+Vector((sign*.007*recovery,.006*extension,0))
         place(frog,side,'arm',palm,torso)

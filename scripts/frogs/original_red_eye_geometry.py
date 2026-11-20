@@ -10,7 +10,7 @@ from pathlib import Path
 import bpy
 import numpy as np
 from mathutils import Vector
-from original_red_eye_feet import adhesive_pad, digital_web
+from original_red_eye_feet import HIND_DIGIT_FAN, adhesive_pad, digital_web, hind_palm
 from original_red_eye_face import (
     BODY_Y_RANGE, FACE_SECTIONS, NARIS_ANGLE, NARIS_Y, add_features,
     naris_radius, orbital_recess, shorten_muzzle, tympanic_radius, tympanic_relief,
@@ -296,13 +296,13 @@ class Frog:
                     name = 'DEF-'+name+'.'+side
                     self.bone(name, points[i], points[i+1], parent);parent = name;full.append(name)
                 self.limbs[(side, label)] = (points, full)
-            for label, palm, parent, lengths in [
-                ('hand', hand, 'DEF-hand.'+side, [.0168, .0232, .0240, .0184]),
-                ('foot', foot, 'DEF-foot.'+side, [.0166, .0232, .0299, .0274, .0199])]:
+            hand_fan = tuple(((i-1.5)*.48, length) for i, length in enumerate((.0168, .0232, .0240, .0184)))
+            for label, palm, parent, fan_profile in [
+                ('hand', hand, 'DEF-hand.'+side, hand_fan),
+                ('foot', foot, 'DEF-foot.'+side, HIND_DIGIT_FAN)]:
                 digits = []
-                for i, length in enumerate(lengths):
-                    fan = (i-(len(lengths)-1)/2)*.48
-                    base = palm+Vector((sign*(i-(len(lengths)-1)/2)*.0028, -.002, 0))
+                for i, (fan, length) in enumerate(fan_profile):
+                    base = palm+Vector((sign*(i-(len(fan_profile)-1)/2)*.0028, -.002, 0))
                     end = base+Vector((sign*sin(fan)*length, -cos(fan)*length, -.0003))
                     middle = base.lerp(end, .55)+Vector((0, 0, .0016))
                     name = f'Digit_{label}_{i+1}.{side}'
@@ -738,20 +738,24 @@ class Frog:
             self.tube('Continuous '+label+' '+side, points, radii, bones, self.limb_mat, 24 if label=='leg' else 12, 24, bulges, flatten, True,
                       (-1 if side=='L' else 1, inset))
             palm = points[-1]
-            size = (.0058,.0056,.00165) if label=='arm' else (.0062,.0057,.00165)
-            self.ellipsoid('Orange '+label+' palm '+side, palm+Vector((0,0,.00025)), size, self.orange, bones[-1])
+            name = 'Orange '+label+' palm '+side
+            if label=='leg':
+                hind_palm(self, name, palm, bones[-1])
+            else:
+                self.ellipsoid(name, palm+Vector((0,0,.00025)), (.0058,.0056,.00165), self.orange, bones[-1])
         for (side, label), digits in self.digits.items():
             sizes = [.84,1.0,1.03,.91] if label=='hand' else [.80,.93,1.06,1.0,.88]
             for number, (points, bones) in enumerate(digits, 1):
                 size = sizes[number-1]
                 self.tube(f'{label} digit {number} {side}', points, [r*size for r in [.00145,.00110,.00125]], bones, self.orange, 10, 16, [.16,.12], [.88,.84,.65], True)
-                adhesive_pad(self, f'{label} adhesive disc {number} {side}', points, bones[-1], size*(.82 if label=='hand' else .85))
+                adhesive_pad(self, f'{label} adhesive disc {number} {side}', points, bones[-1],
+                             size*(.82 if label=='hand' else .85), hind=label=='foot')
             digital_web(self, side, label, digits)
 
     def build(self):
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v39'
+        self.arm['model_revision'] = 'original-red-eye-v40'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self
