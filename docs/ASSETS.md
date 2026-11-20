@@ -84,7 +84,12 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v36**. The tongue
+The current authored revision is **original-red-eye-v37**. Fuller corneal
+shoulders surround a slightly flatter center. Radial iris pigment warms
+toward a tapered pupil and deepens toward the edge. The cornea carries a
+softer highlight, and both eyelids fit the new profile through the blink.
+
+In v36 the tongue
 narrows through the shaft and widens into a rounded contact pad. A baked
 color gradient and fine stipple define the pad, with softer highlights.
 The pad profile takes cues from the soft tissue in

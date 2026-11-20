@@ -138,6 +138,32 @@ def add_orbital_socket(frog, side, center, normal, horizontal, vertical):
               [{'Head':1} for _ in vertices], frog.orbit_mat)
 
 
+def add_cornea(frog, side, center, normal, horizontal, vertical):
+    """Round the corneal shoulders while keeping the eyelid attachment edge fixed."""
+    rings, segments = 24, 64
+    vertices, faces, uv = [], [], []
+    for i in range(rings+1):
+        phi = EYE_APERTURE*i/rings
+        fraction = sin(phi)/sin(EYE_APERTURE)
+        radial_squared = fraction*fraction
+        relief = (.00165*radial_squared-.00028)*(1-radial_squared)**2
+        depth = EYE_RADIUS*EYE_ASPECT[2]*cos(phi)+relief
+        span = EYE_RADIUS*sin(phi)
+        for j in range(segments+1):
+            angle = 2*pi*j/segments
+            x, y = cos(angle), sin(angle)
+            radial = horizontal*(x*EYE_ASPECT[0])+vertical*(y*EYE_ASPECT[1])
+            vertices.append(center+normal*depth+radial*span)
+            uv.append((.5+.5*fraction*x,.5+.5*fraction*y))
+    for i in range(rings):
+        for j in range(segments):
+            a = i*(segments+1)+j
+            b = a+segments+1
+            faces.append((a,a+1,b+1,b))
+    frog.mesh('Red corneal surface '+side, vertices, faces, uv,
+              [{'FX_eye.'+side:1} for _ in vertices], frog.iris)
+
+
 def add_upper_eyelid(frog, side, sign, center, normal, horizontal, vertical):
     """Sculpt the arched fold with the lid shut, then turn it into its rest pose."""
     radius = EYE_RADIUS+.0005
@@ -240,8 +266,7 @@ def add_features(frog):
     for side,sign in [('L',-1),('R',1)]:
         center = frog.bones['FX_eye.'+side][0];n,u,v = eye_frame(sign)
         add_orbital_socket(frog, side, center, n, u, v)
-        frog.cap('Red corneal surface '+side,center,n,EYE_RADIUS,EYE_APERTURE,
-                 frog.iris,'FX_eye.'+side,24,64,aspect=EYE_ASPECT)
+        add_cornea(frog, side, center, n, u, v)
         add_upper_eyelid(frog, side, sign, center, n, u, v)
         lip = []
         for y in np.linspace(-.0827,-.0315,48):

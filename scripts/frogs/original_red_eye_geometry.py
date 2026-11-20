@@ -91,16 +91,22 @@ def painted_maps(name, width, height, kind):
         radius = np.sqrt(x*x+y*y)
         angle = np.arctan2(y, x)
         crypts = value_noise(u,v,70,70,216)*.65+value_noise(u,v,200,200,217)*.35
-        fiber = np.sin(angle*137+radius*23+crypts*7)*.28+np.sin(angle*241-radius*31+grain*9)*.12
-        pupil_width = .25*np.maximum(0,1-(y/.61)**2)**.50
-        gold = np.exp(-((abs(x)-pupil_width-.045)/.045)**2)*(1-smooth(.56,.72,abs(y)))
-        orange = smooth(-.25,.55,crypts+fiber)*.55+.30*gold
-        rgb = np.stack([.52+.20*orange+.12*crypts+.07*fiber,
-                        .035+.115*orange+.020*crypts,
-                        .008+.012*orange],axis=-1)
-        rgb[(abs(x)<pupil_width)&(abs(y)<.61)] = [.002,.003,.002]
-        rim = smooth(.96,.997,radius)
-        rgb = rgb*(1-rim[:,:,None])+np.array([.034,.018,.009])*rim[:,:,None]
+        thread = np.sin(139*angle+19*radius+2.9*grain)*.26
+        thread += np.sin(223*angle-27*radius+5.8*crypts)*.12
+        taper = np.maximum(0,1-(abs(y)/.655)**1.85)
+        pupil_width = .183*taper**.65
+        centerline = .027*y*taper
+        distance = abs(x-centerline)-pupil_width
+        pupil = (1-smooth(-.004,.006,distance))*(1-smooth(.633,.655,abs(y)))
+        collar = np.exp(-((distance-.027)/.049)**2)*(1-smooth(.56,.71,abs(y)))
+        orange = .46*(1-smooth(.22,.88,radius))+.49*collar
+        fibers = (1-smooth(.88,1,radius))*(.081*thread+.078*crypts)
+        rgb = np.stack([.61+.24*orange+fibers,
+                        .050+.195*orange+.42*fibers,
+                        .016+.017*orange+.07*fibers],axis=-1)
+        rgb = rgb*(1-pupil[:,:,None])+np.array([.003,.005,.005])*pupil[:,:,None]
+        rim = smooth(.939,.997,radius)
+        rgb = rgb*(1-rim[:,:,None])+np.array([.042,.016,.026])*rim[:,:,None]
         return image(name+' color', np.clip(rgb, 0, 1)), None, None
     if kind in ('ventral', 'jaw'):
         rgb = np.broadcast_to([.70, .70, .57], (height, width, 3)).copy()
@@ -254,8 +260,8 @@ class Frog:
         self.pink = material('Tongue muscle', (.40, .16, .139), .45,
                              maps=(tongue_color, None, None), coat=.10)
         self.dark = material('Mouth seam', (.006, .011, .004), .5)
-        self.iris = material('Original red iris and vertical pupil', (.7, .07, .01), .17,
-                             maps=painted_maps('Original iris', 1024, 1024, 'iris'), coat=.45)
+        self.iris = material('Original red iris and vertical pupil', (.7, .07, .01), .205,
+                             maps=painted_maps('Original iris', 1024, 1024, 'iris'), coat=.24)
         arm_data = bpy.data.armatures.new('Original leaf-frog joint definitions')
         self.arm = bpy.data.objects.new('Original_Red_Eye_Rig', arm_data)
         bpy.context.collection.objects.link(self.arm)
@@ -517,24 +523,6 @@ class Frog:
         faces.extend([tuple(reversed(range(segments))), tuple(total*(segments+1)+j for j in range(segments))])
         return self.mesh(name, vertices, faces, uv, weights, mat)
 
-    def cap(self, name, center, direction, radius, angle, mat, bone, rings=20, segments=64, aspect=(1, 1, 1), disk_uv=True):
-        n = Vector(direction).normalized();u = n.cross(Vector((0, 0, 1))).normalized();v = u.cross(n).normalized()
-        vertices = [];uv = [];faces = []
-        for i in range(rings+1):
-            phi = angle*i/rings
-            for j in range(segments+1):
-                theta = 2*pi*j/segments
-                radial = u*(cos(theta)*aspect[0])+v*(sin(theta)*aspect[1])
-                vertices.append(Vector(center)+radius*(n*(cos(phi)*aspect[2])+radial*sin(phi)))
-                if disk_uv:
-                    fraction = sin(phi)/sin(angle)
-                    uv.append((.5+.5*fraction*cos(theta), .5+.5*fraction*sin(theta)))
-                else:uv.append((j/segments, i/rings))
-        for i in range(rings):
-            for j in range(segments):
-                a = i*(segments+1)+j;b = a+segments+1;faces.append((a, a+1, b+1, b))
-        return self.mesh(name, vertices, faces, uv, [{bone:1} for _ in vertices], mat)
-
     def jaw_width(self,y):
         # Interpolated jaw widths must remain inside the closing upper lip,
         # including between controls near the rear mouth corner.
@@ -722,6 +710,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v36'
+        self.arm['model_revision'] = 'original-red-eye-v37'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self
