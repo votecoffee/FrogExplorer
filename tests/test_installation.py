@@ -14,6 +14,7 @@ sys.path.insert(0,str(SCRIPTS))
 from manage_assets import import_assets,safe_path
 import bootstrap
 from bootstrap import unpack,platform_key
+from build_ros_windows import link_game, stage_game
 
 
 class AssetImportTests(unittest.TestCase):
@@ -92,6 +93,47 @@ class WorkspaceSettingsTests(unittest.TestCase):
                     bootstrap.main()
             settings = json.loads((root / ".local/settings.json").read_bytes())
             self.assertEqual(settings["ros_workspace"], str(workspace.resolve()))
+
+
+class WindowsStageTests(unittest.TestCase):
+    @unittest.skipUnless(sys.platform == "win32", "requires Windows junctions")
+    def test_stage_cleanup_leaves_the_game_source_intact(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            game = workspace / "source [with spaces]" / "game"
+            game.mkdir(parents=True)
+            asset = game / "source.glb"
+            asset.write_bytes(b"original game asset")
+
+            with tempfile.TemporaryDirectory(dir=workspace, prefix="staging area ") as stage_directory:
+                stage = Path(stage_directory)
+                if not link_game(game, stage):
+                    self.skipTest("test volume does not support directory junctions")
+                self.assertTrue((stage / "game/source.glb").samefile(asset))
+
+            self.assertFalse(stage.exists())
+            self.assertEqual(asset.read_bytes(), b"original game asset")
+
+    def test_stage_copies_runtime_assets_when_a_junction_is_unavailable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "checkout"
+            stage = Path(directory) / "stage"
+            module = Path("ros2_ws/src/frog_explorer/frog_explorer/asset_files.py")
+            files = {
+                module: (SCRIPTS.parent / module).read_bytes(),
+                Path("game/data/travel_places.json"): b'{"places":[]}',
+                Path("game/assets/frogs/kept.glb"): b"runtime asset",
+                Path("game/assets/worlds/unused.glb"): b"old cache",
+            }
+            for relative, contents in files.items():
+                (root / relative).parent.mkdir(parents=True, exist_ok=True)
+                (root / relative).write_bytes(contents)
+
+            with patch("build_ros_windows.link_game", return_value=False), patch("builtins.print"):
+                stage_game(root, stage)
+
+            self.assertEqual((stage / "game/assets/frogs/kept.glb").read_bytes(), b"runtime asset")
+            self.assertFalse((stage / "game/assets/worlds").exists())
 
 
 if __name__=="__main__":unittest.main()

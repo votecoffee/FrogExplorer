@@ -87,7 +87,7 @@ To put the build, install and log directories on another drive, add `-RosWorkspa
 
 The installer saves the workspace path in `.local/settings.json`. Subsequent builds read the package and game source from this checkout and write to that workspace. The launcher opens the installed game and, when ROS is enabled, starts the bridge from the same installation. Use `-Editor` to edit the checkout's game.
 
-For Windows builds that cross drive letters, FrogExplorer temporarily stages the package source and runtime assets on the workspace drive for colcon.
+For Windows builds that cross drive letters, FrogExplorer stages the package source on the workspace drive. Colcon reads the game assets through a temporary directory junction and installs regular copies. When the workspace filesystem cannot create a junction, the build stages the selected runtime assets as copies.
 
 ### Linux and Raspberry Pi
 
