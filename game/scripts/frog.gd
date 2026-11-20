@@ -11,6 +11,8 @@ const SPECIES = [
  {"name":"American toad","file":"american_toad","pitch":1.0,"call":"american_toad.wav"}]
 const LOOPING=["Idle","Living_Idle","Slow_Walk","Swim","Climb","Toe_Tap","Swamp_Shuffle","Disco_Frog"]
 const SILLY=["Toe_Tap","Foot_Wave","Swamp_Shuffle","Disco_Frog","Victory_Ribbit","Breakdance"]
+const CRAWL_ACCELERATION = .65
+const CRAWL_BRAKING = 2.6
 var rides:ExplorerRides
 var actor_layer=1
 var render_layer=0
@@ -303,8 +305,18 @@ func _physics_process(delta):
   heading+=controls.remote_velocity.w*delta
   desired=forward()*controls.remote_velocity.x+forward().cross(Vector3.UP)*controls.remote_velocity.y
  if jumping:desired+=hop_impulse
- var acceleration=3.5 if jumping else 3.5*size
- velocity.x=move_toward(velocity.x,desired.x,delta*acceleration);velocity.z=move_toward(velocity.z,desired.z,delta*acceleration)
+ var crawling=mode=="LAND" and is_on_floor() and not (jumping or frozen or remote)
+ if crawling:
+  var horizontal=Vector2(velocity.x,velocity.z)
+  var target=Vector2(desired.x,desired.z)
+  # Brake to rest before accelerating in the opposite direction.
+  if horizontal.dot(target)<0:target=Vector2.ZERO
+  var ramp=CRAWL_BRAKING if target.length_squared()<horizontal.length_squared() else CRAWL_ACCELERATION
+  horizontal=horizontal.move_toward(target,delta*ramp*size)
+  velocity.x=horizontal.x;velocity.z=horizontal.y
+ else:
+  var acceleration=3.5 if jumping else 3.5*size
+  velocity.x=move_toward(velocity.x,desired.x,delta*acceleration);velocity.z=move_toward(velocity.z,desired.z,delta*acceleration)
  if mode=="SWIM":
   var up=-aux.y*.60*size
   if remote:up=controls.remote_velocity.z
@@ -336,6 +348,10 @@ func _physics_process(delta):
  if action_timer<=0:
   if mode=="SWIM":_play("Swim",1.2 if desired.length()>.1*size else .55)
   elif not is_on_floor():_play("Hop")
+  elif crawling:
+   var actual_speed=Vector2(velocity.x,velocity.z).length()
+   if actual_speed>.025*size:_play("Slow_Walk",clampf(actual_speed/(.20*size),.35,2.8))
+   else:_play("Living_Idle")
   elif desired.length()>.05*size:_play("Slow_Walk",clampf(desired.length()/(.20*size),.7,2.8))
   else:_play("Living_Idle")
 

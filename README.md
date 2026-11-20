@@ -173,6 +173,8 @@ Linux equivalents are `--host 24970` and `--join 192.168.1.20:24970`.
 
 In menus, use the left stick/D-pad or arrows to select, **A / Enter** to activate and **B / Escape** to close.
 
+On land, hold a movement key or the D-pad to reach full crawl speed in about 0.8 seconds. A partial stick deflection ramps toward a slower speed. Releasing movement brakes the frog to rest, and the walking cadence follows its speed.
+
 Walk into a trunk and keep pressing forward to climb. Either stick's horizontal input moves around the trunk; X/Space jumps away. Enter the pond to swim. Hold right-stick down or K to dive; releasing depth input floats toward the surface.
 
 Pond entry and shore exit play short transition animations. Movement and depth controls remain active; jump, fly-catching, croak and silly-motion buttons can interrupt a transition. Reversing across the shoreline switches to the matching transition.

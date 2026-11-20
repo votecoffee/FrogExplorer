@@ -9,6 +9,40 @@ func check(condition,message):
 func wait(seconds=.15):
  await get_tree().create_timer(seconds).timeout
 
+func check_crawl(game):
+ var p:FrogPilot=game.pilot
+ var controls:ExplorerControls=game.controls
+ var key=InputEventKey.new();key.keycode=KEY_W;key.physical_keycode=KEY_W;key.pressed=true
+ var pad=InputEventJoypadButton.new();pad.device=42;pad.button_index=JOY_BUTTON_DPAD_UP;pad.pressed=true
+ controls.device=42
+ for press in [key,pad]:
+  var label="Keyboard" if press==key else "D-pad"
+  p.reset_position();await wait(.18)
+  Input.parse_input_event(press);await wait(.18)
+  var early=absf(p.velocity.z);var cadence=p.player.speed_scale
+  await wait(.70)
+  var cruising=absf(p.velocity.z)
+  check(early>.05 and early<.25 and absf(cruising-.52)<.055,label+" crawl ramps from rest to full speed")
+  check(p.current_clip=="Slow_Walk" and p.player.speed_scale>cadence+.9,label+" crawl speeds up the walking cadence")
+
+  var release=press.duplicate();release.pressed=false;Input.parse_input_event(release)
+  await wait(.08)
+  check(absf(p.velocity.z)>.05 and absf(p.velocity.z)<cruising-.06 and p.current_clip=="Slow_Walk",label+" release brakes while the frog is still walking")
+  await wait(.22)
+  check(absf(p.velocity.z)<.02 and p.current_clip=="Living_Idle",label+" crawl settles to idle")
+
+ p.reset_position();await wait(.18)
+ var axis=InputEventJoypadMotion.new();axis.device=42;axis.axis=JOY_AXIS_LEFT_Y
+ axis.axis_value=-.5;Input.parse_input_event(axis);await wait(.48)
+ var partial=absf(p.velocity.z)
+ axis.axis_value=-1;Input.parse_input_event(axis);await wait(.72)
+ check(partial>.12 and partial<.32 and absf(p.velocity.z)>.47,"Partial stick deflection gives a slower crawl")
+ axis.axis_value=1;Input.parse_input_event(axis);await wait(.08)
+ check(p.velocity.z<-.05 and p.velocity.z>-.45,"Reversing the stick brakes the forward crawl first")
+ await wait(.27)
+ check(p.velocity.z>.04 and p.velocity.z<.32,"Reversing the stick ramps speed in the new direction")
+ axis.axis_value=0;Input.parse_input_event(axis);controls._find_device()
+
 func run(game):
  var p=game.pilot
  await wait(.25)
@@ -29,6 +63,7 @@ func run(game):
   game.controls.device=42;var event=InputEventJoypadButton.new();event.device=42;event.button_index=button;event.pressed=true;game.controls._input(event)
   check(game.controls.pending.size()>0,"Gamepad button maps: "+str(button));game.controls.pending.clear()
  game.controls._find_device()
+ await check_crawl(game)
  game.camera_rig.view_mode=1;p.reset_position();await wait(.1)
  var steer_start=p.heading;game.controls.remote_move=Vector2(.8,0);game.controls.remote_aux=Vector2.ZERO;game.controls.remote_until=Time.get_ticks_msec()/1000.0+.3
  await wait(.15);check(angle_difference(steer_start,p.heading)<-.05,"Right stick direction on left control steers right in chase view")
