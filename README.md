@@ -75,7 +75,17 @@ Install ROS separately using the [official Windows instructions](https://docs.ro
 
 The prefix must contain `local_setup.ps1`. The launcher recognizes the usual `.pixi/envs/default/python.exe` layout; pass `-RosPython "C:\path\to\ros-python.exe"` for another layout. ROS uses its own compatible Python, rather than assuming the installer's Python has `rclpy`.
 
-This builds `ros2_ws/src/frog_explorer` into ignored `ros2_ws/build`, `install` and `log` directories. No ROS underlay or complete generated workspace is tracked. After ROS is configured, the normal launcher starts its bridge automatically; `-WithoutRos` overrides that setting.
+This builds `ros2_ws/src/frog_explorer` into ignored `ros2_ws/build`, `install` and `log` directories. After ROS is configured, the normal launcher starts its bridge automatically. Use `-WithoutRos` for standalone play.
+
+To put the build, install and log directories on another drive, add `-RosWorkspace` to the installer.
+
+```powershell
+.\scripts\install_windows.ps1 -WithRos -RosPrefix "C:\path\to\lyrical" -RosWorkspace "D:\workspaces\FrogExplorer" -BuildRos -Test
+.\scripts\build_windows.ps1 -Test
+.\Start-FrogExplorer.cmd
+```
+
+The installer saves the workspace path in `.local/settings.json`. Subsequent builds read the package and game source from this checkout and write to that workspace. The launcher opens the installed game and, when ROS is enabled, starts the bridge from the same installation. Use `-Editor` to edit the checkout's game.
 
 ### Linux and Raspberry Pi
 
@@ -96,6 +106,8 @@ bash scripts/run_linux.sh --with-ros
 # Explicit standalone play:
 bash scripts/run_linux.sh --without-ros
 ```
+
+Add `--ros-workspace /path/to/workspace` to the installer to build and run from a separate ROS workspace.
 
 The pond is available on every supported platform. Real-world packs currently remain filtered out on Linux/Pi until qualified. The larger scans need performance work before claiming Pi suitability.
 
@@ -184,7 +196,7 @@ After configuring ROS:
 
 ```powershell
 . .\scripts\environment.ps1
-. .\ros2_ws\install\local_setup.ps1
+. (Join-Path (Resolve-FrogRosWorkspace) 'install\local_setup.ps1')
 ros2 launch frog_explorer explorer.launch.py
 ros2 topic echo /frog_explorer/state
 ```

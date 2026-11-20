@@ -6,11 +6,13 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 
 SCRIPTS=Path(__file__).resolve().parents[1]/"scripts"
 sys.path.insert(0,str(SCRIPTS))
 from manage_assets import import_assets,safe_path
+import bootstrap
 from bootstrap import unpack,platform_key
 
 
@@ -68,6 +70,28 @@ class ArchiveTests(unittest.TestCase):
                 output.writestr("valid",b"safe");output.writestr("../escape",b"bad")
             with self.assertRaises(ValueError):unpack(archive,root/"unpack")
             self.assertFalse((root/"unpack/valid").exists());self.assertFalse((root/"escape").exists())
+
+
+class WorkspaceSettingsTests(unittest.TestCase):
+    def test_configured_ros_workspace_survives_a_later_install(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "checkout"
+            root.mkdir()
+            workspace = Path(directory) / "external workspace"
+            engine = root / "godot"
+            command = ["bootstrap.py", "--godot", str(engine)]
+            with (
+                patch.object(bootstrap, "ROOT", root),
+                patch.object(bootstrap, "logged"),
+                patch.object(bootstrap, "validate_engine", return_value="4.7"),
+                patch("builtins.print"),
+            ):
+                with patch.object(sys, "argv", [*command, "--ros-workspace", str(workspace)]):
+                    bootstrap.main()
+                with patch.object(sys, "argv", command):
+                    bootstrap.main()
+            settings = json.loads((root / ".local/settings.json").read_bytes())
+            self.assertEqual(settings["ros_workspace"], str(workspace.resolve()))
 
 
 if __name__=="__main__":unittest.main()

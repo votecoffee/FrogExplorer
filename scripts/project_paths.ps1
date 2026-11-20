@@ -12,3 +12,9 @@ function Resolve-FrogGodot {
  if ($FromPath) { return $FromPath.Source }
  throw 'Run scripts/install_windows.ps1 first, or set GODOT_BIN to your Godot 4.7+ executable.'
 }
+function Resolve-FrogRosWorkspace {
+ $Workspace=$FrogSettings['ros_workspace']
+ if (!$Workspace) { $Workspace='ros2_ws' }
+ if (![IO.Path]::IsPathRooted($Workspace)) { $Workspace=Join-Path $FrogRoot $Workspace }
+ return [IO.Path]::GetFullPath($Workspace)
+}

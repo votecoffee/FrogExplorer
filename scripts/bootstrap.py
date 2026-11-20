@@ -80,6 +80,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--godot",type=Path);parser.add_argument("--skip-download",action="store_true")
     parser.add_argument("--asset-source",type=Path);parser.add_argument("--ros-prefix",type=Path);parser.add_argument("--ros-python",type=Path)
+    parser.add_argument("--ros-workspace",type=Path,help="Store colcon outputs in this workspace and launch its installed game")
     parser.add_argument("--with-ros",action="store_true");parser.add_argument("--build-ros",action="store_true");parser.add_argument("--test",action="store_true")
     args=parser.parse_args();local=ROOT/".local";local.mkdir(exist_ok=True);path=local/"settings.json"
     settings=json.loads(path.read_bytes()) if path.exists() else {}
@@ -88,6 +89,7 @@ def main():
     version=validate_engine(engine);settings["godot"]=str(engine);settings.setdefault("use_ros",False)
     if args.ros_prefix:settings["ros_prefix"]=str(args.ros_prefix.resolve())
     if args.ros_python:settings["ros_python"]=str(args.ros_python.resolve())
+    if args.ros_workspace:settings["ros_workspace"]=str(args.ros_workspace.expanduser().resolve())
     if args.with_ros or args.build_ros:
         prefix=settings.get("ros_prefix") or os.environ.get("ROS_PREFIX") or ("/opt/ros/lyrical" if os.name!="nt" else "")
         setup=Path(prefix)/("local_setup.ps1" if os.name=="nt" else "setup.bash")

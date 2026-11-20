@@ -1,4 +1,4 @@
-param([int]$DomainId=79,[string]$RosPrefix="",[string]$RosPython="")
+param([int]$DomainId=79,[string]$RosPrefix="",[string]$RosPython="",[string]$RosOverlay="")
 $ErrorActionPreference="Stop"
 . "$PSScriptRoot\project_paths.ps1"
 if (!$RosPrefix) { $RosPrefix=if ($env:ROS_PREFIX) { $env:ROS_PREFIX } else { $FrogSettings['ros_prefix'] } }
@@ -21,6 +21,12 @@ New-Item -ItemType Directory -Path $env:ROS_LOG_DIR -Force | Out-Null
 . (Join-Path $RosPrefix 'local_setup.ps1')
 & $RosPython -c 'import rclpy' 2>$null
 if ($LASTEXITCODE -ne 0) { throw 'The configured Python cannot import rclpy. Configure the ROS interpreter with -RosPython.' }
-$env:PYTHONPATH="$(Join-Path $FrogRoot 'ros2_ws\src\frog_explorer');$env:PYTHONPATH"
+if ($RosOverlay) {
+ $OverlaySetup=Join-Path $RosOverlay 'local_setup.ps1'
+ if (!(Test-Path -LiteralPath $OverlaySetup -PathType Leaf)) { throw 'Build the configured ROS workspace before launching its installed game.' }
+ . $OverlaySetup
+} else {
+ $env:PYTHONPATH="$(Join-Path $FrogRoot 'ros2_ws\src\frog_explorer');$env:PYTHONPATH"
+}
 $Godot=Resolve-FrogGodot
 $env:GODOT_BIN=$Godot

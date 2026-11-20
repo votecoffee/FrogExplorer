@@ -30,6 +30,14 @@ while (($#)); do
  esac
 done
 [[ "$HOSTING_LAN" != true || "$JOINING_LAN" != true ]] || { echo 'Choose --host or --join.'; exit 1; }
+FROG_WORKSPACE="$(python3 "$FROG_ROOT/scripts/settings.py" ros_workspace)"
+GAME_PATH="$FROG_ROOT/game"
+if [[ -n "$FROG_WORKSPACE" ]]; then
+ GAME_SHARE="$FROG_WORKSPACE/install/share/frog_explorer"
+ GAME_PATH="$GAME_SHARE/game"
+ [[ -f "$GAME_PATH/project.godot" ]] || { echo "Build the configured ROS workspace before launching its installed game: $FROG_WORKSPACE"; exit 1; }
+ mkdir -p -- "$GAME_SHARE/state"
+fi
 BRIDGE_PID=""
 cleanup() { if [[ -n "$BRIDGE_PID" ]]; then kill "$BRIDGE_PID" 2>/dev/null || true; wait "$BRIDGE_PID" 2>/dev/null || true; fi; }
 trap cleanup EXIT INT TERM
@@ -37,16 +45,20 @@ if [[ "$WITHOUT_ROS" != true ]]; then
  set +u
  ROS_PREFIX="${ROS_PREFIX:-$(python3 "$FROG_ROOT/scripts/settings.py" ros_prefix)}"
  source "${ROS_PREFIX:-/opt/ros/lyrical}/setup.bash"
+ if [[ -n "$FROG_WORKSPACE" ]]; then
+  source "$FROG_WORKSPACE/install/local_setup.bash"
+ else
+  export PYTHONPATH="$FROG_ROOT/ros2_ws/src/frog_explorer:${PYTHONPATH:-}"
+ fi
  set -u
  export ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-79}"
  export ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST
  export ROS_HOME="$FROG_ROOT/state/ros"
  export ROS_LOG_DIR="$ROS_HOME/log"
- export PYTHONPATH="$FROG_ROOT/ros2_ws/src/frog_explorer:${PYTHONPATH:-}"
  python3 -m frog_explorer.bridge >"$FROG_ROOT/state/bridge.log" 2>&1 &
  BRIDGE_PID=$!
 else
  USER_ARGS+=(--no-ros)
 fi
-"$GODOT_BIN" --headless --editor --path "$FROG_ROOT/game" --import >"$FROG_ROOT/state/import.log" 2>&1
-"$GODOT_BIN" --path "$FROG_ROOT/game" "${GAME_ARGS[@]}" -- "${USER_ARGS[@]}" >"$FROG_ROOT/state/game.log" 2>&1
+"$GODOT_BIN" --headless --editor --path "$GAME_PATH" --import >"$FROG_ROOT/state/import.log" 2>&1
+"$GODOT_BIN" --path "$GAME_PATH" "${GAME_ARGS[@]}" -- "${USER_ARGS[@]}" >"$FROG_ROOT/state/game.log" 2>&1
