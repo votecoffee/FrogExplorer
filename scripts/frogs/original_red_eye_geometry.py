@@ -483,6 +483,8 @@ class Frog:
             # The front of the chin is rounded, with less depth by the hinge.
             tip = 1-smooth(-.080,-.062,y)
             depth = .00065+.00170*exp(-((y+.059)/.0155)**2)-.00043*tip
+            chin = .00135*smooth(-.083,-.077,y)*(1-smooth(-.059,-.047,y))
+            throat_join = .00165*exp(-((y+.041)/.0105)**2)*(1-smooth(-.030,-.024,y))
             inset = .00028*(1-smooth(-.082,-.069,y))
             oral_taper = float(smooth(-.080,-.067,y)*(1-smooth(-.034,-.024,y)))
             # Leave .48 mm of wall at the center of the shallower rear jaw.
@@ -497,7 +499,9 @@ class Frog:
                     rim = .00072*exp(-((s-.48)/.19)**2)
                     z = surface+.00030*sqrt(s)+oral_taper*(bowl+rim)*sqrt(s)
                 else:
-                    z = surface-(.00025+depth)*sqrt(-s)
+                    underside = -s
+                    lateral_roll = sin(pi*underside)**2
+                    z = surface-(.00025+depth+chin*underside)*sqrt(underside)-throat_join*lateral_roll
                 # Seat the lip rim inside the curved nose at rest.
                 z += inset*exp(-(s/.63)**2)
                 vertices.append((x, y+.80*inset, z));uv.append((u, j/segments))
@@ -632,6 +636,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v26'
+        self.arm['model_revision'] = 'original-red-eye-v27'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self

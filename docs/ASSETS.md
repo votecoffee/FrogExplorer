@@ -82,7 +82,11 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v26**. One continuous
+The current authored revision is **original-red-eye-v27**. The outer
+lower jaw has a rounder chin and a fuller sidewall that rolls into the
+throat. The inner floor and lip opening retain their geometry.
+
+In v26 one continuous
 tongue surface carries the jaw attachment, flexible shaft and rounded
 pad. The tip leads the strike and curls inward as the shaft shortens
 below the palate during retraction.
