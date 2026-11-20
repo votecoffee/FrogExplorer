@@ -82,7 +82,12 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v22**. The upper
+The current authored revision is **original-red-eye-v23**. The nose bridge
+is fuller at the front and tapers to a rounded point above the lower
+lip. The front of the jaw is shallower, leaving a thinner pale edge
+while the mouth is closed.
+
+In v22 the upper
 orbital ridge rises into the brow and fades into the forehead. The
 socket wall sits deeper in the head, and the narrow eyelid margin
 tapers along the lower edge of the iris.

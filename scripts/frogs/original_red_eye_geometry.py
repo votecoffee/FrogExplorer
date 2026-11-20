@@ -481,7 +481,8 @@ class Frog:
             u = (y-sections[0,0])/(sections[-1,0]-sections[0,0])
             width = self.jaw_width(y)
             # The front of the chin is rounded, with less depth by the hinge.
-            depth = .00065+.00170*exp(-((y+.059)/.0155)**2)
+            tip = 1-smooth(-.080,-.062,y)
+            depth = .00065+.00170*exp(-((y+.059)/.0155)**2)-.00043*tip
             inset = .00028*(1-smooth(-.082,-.069,y))
             for j in range(segments+1):
                 angle = j/segments*2*pi
@@ -578,6 +579,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v22'
+        self.arm['model_revision'] = 'original-red-eye-v23'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self

@@ -13,7 +13,7 @@ EYE_APERTURE = 1.31
 BODY_Y_RANGE = (-.083,.073)
 NARIS_XY = (.0140,-.0740)
 FACE_SECTIONS = [
-    [-.083,.0064,.0444,.0481],[-.078,.0153,.0445,.0527],
+    [-.083,.0064,.0444,.0492],[-.078,.0153,.0445,.0541],
     [-.069,.0231,.0450,.0572],[-.049,.0325,.0459,.0628],
     [-.030,.0306,.0405,.0612]]
 
@@ -36,16 +36,18 @@ def lid_sweep(sign, amount):
 
 
 def shorten_muzzle(point):
-    """Shape the same shortened, rounded taper on the muzzle and jaw."""
+    """Give the nose a rounded overhang above the fitted lower lip."""
     point = Vector(point)
     if point.y<-.061:
-        front = min(1,max(0,(point.y+.083)/.008));front = front*front*(3-2*front)
+        front = min(1,max(0,(point.y+.083)/.0105));front = front*front*(3-2*front)
         t = min(1,max(0,(point.y+.083)/.022));t = t*t*(3-2*t)
         point.y += .0072*(1-t)
         tip = 1-front
-        rounded_side = (point.x/.0095)**2
-        point.y += .0012*tip*rounded_side/(.30+rounded_side)
-        point.x *= 1-.18*(1-t)
+        squared_width = (point.x/.0095)**2
+        side = squared_width/(.30+squared_width)
+        bridge = exp(-((point.z-.0500)/.0038)**2)
+        point.y += tip*(.00145*side-.00068*(1-.40*side)*bridge)
+        point.x *= 1-.18*(1-t)+.17*tip
     return point
 
 
@@ -162,7 +164,7 @@ def add_features(frog):
         for y in np.linspace(-.0827,-.0315,48):
             x = sign*frog.jaw_width(y)
             lip.append((x,y,frog.body_height(x,y,False)-.00005))
-        lip_radii = [.000055+.000075*sin(pi*i/(len(lip)-1)) for i in range(len(lip))]
+        lip_radii = [.000048+.000060*sin(pi*i/(len(lip)-1)) for i in range(len(lip))]
         frog.tube('Mouth commissure '+side,lip,lip_radii,['Head']*(len(lip)-1),frog.dark,1,8)
         # The dark aperture and soft inner rim sit in the sculpted skin dimple.
         x,y = sign*NARIS_XY[0],NARIS_XY[1];z = frog.body_height(x,y)
