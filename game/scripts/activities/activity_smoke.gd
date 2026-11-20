@@ -16,10 +16,11 @@ func frames(count: int) -> void:
  for frame in count:
   await get_tree().physics_frame
 
-func f5() -> void:
+func press_key(key: Key, ctrl := false) -> void:
  var event := InputEventKey.new()
- event.keycode = KEY_F5
- event.physical_keycode = KEY_F5
+ event.keycode = key
+ event.physical_keycode = key
+ event.ctrl_pressed = ctrl
  event.pressed = true
  Input.parse_input_event(event)
  var release := event.duplicate() as InputEventKey
@@ -66,7 +67,7 @@ func run(game) -> void:
  var has_car := await travel(game, IDS[0])
  check(has_car and game.woodland is ExplorerActivityWorld, "Travel stages a procedural car circuit")
  if has_car:
-  f5()
+  press_key(KEY_F5)
   await frames(24)
   check(game.rides.kind == "CAR" and game.rides.body.is_on_floor(), "F5 action boards the grounded convertible")
   if game.rides.kind == "CAR":
@@ -90,7 +91,7 @@ func run(game) -> void:
    check(game.activities.progress.best.has(IDS[0]), "The car circuit records a personal best")
    check(course.splits.size() == world.gates.size() * 2 and is_equal_approx(course.splits[-1], course.elapsed), "The car stores a separate split for each gate on both laps")
    var best: float = game.activities.progress.best.get(IDS[0], 0.0)
-   f5()
+   press_key(KEY_F5)
    await frames(24)
    var replay = game.activities.course
    check(not game.activities.split_status.visible and not game.activities.reference.is_empty(), "Restart clears the old split display and loads the previous run for comparison")
@@ -149,7 +150,7 @@ func run(game) -> void:
    check(course.finished and course.elapsed > 0, "The ordered balloon-ring run finishes")
    check(game.activities.progress.best.has(IDS[1]), "The integrated course records a personal best")
    check(course.splits.size() == air.gates.size() and is_equal_approx(course.splits[-1], course.elapsed), "The balloon stores a split for every ring")
-   f5()
+   press_key(KEY_F5)
    await frames(24)
    var replay = game.activities.course
    check(not game.activities.reference.is_empty() and replay.checkpoint_count == air.gates.size(), "The balloon loads its own split times")
@@ -181,20 +182,56 @@ func run(game) -> void:
   check(error.is_empty() and program.harvested == program.plants.size(), "Garden puzzle %d can be solved with commands and loops" % (index + 1))
 
  if has_garden:
-  f5()
+  press_key(KEY_F5)
   await frames(4)
   var popup = game.activities.garden
   check(popup.visible and game.pilot.paused and popup.source.has_focus(), "The garden popup owns keyboard focus and pauses movement")
   game.controls.pending.append("travel_home")
   await frames(4)
   check(t.current_id == IDS[2] and not t.busy, "Game shortcuts are suspended while editing")
-  popup._run()
+  press_key(KEY_F10)
+  await frames(18)
+  check(popup.garden.turn == 1 and popup.garden.tank == Program.CAPACITY and not popup.running, "F10 executes one command and waits for the next step")
+  check(popup.source.get_executing_lines() == PackedInt32Array([1]) and "next line 4" in popup.status.text, "The editor marks fill and shows the line of the next command")
+  popup.step_button.pressed.emit()
+  check(popup.garden.turn == 2 and popup.garden.cell == Vector2i(1, 0) and not popup.source.editable, "The Step button advances the same board and protects the active program")
+  press_key(KEY_ENTER, true)
+  await frames(3)
+  check(popup.running and popup.step_button.disabled and popup.run_button.text.begins_with("Pause"), "Ctrl+Enter resumes the stepped program")
+  press_key(KEY_ENTER, true)
+  await frames(3)
+  var paused_turn: int = popup.garden.turn
+  await frames(18)
+  check(not popup.running and popup.garden.turn == paused_turn and popup.run_button.text.begins_with("Resume"), "Ctrl+Enter pauses without advancing the board")
+  press_key(KEY_F10)
+  await frames(3)
+  check(popup.garden.turn == paused_turn + 1 and not popup.running, "F10 steps the paused program at its current position")
+  press_key(KEY_ENTER, true)
+  await frames(3)
   var deadline := Time.get_ticks_msec() + 8000
   while popup.running and Time.get_ticks_msec() < deadline:
    await get_tree().process_frame
   check(popup.progress.solved.get(Program.PUZZLES[0].id, false) and popup.garden.harvested == 2, "The popup animates and completes the starter program")
-  popup._close()
+  check(popup.source.get_executing_lines() == PackedInt32Array([6]) and popup.source.editable, "The completed loop marks its gather command and unlocks the editor")
+  var starter: String = popup.source.text
+  popup.step_button.pressed.emit()
+  popup.stop_button.pressed.emit()
+  check(popup.garden.turn == 1 and popup.source.text == starter and popup.source.editable, "Stop preserves the current board and draft for editing")
+  popup.step_button.pressed.emit()
+  popup._reset()
+  check(popup.garden.turn == 0 and popup.garden.tank == 0 and popup.source.get_executing_lines().is_empty() and popup.source.text == starter, "Reset clears a paused run and keeps the draft")
+  popup.source.text = "# The bank is north of the spring\nhop north"
+  popup.step_button.pressed.emit()
+  check("Line 2" in popup.status.text and popup.source.get_executing_lines() == PackedInt32Array([1]) and popup.source.editable, "A blocked step marks its source line and lets the player correct it")
+  popup.source.text = "fill\nunknown"
+  popup.step_button.pressed.emit()
+  check("Line 2" in popup.status.text and popup.source.get_executing_lines() == PackedInt32Array([1]) and popup.garden.turn == 0, "A syntax error from Step marks the offending line before the board changes")
+  popup.source.text = starter
+  popup.step_button.pressed.emit()
+  press_key(KEY_ESCAPE)
+  await frames(4)
   check(not popup.visible and not game.pilot.paused, "Closing the popup restores frog controls")
+  check(popup.steps.is_empty() and popup.source.text == starter and popup.source.editable, "Closing a paused program releases the editor and keeps its draft")
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
  print("ACTIVITY_SMOKE " + JSON.stringify({"checks":checks, "failures":failures}))

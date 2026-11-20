@@ -17,8 +17,9 @@ var info: Label
 var hint: Label
 var chooser: OptionButton
 var run_button: Button
+var step_button: Button
 var stop_button: Button
-var pending: Array = []
+var steps: Array = []
 var offset := 0
 var interval := 0.0
 var running := false
@@ -48,11 +49,14 @@ func _ready() -> void:
  var actions := HBoxContainer.new()
  left.add_child(actions)
  run_button = _button(actions, "Run · Ctrl+Enter", _run)
+ step_button = _button(actions, "Step · F10", _step)
  stop_button = _button(actions, "Stop", _stop)
  _button(actions, "Reset board", _reset)
  source = CodeEdit.new()
  source.size_flags_vertical = Control.SIZE_EXPAND_FILL
  source.gutters_draw_line_numbers = true
+ source.gutters_draw_executing_lines = true
+ source.highlight_current_line = true
  source.placeholder_text = "Type Pondbot commands here"
  draft_timer = Timer.new()
  draft_timer.one_shot = true
@@ -114,12 +118,14 @@ func open() -> void:
 
 func _close() -> void:
  flush_draft()
- if running:
+ if not steps.is_empty():
   _stop()
  hide()
  dismissed.emit()
 
 func _queue_save() -> void:
+ if steps.is_empty():
+  source.clear_executing_lines()
  if puzzle >= 0 and source.text != loaded_draft:
   draft_timer.start()
 
@@ -142,36 +148,67 @@ func _choose(index: int) -> void:
  _reset()
  hint.text = item.hint
 
-func _reset() -> void:
+func _clear_program() -> void:
  running = false
- pending.clear()
+ steps.clear()
+ offset = 0
+
+func _reset() -> void:
+ _clear_program()
+ source.clear_executing_lines()
  garden.load_puzzle(puzzle)
- status.text = "Harvest every lily. Run starts from a fresh board."
+ status.text = "Harvest every lily. Run or Step starts from a fresh board."
  _draw()
 
 func _stop() -> void:
- running = false
- status.text = "Stopped. Run starts from a fresh board."
+ _clear_program()
+ source.clear_executing_lines()
+ status.text = "Stopped. Run or Step starts from a fresh board."
  _draw()
 
-func _run() -> void:
- if running:
-  return
+func _prepare_program() -> bool:
+ if not steps.is_empty():
+  return true
  var result: Dictionary = Programs.compile(source.text)
  if result.has("error"):
   _line_error(result.error, result.line)
+  return false
+ garden.load_puzzle(puzzle)
+ source.clear_executing_lines()
+ steps = result.steps
+ return true
+
+func _run() -> void:
+ if running:
+  running = false
+ elif _prepare_program():
+  interval = 0
+  running = true
+ else:
   return
- _reset()
- pending = result.steps
- offset = 0
- interval = 0
- running = true
- status.text = "Running…"
+ _show_progress()
  _draw()
+
+func _step() -> void:
+ if not running and _prepare_program():
+  _advance()
+
+func _show_progress() -> void:
+ var next: Dictionary = steps[offset]
+ status.text = "%s · %d / %d actions · next line %d" % [
+  "Running" if running else "Paused", offset, steps.size(), next.line + 1,
+ ]
+
+func _mark_line(line: int) -> void:
+ var marked := clampi(line, 0, source.get_line_count() - 1)
+ source.clear_executing_lines()
+ source.set_line_as_executing(marked, true)
+ source.set_caret_line(marked)
 
 func _line_error(message: String, line: int) -> void:
  status.text = message
- source.set_caret_line(clampi(line, 0, maxi(0, source.get_line_count() - 1)))
+ _mark_line(line)
+ source.grab_focus()
 
 func _process(delta: float) -> void:
  if not visible or not running:
@@ -180,32 +217,38 @@ func _process(delta: float) -> void:
  if interval > 0:
   return
  interval = .23
- var action: Dictionary = pending[offset]
+ _advance()
+
+func _advance() -> void:
+ var action: Dictionary = steps[offset]
  var error: String = garden.step(action)
  if not error.is_empty():
-  running = false
+  _clear_program()
   _line_error("Line %d · %s" % [action.line + 1, error], action.line)
  else:
+  _mark_line(action.line)
   offset += 1
   if garden.harvested == garden.plants.size():
+   _clear_program()
    if progress.complete_puzzle(Programs.PUZZLES[puzzle].id) != OK:
     hud.toast("Could not save activity progress.")
-   running = false
    status.text = "Puzzle complete · %d lilies in %d actions" % [garden.harvested, garden.turn]
    chooser.set_item_text(puzzle, Programs.PUZZLES[puzzle].name + " ✓")
-  elif offset == pending.size():
-   running = false
+  elif offset == steps.size():
+   _clear_program()
    status.text = "Program ended · %d lilies remain." % (garden.plants.size() - garden.harvested)
   else:
-   status.text = "Action %d / %d · line %d" % [offset, pending.size(), action.line + 1]
+   _show_progress()
  _draw()
 
 func _draw() -> void:
  info.text = "Water %d / %d    Lilies %d / %d" % [garden.tank, Programs.CAPACITY, garden.harvested, garden.plants.size()]
- run_button.disabled = running
- stop_button.disabled = not running
- chooser.disabled = running
- source.editable = not running
+ var active := not steps.is_empty()
+ run_button.text = ("Pause" if running else "Resume" if active else "Run") + " · Ctrl+Enter"
+ step_button.disabled = running
+ stop_button.disabled = not active
+ chooser.disabled = active
+ source.editable = not active
  for child in board.get_children():
   board.remove_child(child)
   child.queue_free()
@@ -239,4 +282,7 @@ func _input(event: InputEvent) -> void:
    get_viewport().set_input_as_handled()
   elif event.ctrl_pressed and event.keycode in [KEY_ENTER, KEY_KP_ENTER]:
    _run()
+   get_viewport().set_input_as_handled()
+  elif event.keycode == KEY_F10:
+   _step()
    get_viewport().set_input_as_handled()
