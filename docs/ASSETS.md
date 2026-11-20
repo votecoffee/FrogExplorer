@@ -84,9 +84,13 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v33**. A raised nasal
-bridge rounds the snout above the upper lip. The slanted nostrils and
-their rims are sculpted into the head, with pigment aligned to each recess.
+The current authored revision is **original-red-eye-v34**. The lower jaw
+rolls inward beneath the lip and has a shallower chin. Olive pigment along
+the closing edge fades into the pale underside.
+
+In v33 a raised nasal bridge rounded the snout above the upper lip.
+The slanted nostrils and their rims are sculpted into the head, with
+pigment aligned to each recess.
 
 In v32 a broader crown and lower brow peaks softened the slope into the
 snout. The socket folds taper into the cheek with a thin, painted eyelid

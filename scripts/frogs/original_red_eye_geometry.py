@@ -92,8 +92,18 @@ def painted_maps(name, width, height, kind):
         rim = smooth(.96,.997,radius)
         rgb = rgb*(1-rim[:,:,None])+np.array([.034,.018,.009])*rim[:,:,None]
         return image(name+' color', np.clip(rgb, 0, 1)), None, None
-    if kind == 'ventral':
+    if kind in ('ventral', 'jaw'):
         rgb = np.broadcast_to([.70, .70, .57], (height, width, 3)).copy()
+        if kind == 'jaw':
+            side = np.sin(2*pi*v)
+            # Confine the olive tint to the closing edge and run the pale
+            # band into the throat instead of wrapping the jaw in white.
+            under = smooth(-.92,-.22,side)*(1-smooth(-.36,-.04,side))
+            olive = smooth(-.43,-.025,side)*(1-smooth(.14,.32,side))
+            olive *= .42+.25*(1-smooth(.35,.85,u))
+            tint = np.array([.57,.53,.44])
+            rgb = rgb*(1-under[:,:,None])+tint*under[:,:,None]
+            rgb = rgb*(1-olive[:,:,None])+np.array([.20,.32,.088])*olive[:,:,None]
         rgb *= (1+.045*grain+.025*pores)[:, :, None]
         return image(name+' color', np.clip(rgb, 0, 1)), None, None
     dorsal = np.sin(v*2*pi)
@@ -206,6 +216,9 @@ class Frog:
         ventral = painted_maps('Original ventral skin', 512, 256, 'ventral')[0]
         self.cream = material('Ivory granular throat', (.50, .54, .31), .48,
                               maps=(ventral, limb_maps[1], limb_maps[2]))
+        jaw_color = painted_maps('Original lower jaw', 512, 256, 'jaw')[0]
+        self.jaw_skin = material('Lower lip and chin skin', (.50,.49,.31), .48,
+                                  maps=(jaw_color, limb_maps[1], limb_maps[2]), coat=.035)
         self.oral = material('Warm oral mucosa', (.32, .131, .119), .40, coat=.14)
         self.oral_dark = material('Recessed oral tissue', (.055, .025, .023), .53)
         self.pink = material('Tongue muscle', (.43, .15, .139), .36, coat=.20)
@@ -512,7 +525,8 @@ class Frog:
             # The front of the chin is rounded, with less depth by the hinge.
             tip = 1-smooth(-.080,-.062,y)
             depth = .00065+.00170*exp(-((y+.059)/.0155)**2)-.00043*tip
-            chin = .00135*smooth(-.083,-.077,y)*(1-smooth(-.059,-.047,y))
+            chin = .0010*smooth(-.083,-.077,y)*(1-smooth(-.059,-.047,y))
+            side_inset = .00064*smooth(-.082,-.072,y)*(1-smooth(-.054,-.046,y))
             throat_join = .00165*exp(-((y+.041)/.0105)**2)*(1-smooth(-.030,-.024,y))
             inset = .00028*(1-smooth(-.082,-.069,y))
             oral_taper = float(smooth(-.080,-.067,y)*(1-smooth(-.034,-.024,y)))
@@ -531,6 +545,7 @@ class Frog:
                     underside = -s
                     lateral_roll = sin(pi*underside)**2
                     z = surface-(.00025+depth+chin*underside)*sqrt(underside)-throat_join*lateral_roll
+                    x -= side_inset*lateral_roll*cos(angle)
                 # Seat the lip rim inside the curved nose at rest.
                 z += inset*exp(-(s/.63)**2)
                 vertices.append((x, y+.80*inset, z));uv.append((u, j/segments))
@@ -540,7 +555,7 @@ class Frog:
                 faces.append((a, b, b+1, a+1));inside.append(sin((j+.5)/segments*2*pi)>.28)
         faces.extend([tuple(reversed(range(segments))), tuple(rings*(segments+1)+j for j in range(segments))])
         obj = self.mesh('Articulated jaw and recessed oral floor', vertices, faces, uv,
-                        [{'FX-jaw':1} for _ in vertices], self.cream)
+                        [{'FX-jaw':1} for _ in vertices], self.jaw_skin)
         obj.data.materials.append(self.oral)
         for polygon, oral in zip(obj.data.polygons, inside):polygon.material_index = 1 if oral else 0
 
@@ -675,6 +690,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v33'
+        self.arm['model_revision'] = 'original-red-eye-v34'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self
