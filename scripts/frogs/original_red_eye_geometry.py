@@ -516,25 +516,36 @@ class Frog:
         for polygon, oral in zip(obj.data.polygons, inside):polygon.material_index = 1 if oral else 0
 
     def palate(self):
-        vertices = [];faces = [];uv = []
-        rings, segments = 20, 64
+        """Sculpt the inner upper lip and its paired folds into the roof."""
+        vertices, faces, uv, tones, weights = [], [], [], [], []
+        rings, segments = 36, 64
         for i in range(rings+1):
-            y = -.0805+(.0805-.0275)*i/rings
-            width = .93*self.jaw_width(y)
+            y = -.0805+(.0805-.0229)*i/rings
+            blend = float(smooth(-.033,-.0265,y))
+            width = (1-blend)*.93*self.jaw_width(y)+blend*.73*self.section_at(y)[1]
+            head = float(1-smooth(-.038,-.015,y))
+            taper = float(smooth(-.0805,-.068,y)*(1-smooth(-.037,-.0275,y)))
+            rear = exp(-((y+.0345)/.0035)**2)
+            shade = 1-.77*float(smooth(-.034,-.024,y))
             for j in range(segments+1):
-                x = width*(2*j/segments-1)
-                vertices.append((x, y, self.body_height(x, y, False)-.00008))
+                across = 2*j/segments-1
+                x = width*across
+                margin = taper*exp(-((abs(across)-.81)/.108)**2)
+                rear_fold = rear*exp(-((abs(across)-.52)/.31)**2)
+                relief = .00054*margin+.000145*rear_fold
+                z = self.body_height(x,y,False)-.00008-.000075*blend-relief
+                vertices.append((x,y,z))
                 uv.append((j/segments,i/rings))
+                weights.append({'Head':head,'DEF-spine.003':1-head})
+                tint = .85*margin+.35*rear_fold
+                tones.append((shade*(.290+.10*tint),shade*(.108+.080*tint),
+                              shade*(.099+.060*tint)))
         for i in range(rings):
             for j in range(segments):
                 a = i*(segments+1)+j;b = a+segments+1;faces.append((a,b,b+1,a+1))
-        self.mesh('Recessed curved palate', vertices, faces, uv, [{'Head':1} for _ in vertices], self.oral)
-        for sign in [-1, 1]:
-            line = []
-            for t in np.linspace(0, 1, 20):
-                x = sign*(.014+.003*sin(pi*t));y = -.065+.030*t
-                line.append((x, y, self.body_height(x, y, False)-.00055))
-            self.tube('Soft palatal fold '+str(sign), line, [.00032]*len(line), ['Head']*(len(line)-1), self.oral, 1, 8)
+        tint = image('Original palate color',np.asarray(tones).reshape(rings+1,segments+1,3))
+        palate_mat = material('Palate mucosa',(.290,.108,.099),.42,maps=(tint,None,None),coat=.13)
+        self.mesh('Recessed curved palate',vertices,faces,uv,weights,palate_mat)
 
     def gular_sac(self):
         """Fit the inflatable throat to the underside of the resting chin."""
@@ -606,7 +617,6 @@ class Frog:
     def features(self):
         self.jaw()
         self.palate()
-        self.ellipsoid('Dark rear oral cavity', (0, -.030, .0430), (.024, .002, .0028), self.oral_dark, 'Head')
         self.gular_sac()
         self.tongue()
         add_features(self)
@@ -636,6 +646,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v29'
+        self.arm['model_revision'] = 'original-red-eye-v30'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self

@@ -82,7 +82,13 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v29**. The inner and
+The current authored revision is **original-red-eye-v30**. The palate
+has paired shallow ridges behind the upper lip. A continuous lining
+extends into the rear of the mouth, with a small texture that darkens
+toward the throat. Figure 178 of [The Anatomy of the Frog](https://mirrors.xmission.com/gutenberg/7/7/5/6/77560/77560-h/77560-h.htm)
+guided the placement of the lip folds.
+
+In v29 the inner and
 outer surfaces of each mouth corner meet at a rounded lip fold. The middle
 of the fold draws farther into the cheek as the jaw opens.
 
