@@ -196,7 +196,7 @@ Open Places with **N / R3** to select these single-player destinations. Random t
 | Cloudring Course | Launch a helium balloon and fly through eight rings in order. The next ring glows gold. Use the right stick or I/K and J/L for altitude and strafe. |
 | Lily Code Garden | Open a popup editor and program Pondbot to water and gather lilies across three grid puzzles. |
 
-Press **F5 / A** again to restart a race. The course shows your current time and session best. Use **H** or Places to return to the pond.
+Press **F5 / A** again to restart a race. The course shows your current time and saved personal best. Use **H** or Places to return to the pond.
 
 In the garden, use the popup's **Run** button or **Ctrl+Enter**. **Esc** closes the editor. The board shows Pondbot, its water supply, and how many lilies remain. Fill at a spring, hop onto a plot, water it, then allow another turn before gathering. The first puzzle includes this complete example:
 
@@ -210,7 +210,9 @@ repeat 2
 end
 ```
 
-Use **hop north**, **hop east**, **hop south**, or **hop west** to move one square. **repeat N** accepts a count from 1 to 16 and ends with **end**. **#** starts a comment. The editor reports the line of a syntax error or blocked action. Drafts and puzzle completion are kept for the current game session.
+Use **hop north**, **hop east**, **hop south**, or **hop west** to move one square. **repeat N** accepts a count from 1 to 16 and ends with **end**. **#** starts a comment. The editor reports the line of a syntax error or blocked action. Drafts save while you type and when you close the editor. Personal bests, drafts and completed puzzles are saved locally across restarts.
+
+### Real-world maps
 
 
 The catalog includes **12 city areas and four historic destinations**: Helsinki, five US cities, Tokyo, Shanghai, Berlin, Moscow, Montréal, Mexico City, Machu Picchu, a Great Wall section, Giza and the Colosseum. A fresh clone includes their runtime tiles and the pond; only present, device-qualified packs appear in the places list.

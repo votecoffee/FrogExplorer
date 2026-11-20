@@ -2,9 +2,9 @@ extends RefCounted
 ## Bounded in-game commands. Programs never execute engine or system code.
 
 const PUZZLES = [
- {"name":"First bloom", "rows":["~LL"], "hint":"Fill at the spring. For each lily: hop east, water, wait, gather.", "draft":"# Harvest two lilies\nfill\nrepeat 2\n  hop east\n  water\n  wait\n  gather\nend\n"},
- {"name":"Around the stones", "rows":["~.L#", "##.L", "..L."], "hint":"Stones block hops. Use the open corridor to reach all three lilies.", "draft":"# Start at the spring\nfill\nhop east\nhop east\n"},
- {"name":"A second drink", "rows":["~.H.", "##.#", ".HL."], "hint":"Double lilies need two doses. Return to the spring whenever your tank is empty.", "draft":"# Plan a refill for the double lilies\nfill\n"},
+ {"id":"first_bloom", "name":"First bloom", "rows":["~LL"], "hint":"Fill at the spring. For each lily: hop east, water, wait, gather.", "draft":"# Harvest two lilies\nfill\nrepeat 2\n  hop east\n  water\n  wait\n  gather\nend\n"},
+ {"id":"around_the_stones", "name":"Around the stones", "rows":["~.L#", "##.L", "..L."], "hint":"Stones block hops. Use the open corridor to reach all three lilies.", "draft":"# Start at the spring\nfill\nhop east\nhop east\n"},
+ {"id":"a_second_drink", "name":"A second drink", "rows":["~.H.", "##.#", ".HL."], "hint":"Double lilies need two doses. Return to the spring whenever your tank is empty.", "draft":"# Plan a refill for the double lilies\nfill\n"},
 ]
 const DIRECTIONS = {"north":Vector2i(0,-1), "east":Vector2i(1,0), "south":Vector2i(0,1), "west":Vector2i(-1,0)}
 const CAPACITY = 3

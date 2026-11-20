@@ -2,12 +2,14 @@ extends PanelContainer
 
 signal dismissed
 const Programs = preload("res://scripts/activities/garden_program.gd")
+const Progress = preload("res://scripts/activities/activity_progress.gd")
 var hud: ExplorerHUD
 var garden := Programs.new()
 var world: ExplorerActivityWorld
 var puzzle := -1
-var drafts: Dictionary = {}
-var solved: Dictionary = {}
+var progress: Progress
+var draft_timer: Timer
+var loaded_draft := ""
 var source: CodeEdit
 var status: Label
 var board: GridContainer
@@ -52,6 +54,12 @@ func _ready() -> void:
  source.size_flags_vertical = Control.SIZE_EXPAND_FILL
  source.gutters_draw_line_numbers = true
  source.placeholder_text = "Type Pondbot commands here"
+ draft_timer = Timer.new()
+ draft_timer.one_shot = true
+ draft_timer.wait_time = .65
+ draft_timer.timeout.connect(flush_draft)
+ add_child(draft_timer)
+ source.text_changed.connect(_queue_save)
  source.add_theme_font_size_override("font_size", 18)
  var ink := CodeHighlighter.new()
  for word in ["hop", "fill", "water", "wait", "gather", "repeat", "end"]:
@@ -65,7 +73,7 @@ func _ready() -> void:
  pair.add_child(right)
  chooser = OptionButton.new()
  for item in Programs.PUZZLES:
-  chooser.add_item(item.name)
+  chooser.add_item(item.name + (" ✓" if progress.solved.has(item.id) else ""))
  chooser.item_selected.connect(_choose)
  right.add_child(chooser)
  info = hud.label("", 17, Color("#b9dccc"))
@@ -105,19 +113,34 @@ func open() -> void:
  source.grab_focus()
 
 func _close() -> void:
+ flush_draft()
  if running:
   _stop()
  hide()
  dismissed.emit()
 
+func _queue_save() -> void:
+ if puzzle >= 0 and source.text != loaded_draft:
+  draft_timer.start()
+
+func flush_draft() -> void:
+ draft_timer.stop()
+ if puzzle >= 0 and source.text != loaded_draft:
+  loaded_draft = source.text
+  if progress.edit_draft(Programs.PUZZLES[puzzle].id, loaded_draft) != OK:
+   hud.toast("Could not save activity progress.")
+ elif progress.flush() != OK:
+  hud.toast("Could not save activity progress.")
+
 func _choose(index: int) -> void:
- if puzzle >= 0:
-  drafts[puzzle] = source.text
+ flush_draft()
  puzzle = index
  chooser.select(index)
- source.text = str(drafts.get(index, Programs.PUZZLES[index].draft))
+ var item: Dictionary = Programs.PUZZLES[index]
+ loaded_draft = str(progress.drafts.get(item.id, item.draft))
+ source.text = loaded_draft
  _reset()
- hint.text = Programs.PUZZLES[index].hint
+ hint.text = item.hint
 
 func _reset() -> void:
  running = false
@@ -165,7 +188,8 @@ func _process(delta: float) -> void:
  else:
   offset += 1
   if garden.harvested == garden.plants.size():
-   solved[puzzle] = true
+   if progress.complete_puzzle(Programs.PUZZLES[puzzle].id) != OK:
+    hud.toast("Could not save activity progress.")
    running = false
    status.text = "Puzzle complete · %d lilies in %d actions" % [garden.harvested, garden.turn]
    chooser.set_item_text(puzzle, Programs.PUZZLES[puzzle].name + " ✓")

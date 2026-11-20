@@ -115,6 +115,7 @@ func _notification(what):
 func shutdown(code=0):
  if quitting:return
  quitting=true
+ if activities:activities.flush_progress()
  if party:party.shutdown()
  if rides:rides.clear_for_travel()
  if pilot:

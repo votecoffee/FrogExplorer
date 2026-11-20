@@ -36,6 +36,7 @@ func travel(game, id: String) -> bool:
 
 func run(game) -> void:
  var t: WorldTravel = game.travel
+ check(game.activities.progress.folder.is_empty(), "Activity smoke keeps records and garden drafts in memory")
  game.travel_menu.open()
  for id in IDS:
   var item := t.place(id)
@@ -78,6 +79,7 @@ func run(game) -> void:
     game.activities._physics_process(0.25)
    check(course.finished and course.cursor == world.gates.size() * 2 + 1, "Two complete ordered laps finish the race")
    check(course.elapsed > 0, "Circuit timing starts on the first start-line crossing")
+   check(game.activities.progress.best.has(IDS[0]), "The car circuit records a personal best")
 
  var has_balloon := await travel(game, IDS[1])
  check(has_balloon, "Travel arrives at the balloon course")
@@ -126,7 +128,7 @@ func run(game) -> void:
     game.rides.body.position = current.center + current.forward * 2.0
     game.activities._physics_process(.2)
    check(course.finished and course.elapsed > 0, "The ordered balloon-ring run finishes")
-   check(game.activities.best.has(IDS[1]), "The integrated course records a session best")
+   check(game.activities.progress.best.has(IDS[1]), "The integrated course records a personal best")
 
  var has_garden := await travel(game, IDS[2])
  check(has_garden, "Travel arrives at Lily Code Garden")
@@ -162,7 +164,7 @@ func run(game) -> void:
   var deadline := Time.get_ticks_msec() + 8000
   while popup.running and Time.get_ticks_msec() < deadline:
    await get_tree().process_frame
-  check(popup.solved.get(0, false) and popup.garden.harvested == 2, "The popup animates and completes the starter program")
+  check(popup.progress.solved.get(Program.PUZZLES[0].id, false) and popup.garden.harvested == 2, "The popup animates and completes the starter program")
   popup._close()
   check(not popup.visible and not game.pilot.paused, "Closing the popup restores frog controls")
 

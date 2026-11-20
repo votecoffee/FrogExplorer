@@ -2,6 +2,7 @@ extends CanvasLayer
 
 const Course = preload("res://scripts/activities/course_run.gd")
 const Editor = preload("res://scripts/activities/garden_editor.gd")
+const Progress = preload("res://scripts/activities/activity_progress.gd")
 const CIRCUIT_LAPS = 2
 var game: Node3D
 var current: ExplorerActivityWorld
@@ -14,7 +15,7 @@ var garden: PanelContainer
 var saved_pause := false
 var course := Course.new()
 var ride: CharacterBody3D
-var best: Dictionary = {}
+var progress := Progress.new()
 var starting := false
 var start_token := 0
 var note := ""
@@ -41,12 +42,18 @@ func _ready() -> void:
   label.mouse_filter = Control.MOUSE_FILTER_IGNORE
   list.add_child(label)
  panel.hide()
+ if game.travel.persist_history:
+  progress.load_from(Progress.DIRECTORY)
  garden = Editor.new()
  garden.hud = game.hud
+ garden.progress = progress
  garden.add_theme_stylebox_override("panel", panel.get_theme_stylebox("panel"))
  garden.dismissed.connect(_close_editor)
  add_child(garden)
  game.travel.changed.connect(_travel_changed)
+
+func flush_progress() -> void:
+ garden.flush_draft()
 
 func editor_open() -> bool:
  return garden != null and garden.visible
@@ -132,8 +139,9 @@ func _physics_process(delta: float) -> void:
   current.mark_gate(course.next_gate())
   if course.finished:
    var id := current.activity
-   best[id] = minf(float(best.get(id, INF)), course.elapsed)
-   game._event("course_finished", {"place_id":game.travel.current_id, "seconds":course.elapsed, "best_seconds":best[id]})
+   if progress.record_time(id, course.elapsed) != OK:
+    game.hud.toast("Could not save activity progress.")
+   game._event("course_finished", {"place_id":game.travel.current_id, "seconds":course.elapsed, "best_seconds":progress.best.get(id, course.elapsed)})
 
 func _process(_delta: float) -> void:
  if is_instance_valid(current):
@@ -146,11 +154,13 @@ func _update_panel() -> void:
   return
  var car := current.activity == "car_circuit"
  if course.finished:
-  stats.text = "Finished · %.2f s · session best %.2f s" % [course.elapsed, best[current.activity]]
+  stats.text = "Finished · %.2f s · personal best %.2f s" % [course.elapsed, progress.best.get(current.activity, course.elapsed)]
   return
  var index := course.next_gate()
  if index < 0:
   stats.text = note if not note.is_empty() else "Two timed laps with ordered gates." if car else "Fly through eight rings in order. Right stick controls altitude and strafe."
+  if progress.best.has(current.activity):
+   stats.text += "\nPersonal best · %.2f s" % progress.best[current.activity]
   return
  var gate: Dictionary = current.gates[index]
  var difference: Vector3 = gate.center - ride.position if is_instance_valid(ride) else Vector3.ZERO
