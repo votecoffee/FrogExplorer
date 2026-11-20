@@ -84,7 +84,11 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v46**. A shallower
+The current authored revision is **original-red-eye-v47**. The skin
+support at each hind ankle slides slightly as the joint straightens,
+smoothing the calf-to-foot contour through the swim and jump clips.
+
+In v46 a shallower
 hind-knee crease and a tighter skin-weight transition smooth the
 thigh-to-calf contour when the leg extends.
 

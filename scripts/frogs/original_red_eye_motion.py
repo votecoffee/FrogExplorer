@@ -3,7 +3,7 @@
 No animation files are imported. Clip names implement FrogExplorer's existing
 28-clip interface; motion curves below are authored analytically. MIT.
 """
-from math import sin, cos, pi, sqrt
+from math import acos, sin, cos, pi, sqrt
 
 import bpy
 from mathutils import Vector, Euler, Quaternion
@@ -152,7 +152,17 @@ def animate(frog):
                 eye.keyframe_insert('location',frame=frame,group=eye.name)
             for driver, support in frog.joint_support.items():
                 bend_rotation = frog.arm.pose.bones[driver].rotation_quaternion
-                frog.arm.pose.bones[support].rotation_quaternion = Quaternion().slerp(bend_rotation,.5)
+                skin_joint = frog.arm.pose.bones[support]
+                skin_joint.rotation_quaternion = Quaternion().slerp(bend_rotation,.5)
+                if support.startswith('DEF-ankle_skin.'):
+                    if clip in ('Swim','Big_Jump'):
+                        # Ease the folded skin into the fully extended calf.
+                        angle = 2*acos(min(1,abs(bend_rotation.normalized().w)))
+                        slide = locomotion.smooth(1.2,2.50,angle)
+                        side = -1 if support.endswith('.L') else 1
+                        offset = Vector((side*.00165,-.00150,.00165))
+                        skin_joint.location = (frog.rest[support].inverted()@offset)*slide
+                    skin_joint.keyframe_insert('location',frame=frame,group=support)
             for bone in frog.arm.pose.bones:
                 if bone.name == 'root':continue
                 bone.keyframe_insert('rotation_quaternion', frame=frame, group=bone.name)
