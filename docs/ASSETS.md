@@ -82,7 +82,13 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v23**. The nose bridge
+The current authored revision is **original-red-eye-v24**. The throat
+curves under the lower jaw and tapers into the neck. The edges follow the
+jaw while the center expands during a croak. The face check measures
+expansion on the deformed skin and checks for throat obstruction in the
+fly-catching pose.
+
+In v23 the nose bridge
 is fuller at the front and tapers to a rounded point above the lower
 lip. The front of the jaw is shallower, leaving a thinner pale edge
 while the mouth is closed.

@@ -526,24 +526,32 @@ class Frog:
 
     def gular_sac(self):
         """Fit the inflatable throat to the underside of the resting chin."""
-        vertices, faces, uv = [], [], []
-        rings, segments = 18, 36
+        vertices, faces, uv, weights = [], [], [], []
+        rings, segments = 24, 48
         for i in range(rings+1):
             phi = pi*i/rings
             dome = cos(phi)
+            radius = sin(phi)
+            belly = max(0,-dome)
+            inflate = float(smooth(.04,.79,belly))
             for j in range(segments+1):
                 theta = 2*pi*j/segments
-                x = .0235*sin(phi)*cos(theta)
-                y = -.048+.0175*sin(phi)*sin(theta)
-                z = self.body_height(x,y,False)-.00095+dome*(.00055 if dome>=0 else .0074)
+                y = -.0465+.0225*radius*sin(theta)
+                neck = float(smooth(-.044,-.024,y))
+                x = .0250*(1-.29*neck)*radius*cos(theta)
+                front = float(smooth(-.069,-.050,y))
+                depth = .00625*belly**1.4*(.68+.32*front)*(1-.21*neck)
+                z = self.body_height(x,y,False)-.00090+.00048*max(0,dome)-depth
                 vertices.append((x,y,z))
                 uv.append((j/segments,i/rings))
+                # The rim rides with the jaw. The center expands with the sac.
+                weights.append({'FX-jaw':1-inflate, 'Throat':inflate})
         for i in range(rings):
             for j in range(segments):
                 a = i*(segments+1)+j
                 b = a+segments+1
                 faces.append((a,b,b+1,a+1))
-        self.mesh('Gular breathing sac', vertices, faces, uv, [{'Throat':1} for _ in vertices], self.cream)
+        self.mesh('Gular breathing sac', vertices, faces, uv, weights, self.cream)
 
     def features(self):
         self.jaw()
@@ -579,6 +587,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v23'
+        self.arm['model_revision'] = 'original-red-eye-v24'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self

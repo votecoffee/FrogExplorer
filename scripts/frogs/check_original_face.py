@@ -43,6 +43,20 @@ def check_open_oral_floor(arm):
     return {'sampled_faces': sampled, 'obstructed_faces': obstructed}
 
 
+def evaluated_throat_depth(arm):
+    """Measure how far the throat skin hangs below the jaw hinge."""
+    jaw = arm.pose.bones['FX-jaw']
+    up = (jaw.bone.matrix_local.to_3x3().inverted() @ Vector((0,0,1))).normalized()
+    throat = bpy.data.objects['Gular breathing sac'].evaluated_get(
+        bpy.context.evaluated_depsgraph_get()
+    )
+    into_jaw = (arm.matrix_world @ jaw.matrix).inverted() @ throat.matrix_world
+    mesh = throat.to_mesh()
+    depth = max(-(into_jaw @ vertex.co).dot(up) for vertex in mesh.vertices)
+    throat.to_mesh_clear()
+    return depth
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--input',type=Path,required=True)
@@ -109,19 +123,25 @@ def main():
                         issues.append(side+': '+description+' cuts across the open iris')
     action=bpy.data.actions['Croak'];arm.animation_data.action=action;arm.animation_data.action_slot=action.slots[0]
     jaw_angle=0.0;throat_scale=1.0
+    throat_depths = []
     for sample in range(17):
         frame=float(action.frame_range[1])*sample/16
         bpy.context.scene.frame_set(floor(frame),subframe=frame-floor(frame))
         jaw_angle=max(jaw_angle,float(arm.pose.bones['FX-jaw'].rotation_quaternion.angle))
         throat_scale=max(throat_scale,float(arm.pose.bones['Throat'].scale.z))
+        throat_depths.append(evaluated_throat_depth(arm))
+    throat_drop = max(throat_depths)-throat_depths[0]
     if jaw_angle>.01:issues.append('Croak opens the jaw instead of keeping a closed mouth')
     if throat_scale<1.7:issues.append('Croak does not inflate the throat')
+    if throat_drop < .003:
+        issues.append('Croak throat skin expands less than 3 mm below its rest pose')
     oral_floor = check_open_oral_floor(arm)
     if oral_floor['obstructed_faces']:
         issues.append('Throat skin protrudes through the oral floor during Catch_Fly')
     report={'lid_coverage':coverage,'croak_maximum_jaw_angle_rad':jaw_angle,'croak_maximum_throat_scale':throat_scale,
+            'croak_throat_rest_depth_m':throat_depths[0], 'croak_throat_expansion_m':throat_drop,
             'closed_palate_maximum_exposure_m':palate_exposure,'open_oral_floor':oral_floor,
-            'issues':issues,'scope':'Blender evaluated rays over the central 92 percent corneal radius: at most 2 percent open-lid, cranial-skin or socket occlusion and at least 98 percent closed-lid coverage. Closed-palate vertices are checked against nearest oriented head/jaw surfaces with 0.20 mm exposure tolerance. Oral floor faces are checked for throat skin obstruction at one open Catch_Fly pose with 0.20 mm tolerance. Seventeen Croak poses check closed jaw and throat inflation. All checks use sampled geometry.'}
+            'issues':issues,'scope':'Blender evaluated rays over the central 92 percent corneal radius: at most 2 percent open-lid, cranial-skin or socket occlusion and at least 98 percent closed-lid coverage. Closed-palate vertices are checked against nearest oriented head/jaw surfaces with 0.20 mm exposure tolerance. Oral floor faces are checked for throat skin obstruction at one open Catch_Fly pose with 0.20 mm tolerance. Seventeen Croak poses check jaw closure, throat scale and at least 3 mm of throat skin expansion in jaw space. All checks use sampled geometry.'}
     args.report.parent.mkdir(parents=True,exist_ok=True)
     args.report.write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8',newline='\n')
     print('ORIGINAL_FACE_CHECK '+json.dumps(report),flush=True)
