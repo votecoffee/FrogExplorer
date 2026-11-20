@@ -2,7 +2,7 @@
 
 Photographs guide proportions only. No image, mesh or animation is read here.
 """
-from math import acos, sin, cos, exp, pi, sqrt
+from math import acos, atan2, sin, cos, exp, pi, sqrt
 
 import numpy as np
 from mathutils import Quaternion, Vector
@@ -77,6 +77,25 @@ def orbital_recess(point,centers):
         falloff = sin(pi*margin)**2*exp(-((depth+.001)/.007)**2)
         point += falloff*(normal*relief+vertical*(.0032*upper**1.6))
     return point
+
+
+def tympanic_radius(y, side_angle):
+    """Use the same ear coordinates for the skin surface and its pigment."""
+    across = (y+.0360)/.00425
+    height = (side_angle-.39-.035*across)/.31
+    return np.sqrt(across*across+height*height)
+
+
+def tympanic_relief(y, theta):
+    """Shape a low ear disk and a shallow rim in the continuous cheek."""
+    if not -.044 < y < -.028:
+        return 0.0
+    side_angle = atan2(sin(theta),abs(cos(theta)))
+    radius = tympanic_radius(y,side_angle)
+    dome = .00054*max(0,1-(radius/.87)**2)**2
+    rim = .00044*max(0,1-((radius-.94)/.28)**2)**2
+    surround = .00021*max(0,1-((radius-1.18)/.23)**2)**2
+    return (1 if cos(theta)>0 else -1)*(dome+rim-surround)
 
 
 def add_orbital_socket(frog, side, center, normal, horizontal, vertical):
@@ -246,40 +265,3 @@ def add_features(frog):
             rim_z = frog.body_height(rim_x,rim_y)+.00007
             rim.append((rim_x,rim_y,rim_z))
         frog.tube('Soft naris rim '+side,rim,[.000075]*len(rim),['Head']*(len(rim)-1),frog.fold_mat,1,8)
-        def cheek_surface(y, theta):
-            width = frog.section_at(y)[1]
-            x = sign*width*cos(theta)
-            p = (x,y,frog.body_height(x,y,theta>=0))
-            return orbital_recess(p, [(sign,center)])
-
-        def trunk_skin(point):
-            t=min(1,max(0,(point.y+.038)/.023));head=1-t*t*(3-2*t)
-            return {'Head':head,'DEF-spine.003':1-head}
-
-        # The membrane follows the cheek at its edge and rises gently at its
-        # center, with the same texture coordinates as the underlying skin.
-        vertices=[];uv=[];faces=[]
-        for i in range(13):
-            for j in range(49):
-                a=2*pi*j/48;r=i/12
-                y = -.0362+.0037*r*cos(a)
-                theta = .38+.31*r*sin(a)
-                point = cheek_surface(y, theta)
-                point.x += sign*(.00008+.00060*(1-r*r)**2)
-                vertices.append(point)
-                uv.append(((y-BODY_Y_RANGE[0])/(BODY_Y_RANGE[1]-BODY_Y_RANGE[0]),theta/(2*pi) if sign>0 else .5-theta/(2*pi)))
-        for i in range(12):
-            for j in range(48):
-                a=i*49+j;faces.append((a,a+1,a+50,a+49))
-        frog.mesh('Tympanic skin '+side,vertices,faces,uv,[trunk_skin(p) for p in vertices],frog.body_mat)
-        rim, radii = [], []
-        for t in np.linspace(0,1,49):
-            point = cheek_surface(-.044+.0125*t+.0057*sin(pi*t), .86-.78*t)
-            point.x += sign*.00006
-            rim.append(point)
-            radii.append(.00004+.00022*sin(pi*t)**2)
-        fold=frog.tube('Tympanic fold '+side,rim,radii,['Head']*(len(rim)-1),frog.fold_mat,1,8)
-        spine=fold.vertex_groups.new(name='DEF-spine.003');head=fold.vertex_groups['Head']
-        for vertex in fold.data.vertices:
-            weights=trunk_skin(vertex.co)
-            head.add([vertex.index],weights['Head'],'REPLACE');spine.add([vertex.index],weights['DEF-spine.003'],'REPLACE')

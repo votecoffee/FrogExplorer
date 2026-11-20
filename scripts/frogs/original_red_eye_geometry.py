@@ -11,7 +11,7 @@ import bpy
 import numpy as np
 from mathutils import Vector
 from original_red_eye_feet import adhesive_pad, digital_web
-from original_red_eye_face import BODY_Y_RANGE, NARIS_XY, FACE_SECTIONS, shorten_muzzle, orbital_recess, add_features
+from original_red_eye_face import BODY_Y_RANGE, NARIS_XY, FACE_SECTIONS, shorten_muzzle, orbital_recess, tympanic_radius, tympanic_relief, add_features
 
 
 def profile(controls, y):
@@ -136,6 +136,11 @@ def painted_maps(name, width, height, kind):
         pits = sum(np.exp(-((u-naris_u)/.0040)**2-((v-center)/.0050)**2)
                    for center in [naris_v,.5-naris_v])
         rgb = rgb*(1-pits[:,:,None])+np.array([.005,.010,.003])*pits[:,:,None]
+        y = BODY_Y_RANGE[0]+u*(BODY_Y_RANGE[1]-BODY_Y_RANGE[0])
+        ear_radius = tympanic_radius(y,np.arcsin(dorsal))
+        ear = 1-smooth(.68,1.06,ear_radius)
+        ear_rim = np.maximum(0,1-((ear_radius-1.02)/.26)**2)**2
+        rgb *= (1-.23*ear+.045*ear_rim)[:,:,None]
     else:
         blue = smooth(-.7, -.35, dorsal)*(1-smooth(.05, .35, dorsal))
         blue *= .30+.40*(1-smooth(.25, .90, u))
@@ -148,6 +153,7 @@ def painted_maps(name, width, height, kind):
         normals[:,:,:2] += np.stack([-gu*.11,-gv*.11],axis=-1)*head[:,:,None]
         face_roughness = .46+.04*grain+.015*glands
         roughness = roughness*(1-head[:,:,None])+face_roughness[:,:,None]*head[:,:,None]
+        roughness += .04*ear[:,:,None]
     normal = image(name+' micro normal', np.clip(normals, 0, 1));normal.colorspace_settings.name = 'Non-Color'
     rough = image(name+' roughness', roughness);rough.colorspace_settings.name = 'Non-Color'
     return image(name+' color', np.clip(rgb, 0, 1)), normal, rough
@@ -364,17 +370,25 @@ class Frog:
         near_nares = abs(midpoints-NARIS_XY[1]) < .004
         near_tip = midpoints < controls[0,0]+.005
         near_orbits = (midpoints > -.065) & (midpoints < -.035)
-        rows = np.sort(np.concatenate((base_y,midpoints[near_nares | near_tip | near_orbits])))
-        rings, segments = len(rows)-1, 96
+        near_ears = (midpoints > -.043) & (midpoints < -.028)
+        rows = np.sort(np.concatenate((base_y,midpoints[near_nares | near_tip | near_orbits | near_ears])))
+        base_angles = np.linspace(0,2*pi,97)
+        angle_midpoints = (base_angles[:-1]+base_angles[1:])*.5
+        cheek_angle = np.arctan2(np.sin(angle_midpoints),np.abs(np.cos(angle_midpoints)))
+        cheek = (cheek_angle>.07) & (cheek_angle<.79)
+        angles = np.sort(np.concatenate((base_angles,angle_midpoints[cheek])))
+        rings, segments = len(rows)-1, len(angles)-1
+        centers = [(sign,self.bones['FX_eye.'+side][0]) for side,sign in [('L',-1),('R',1)]]
         for y in rows:
             u = (y-controls[0,0])/(controls[-1,0]-controls[0,0])
             section = self.section_at(y)
             width, bottom, top = section[1:]
-            for j in range(segments+1):
-                theta = 2*pi*j/segments;x = width*cos(theta)
+            for theta in angles:
+                x = width*cos(theta)
                 z = self.body_height(x, y, sin(theta)>=0, section)
-                centers=[(sign,self.bones['FX_eye.'+side][0]) for side,sign in [('L',-1),('R',1)]]
-                vertices.append(orbital_recess((x,y,z),centers));uv.append((u, j/segments))
+                point = orbital_recess((x,y,z),centers)
+                point.x += tympanic_relief(y,theta)
+                vertices.append(point);uv.append((u,theta/(2*pi)))
                 head = float(1-smooth(-.038, -.015, y))
                 weights.append({'Head':head, 'DEF-spine.003':1-head})
         for i in range(rings):
@@ -646,6 +660,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v30'
+        self.arm['model_revision'] = 'original-red-eye-v31'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self
