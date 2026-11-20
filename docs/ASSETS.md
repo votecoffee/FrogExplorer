@@ -84,7 +84,12 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v40**. The
+The current authored revision is **original-red-eye-v41**. The front
+hands have shorter inner digits, flatter pads, and shallow webbing
+anchored to the fingers. The fingers curl and gather as the hands
+lift in the walk and climb cycles, then spread for the next plant.
+
+In v40 the
 hind feet have an uneven toe fan, a tapered heel, and flatter adhesive
 pads. The webbing follows the toes as they spread for the swim power
 stroke and draw together during recovery.

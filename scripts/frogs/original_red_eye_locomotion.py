@@ -58,12 +58,29 @@ def place(frog, side, kind, palm, torso, distal=None, tarsus=None, pole_blend=1)
     else:rotate(frog, names[2], lower.inverted()@distal)
 
 
+def lift_digits(frog, side, kind, lift):
+    if kind == 'leg':
+        for _, names in frog.digits[(side, 'foot')]:
+            rotate(frog, names[-1], Quaternion((1, 0, 0), .16*lift))
+        return
+
+    # The hand gathers around its center during swing, with the tips curled
+    # toward the palm. Both motions ease back to zero before weight bearing.
+    fold = lift*lift
+    sign = -1 if side=='L' else 1
+    for (points, names), inward in zip(frog.digits[(side, 'hand')], (.27, .095, -.09, -.23)):
+        direction = points[1]-points[0]
+        across = Vector((-direction.y, direction.x, 0)).normalized()
+        rotate(frog, names[0], Quaternion((0, 0, 1), sign*inward*fold))
+        rotate(frog, names[1], Quaternion(across, .30*fold))
+
+
 def walk(frog, t):
     torso = body(frog, (0, .008*sin(2*pi*t), .010*sin(2*pi*t)),
                  (0, 0, .0010*sin(2*pi*t)**2))
     for side in ['L', 'R']:
         phase = 2*pi*t+(0 if side=='L' else pi)
-        for kind, label, extra in [('arm','hand',0),('leg','foot',pi)]:
+        for kind, extra in [('arm',0),('leg',pi)]:
             p = phase+extra;swing = max(0, sin(p))
             palm = frog.limbs[(side, kind)][0][-1].copy()
             cycle = (p/(2*pi))%1
@@ -75,7 +92,7 @@ def walk(frog, t):
             palm.y += .024*travel+(.024 if kind=='leg' else 0)
             palm.z += .009*swing*swing
             place(frog, side, kind, palm, torso)
-            for _,names in frog.digits[(side,label)]:rotate(frog,names[-1],Quaternion((1,0,0), .16*swing))
+            lift_digits(frog, side, kind, swing)
 
 
 def surface_steps(frog, t, yaw=0.0, sway=0.0):
@@ -84,7 +101,7 @@ def surface_steps(frog, t, yaw=0.0, sway=0.0):
     torso = body(frog, (0, 0, body_yaw))
     for side, sign in [('L', -1), ('R', 1)]:
         phase = 2*pi*t+(0 if side=='L' else pi)
-        for kind, label, offset in [('arm', 'hand', 0), ('leg', 'foot', pi)]:
+        for kind, offset in [('arm', 0), ('leg', pi)]:
             step = phase+offset
             lift = max(0, sin(step))
             palm = frog.limbs[(side, kind)][0][-1].copy()
@@ -95,8 +112,7 @@ def surface_steps(frog, t, yaw=0.0, sway=0.0):
                 palm.y += .015*cos(step)+.022
             palm.z += .009*lift**2
             place(frog, side, kind, palm, torso)
-            for _, names in frog.digits[(side, label)]:
-                rotate(frog, names[-1], Quaternion((1, 0, 0), .16*lift))
+            lift_digits(frog, side, kind, lift)
     if yaw:
         body(frog, (0, 0, body_yaw+yaw))
 

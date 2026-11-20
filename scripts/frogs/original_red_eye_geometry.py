@@ -10,7 +10,7 @@ from pathlib import Path
 import bpy
 import numpy as np
 from mathutils import Vector
-from original_red_eye_feet import HIND_DIGIT_FAN, adhesive_pad, digital_web, hind_palm
+from original_red_eye_feet import FRONT_DIGIT_FAN, HIND_DIGIT_FAN, adhesive_pad, digital_palm, digital_web
 from original_red_eye_face import (
     BODY_Y_RANGE, FACE_SECTIONS, NARIS_ANGLE, NARIS_Y, add_features,
     naris_radius, orbital_recess, shorten_muzzle, tympanic_radius, tympanic_relief,
@@ -296,9 +296,8 @@ class Frog:
                     name = 'DEF-'+name+'.'+side
                     self.bone(name, points[i], points[i+1], parent);parent = name;full.append(name)
                 self.limbs[(side, label)] = (points, full)
-            hand_fan = tuple(((i-1.5)*.48, length) for i, length in enumerate((.0168, .0232, .0240, .0184)))
             for label, palm, parent, fan_profile in [
-                ('hand', hand, 'DEF-hand.'+side, hand_fan),
+                ('hand', hand, 'DEF-hand.'+side, FRONT_DIGIT_FAN),
                 ('foot', foot, 'DEF-foot.'+side, HIND_DIGIT_FAN)]:
                 digits = []
                 for i, (fan, length) in enumerate(fan_profile):
@@ -737,12 +736,7 @@ class Frog:
                 inset = .0100
             self.tube('Continuous '+label+' '+side, points, radii, bones, self.limb_mat, 24 if label=='leg' else 12, 24, bulges, flatten, True,
                       (-1 if side=='L' else 1, inset))
-            palm = points[-1]
-            name = 'Orange '+label+' palm '+side
-            if label=='leg':
-                hind_palm(self, name, palm, bones[-1])
-            else:
-                self.ellipsoid(name, palm+Vector((0,0,.00025)), (.0058,.0056,.00165), self.orange, bones[-1])
+            digital_palm(self, 'Orange '+label+' palm '+side, points[-1], bones[-1], hind=label=='leg')
         for (side, label), digits in self.digits.items():
             sizes = [.84,1.0,1.03,.91] if label=='hand' else [.80,.93,1.06,1.0,.88]
             for number, (points, bones) in enumerate(digits, 1):
@@ -756,6 +750,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v40'
+        self.arm['model_revision'] = 'original-red-eye-v41'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self

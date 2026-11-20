@@ -8,6 +8,13 @@ from math import sin, cos, pi
 from mathutils import Vector
 
 
+FRONT_DIGIT_FAN = (
+    (-.85, .0149),
+    (-.27, .0219),
+    (.24, .0240),
+    (.79, .0192),
+)
+
 # Inner to outer on either foot. The fourth digit reaches farthest, and the
 # shorter fifth digit wraps out to the side of the pad fan.
 HIND_DIGIT_FAN = (
@@ -19,8 +26,11 @@ HIND_DIGIT_FAN = (
 )
 
 
-def hind_palm(frog, name, center, bone):
-    """Shape the orange foot base from the narrow heel toward the toe roots."""
+def digital_palm(frog, name, center, bone, hind):
+    """Broaden the pad fan at the digit roots and taper it into the wrist."""
+    width, length, thickness, flare = (
+        (.00635, .00725, .00144, .34) if hind else (.00585, .00630, .00150, .25)
+    )
     vertices, faces, uv = [], [], []
     rings, segments = 14, 24
     for i in range(rings+1):
@@ -29,9 +39,9 @@ def hind_palm(frog, name, center, bone):
             theta = 2*pi*j/segments
             forward = -sin(phi)*sin(theta)
             across = sin(phi)*cos(theta)
-            point = Vector((.00635*across*(1+.34*forward),
-                            -.00725*forward,
-                            .00024+.00144*cos(phi)*(1+.16*forward)))
+            point = Vector((width*across*(1+flare*forward),
+                            -length*forward,
+                            .00024+thickness*cos(phi)*(1+.16*forward)))
             vertices.append(center+point)
             uv.append((j/segments, i/rings))
     for i in range(rings):
@@ -51,15 +61,15 @@ def adhesive_pad(frog, name, points, bone, size, hind=False):
     rings, segments = 12, 28
     for i in range(rings+1):
         phi = pi*i/rings;r = sin(phi);vertical = cos(phi)
-        if vertical>=0:z = (.00139 if hind else .0017)*vertical**.85
+        if vertical>=0:z = (.00139 if hind else .00146)*vertical**.85
         else:
             t = min(1, -vertical/.65);z = -.00135*t*t*(3-2*t)
         for j in range(segments+1):
             angle = 2*pi*j/segments
             longitudinal = .0042*size*r*cos(angle)
             lateral = .0038*size*r*sin(angle)*(.96+.16*cos(angle))
+            longitudinal += (.00045 if hind else .00027)*size*r
             if hind:
-                longitudinal += .00045*size*r
                 lateral *= .98+.11*cos(angle)
             vertices.append(center+forward*longitudinal+across*lateral+Vector((0, 0, z)))
             uv.append((j/segments, i/rings))
@@ -74,18 +84,16 @@ def digital_web(frog, side, label, digits):
     vertices = [];faces = [];uv = [];weights = []
     palm_bone = 'DEF-'+label+'.'+side
     columns, rows = 9, 5
+    reaches, scallops = (
+        ((.66, .74, .74, .68), (.33, .24, .24, .31)) if label=='foot'
+        else ((.64, .74, .68), (.39, .30, .36))
+    )
     for gap, (left, right) in enumerate(zip(digits[:-1], digits[1:])):
         base = len(vertices)
-        if label == 'foot':
-            # Anchor to the first toe segments so the web follows their motion.
-            reach = (.66, .74, .74, .68)[gap]
-            a = left[0][0].lerp(left[0][1], reach)
-            b = right[0][0].lerp(right[0][1], reach)
-            scallop = (.33, .24, .24, .31)[gap]
-        else:
-            a = left[0][0].lerp(left[0][-1], .40)
-            b = right[0][0].lerp(right[0][-1], .40)
-            scallop = .34
+        # Anchor to the proximal segments so the web follows the digit fan.
+        a = left[0][0].lerp(left[0][1], reaches[gap])
+        b = right[0][0].lerp(right[0][1], reaches[gap])
+        scallop = scallops[gap]
         for layer in range(2):
             for row in range(rows):
                 r = row/(rows-1)
