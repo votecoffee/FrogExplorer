@@ -82,7 +82,12 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v27**. The outer
+The current authored revision is **original-red-eye-v28**. Flexible skin
+at each rear lip connects the cheek to the lower jaw when the mouth
+opens. The rounded front edge folds inward, exposing the existing
+mouth lining, and the tissue seats beneath the cheek at rest.
+
+In v27 the outer
 lower jaw has a rounder chin and a fuller sidewall that rolls into the
 throat. The inner floor and lip opening retain their geometry.
 
