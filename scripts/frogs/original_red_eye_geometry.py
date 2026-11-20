@@ -124,6 +124,15 @@ def painted_maps(name, width, height, kind):
         rgb = np.array([.58,.36,.32])*shade[:,:,None]
         rgb *= (1+.055*grain+.024*pores)[:,:,None]
         return image(name+' color', np.clip(rgb, 0, 1)), None, None
+    if kind == 'tongue':
+        upper = smooth(-.25,.80,np.sin(2*pi*v))
+        pad = smooth(.67,.90,u)*(.48+.52*upper)
+        root = 1-smooth(.06,.43,u)
+        shaft = np.array([.65,.345,.325])
+        tip = np.array([.79,.475,.43])
+        rgb = shaft+pad[:,:,None]*(tip-shaft)
+        rgb *= (1-.24*root+.052*grain+(.026+.028*pad)*pores)[:,:,None]
+        return image(name+' color', np.clip(rgb, 0, 1)), None, None
     dorsal = np.sin(v*2*pi)
     green = np.array([.075, .40, .018]) if kind == 'body' else np.array([.07, .37, .016])
     rgb = np.broadcast_to(green, (height, width, 3)).copy()
@@ -241,7 +250,9 @@ class Frog:
         self.oral = material('Warm oral mucosa', (.32, .131, .119), .53,
                              maps=(oral_color, None, None), coat=.045)
         self.oral_dark = material('Recessed oral tissue', (.055, .025, .023), .53)
-        self.pink = material('Tongue muscle', (.43, .15, .139), .36, coat=.20)
+        tongue_color = painted_maps('Original tongue', 512, 256, 'tongue')[0]
+        self.pink = material('Tongue muscle', (.40, .16, .139), .45,
+                             maps=(tongue_color, None, None), coat=.10)
         self.dark = material('Mouth seam', (.006, .011, .004), .5)
         self.iris = material('Original red iris and vertical pupil', (.7, .07, .01), .17,
                              maps=painted_maps('Original iris', 1024, 1024, 'iris'), coat=.45)
@@ -652,12 +663,12 @@ class Frog:
             [-.0718,.00000,-.00255,.00000],
             [-.0698,.00340,-.00235,.00091],
             [-.0640,.00565,-.00140,.00127],
-            [-.0565,.00505, .00010,.00135],
-            [-.0500,.00465, .00020,.00136],
-            [-.0470,.00545, .00006,.00153],
+            [-.0565,.00470, .00010,.00132],
+            [-.0500,.00423, .00020,.00131],
+            [-.0470,.00538, .00006,.00149],
             [-.0430,.00705, .00008,.00158],
-            [-.0395,.00640, .00007,.00134],
-            [-.0366,.00390,-.00002,.00092],
+            [-.0395,.00666, .00007,.00127],
+            [-.0366,.00416,-.00002,.00087],
             [-.0352,.00000,-.00016,.00000],
         ])
         rings, segments = 42, 36
@@ -711,6 +722,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v35'
+        self.arm['model_revision'] = 'original-red-eye-v36'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self

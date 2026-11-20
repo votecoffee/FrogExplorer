@@ -84,9 +84,15 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v35**. A shallow ridge
-follows the inside of the lower lip. Warm pigment defines the ridge and
-fades toward the back of the mouth, with less gloss on the oral floor.
+The current authored revision is **original-red-eye-v36**. The tongue
+narrows through the shaft and widens into a rounded contact pad. A baked
+color gradient and fine stipple define the pad, with softer highlights.
+The pad profile takes cues from the soft tissue in
+[high-speed horned-frog feeding footage](https://pmc.ncbi.nlm.nih.gov/articles/PMC4593688/).
+
+In v35 a shallow ridge followed the inside of the lower lip. Warm
+pigment defines the ridge and fades toward the back of the mouth, with
+less gloss on the oral floor.
 
 In v34 the lower jaw rolled inward beneath the lip and gained a shallower
 chin. Olive pigment along the closing edge fades into the pale underside.
