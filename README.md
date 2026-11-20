@@ -89,6 +89,8 @@ The installer saves the workspace path in `.local/settings.json`. Subsequent bui
 
 For Windows builds that cross drive letters, FrogExplorer stages the package source on the workspace drive. Colcon reads the game assets through a temporary directory junction and installs regular copies. When the workspace filesystem cannot create a junction, the build stages the selected runtime assets as copies.
 
+ROS installs preserve and compare source asset timestamps at full precision, so edits within the same second can trigger an update. When a previous install rounded an asset timestamp, the build restores its precision after verifying that the file bytes match.
+
 ### Linux and Raspberry Pi
 
 ```bash

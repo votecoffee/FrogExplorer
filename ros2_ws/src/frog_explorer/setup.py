@@ -2,6 +2,7 @@ from pathlib import Path
 import os
 from setuptools import setup
 from frog_explorer.asset_files import game_files
+from frog_explorer.asset_install import AssetInstallData
 
 project = Path(__file__).resolve().parents[3]
 game = project / "game"
@@ -16,6 +17,7 @@ for path in runtime_files:
 for folder,files in sorted(runtime_folders.items()):
     data.append((str(Path("share/frog_explorer/game") / folder.relative_to(game)), files))
 setup(name="frog_explorer", version="0.1.0", packages=["frog_explorer"],
+      cmdclass={"install_data": AssetInstallData},
       data_files=data, install_requires=["setuptools"], zip_safe=False,
       maintainer="votecoffee", maintainer_email="7451299+votecoffee@users.noreply.github.com",
       description="Woodland pond exploration game and ROS 2 bridge", license="MIT",
