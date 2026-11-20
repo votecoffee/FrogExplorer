@@ -84,7 +84,11 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v43**. A shallow
+The current authored revision is **original-red-eye-v44**. The
+haunch rounds into the top of the hind thigh. The flank near the hip
+follows part of the thigh rotation as the leg folds and extends.
+
+In v43 a shallow
 contour in the outer chest and a tapered upper-arm edge soften the
 shoulder join. Skin near the join partly follows the upper arm during
 each reach.
