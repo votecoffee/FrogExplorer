@@ -363,7 +363,8 @@ class Frog:
         midpoints = (base_y[:-1]+base_y[1:])*.5
         near_nares = abs(midpoints-NARIS_XY[1]) < .004
         near_tip = midpoints < controls[0,0]+.005
-        rows = np.sort(np.concatenate((base_y,midpoints[near_nares | near_tip])))
+        near_orbits = (midpoints > -.065) & (midpoints < -.035)
+        rows = np.sort(np.concatenate((base_y,midpoints[near_nares | near_tip | near_orbits])))
         rings, segments = len(rows)-1, 96
         for y in rows:
             u = (y-controls[0,0])/(controls[-1,0]-controls[0,0])
@@ -577,6 +578,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v21'
+        self.arm['model_revision'] = 'original-red-eye-v22'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self

@@ -82,7 +82,12 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v21**. Each upper eyelid
+The current authored revision is **original-red-eye-v22**. The upper
+orbital ridge rises into the brow and fades into the forehead. The
+socket wall sits deeper in the head, and the narrow eyelid margin
+tapers along the lower edge of the iris.
+
+In v21 each upper eyelid
 has a curved crease, a raised edge and a flatter crown. The lids gain
 clearance over the corneas mid-blink and settle back into the sockets as
 they close.

@@ -55,19 +55,25 @@ def orbital_recess(point,centers):
     for sign,center in centers:
         normal,horizontal,vertical=eye_frame(sign);delta=point-center
         radius=EYE_RADIUS*sin(EYE_APERTURE)
-        rho=sqrt((delta.dot(horizontal)/EYE_ASPECT[0])**2
-                 +(delta.dot(vertical)/EYE_ASPECT[1])**2)/radius
-        if rho >= 1.60:
+        across = delta.dot(horizontal)/(EYE_ASPECT[0]*radius)
+        height = delta.dot(vertical)/(EYE_ASPECT[1]*radius)
+        rho = sqrt(across*across+height*height)
+        if rho >= 1.86:
             continue
         depth = delta.dot(normal)
         blend = min(1, max(0, (1.18-rho)/.18))
         point -= normal*max(0, depth-.0010)*blend**2*(3-2*blend)
-        # The lower orbital margin rises out of the cheek and fades into the
-        # brow. It belongs to the continuous head, outside the iris opening.
-        margin = min(1, max(0, (rho-1.02)/.58))
-        lower = min(1, max(0, -delta.dot(vertical)/radius))
-        roll = .0015*sin(pi*margin)**2*(.34+.66*lower)
-        point += normal*roll*exp(-((depth+.001)/.0065)**2)
+        # The upper arc widens toward the forehead. Below the eye the cheek
+        # rolls out more gently, leaving the lid margin thinner.
+        angle_radius = max(1.02,rho)
+        upper = max(0,height)/angle_radius
+        lower = max(0,-height)/angle_radius
+        toward_nose = max(0,sign*across)/angle_radius
+        span = .57+.24*upper+.03*toward_nose
+        margin = min(1,max(0,(rho-1.02)/span))
+        relief = (.00044+.0026*upper**1.4+.00105*lower)*(1+.18*toward_nose)
+        falloff = sin(pi*margin)**2*exp(-((depth+.001)/.007)**2)
+        point += falloff*(normal*relief+vertical*(.0032*upper**1.6))
     return point
 
 
@@ -80,14 +86,16 @@ def add_orbital_socket(frog, side, center, normal, horizontal, vertical):
         t = i/rings
         phi = (pi-1.25)*t
         blend = sin(pi*t)**2
-        depth = -radius*cos(phi)*EYE_ASPECT[2]-.0014*blend
+        depth = -radius*cos(phi)*EYE_ASPECT[2]-.00155*blend
         for j in range(segments+1):
             angle = 2*pi*j/segments
             height = sin(angle)
-            spread = 1+blend*(.12*max(0,-height)-.09*max(0,height))
+            upper, lower = max(0,height), max(0,-height)
+            spread = 1+blend*(.087*lower-.056*upper)
+            lip = (.00012*lower-.00028*upper)*t**6
             radial = (-horizontal*(cos(angle)*EYE_ASPECT[0])
                       +vertical*(height*EYE_ASPECT[1]))
-            vertices.append(center+normal*depth+radial*(radius*sin(phi)*spread))
+            vertices.append(center+normal*(depth+lip)+radial*(radius*sin(phi)*spread))
             uv.append((j/segments,t))
     for i in range(rings):
         for j in range(segments):
@@ -140,10 +148,16 @@ def add_features(frog):
         frog.cap('Red corneal surface '+side,center,n,EYE_RADIUS,EYE_APERTURE,
                  frog.iris,'FX_eye.'+side,24,64,aspect=EYE_ASPECT)
         add_upper_eyelid(frog, side, sign, center, n, u, v)
-        ring = [center+n*((EYE_RADIUS+.00025)*cos(EYE_APERTURE)*EYE_ASPECT[2])
-                +(u*(cos(a)*EYE_ASPECT[0])+v*(sin(a)*EYE_ASPECT[1]))*((EYE_RADIUS+.00025)*sin(EYE_APERTURE))
-                for a in np.linspace(0,2*pi,81)]
-        frog.tube('Fine eye rim '+side,ring,[.00013]*len(ring),['Head']*(len(ring)-1),frog.rim_mat,1,8)
+        ring, rim_widths = [], []
+        for angle in np.linspace(0,2*pi,81):
+            height = sin(angle)
+            upper, lower = max(0,height), max(0,-height)
+            radius = EYE_RADIUS+.00028+.00014*upper+.00018*lower
+            depth = radius*cos(EYE_APERTURE)*EYE_ASPECT[2]-.00022*lower
+            radial = u*(cos(angle)*EYE_ASPECT[0])+v*(height*EYE_ASPECT[1])
+            ring.append(center+n*depth+radial*(radius*sin(EYE_APERTURE)))
+            rim_widths.append(.000052+.000083*upper**1.5+.000015*lower)
+        frog.tube('Fine eye rim '+side,ring,rim_widths,['Head']*(len(ring)-1),frog.rim_mat,1,8)
         lip = []
         for y in np.linspace(-.0827,-.0315,48):
             x = sign*frog.jaw_width(y)
