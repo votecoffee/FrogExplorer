@@ -25,14 +25,16 @@ func run():
  if not player or not skeleton:push_error("Authored frog has no native animation player/skeleton");quit(1);return
  var samples=0;var furthest=0.0
  var joint_count=skeleton.get_bone_count()
- if joint_count!=61 and joint_count!=65:failures.append("Unexpected authored joint count")
- if joint_count==65:
+ if joint_count!=61 and joint_count!=65 and joint_count!=69:failures.append("Unexpected authored joint count")
+ if joint_count>=65:
+  var support_pairs=[["knee_skin","thigh"],["ankle_skin","shin"]]
+  if joint_count==69:support_pairs.append_array([["elbow_skin","upper_arm"],["wrist_skin","forearm"]])
   for side in ["L","R"]:
-   for pair in [["knee_skin","thigh"],["ankle_skin","shin"]]:
+   for pair in support_pairs:
     var joint=skeleton.find_bone("DEF-%s.%s"%[pair[0],side])
     var parent=skeleton.find_bone("DEF-%s.%s"%[pair[1],side])
     if joint<0 or parent<0 or skeleton.get_bone_parent(joint)!=parent:
-     failures.append("Missing or misparented limb support joint")
+     failures.append("Missing or misparented limb support joint DEF-%s.%s"%[pair[0],side])
  for mesh in meshes:
   if not mesh.skin:failures.append("Unskinned mesh: "+str(mesh.name))
  for side in ["L","R"]:

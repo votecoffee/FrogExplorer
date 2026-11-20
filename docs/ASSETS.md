@@ -84,7 +84,13 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v41**. The front
+The current authored revision is **original-red-eye-v42**. Support
+joints rotate by half the elbow and wrist bend angles to
+reduce pinching in the exported forelimbs. In the face-wipe clip,
+the thinnest sampled elbow section retains about 87 percent of its
+resting thickness.
+
+In v41 the front
 hands have shorter inner digits, flatter pads, and shallow webbing
 anchored to the fingers. The fingers curl and gather as the hands
 lift in the walk and climb cycles, then spread for the next plant.

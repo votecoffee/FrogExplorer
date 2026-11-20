@@ -236,7 +236,7 @@ def material(name, color, rough=.4, maps=None, coat=.06):
 class Frog:
     def __init__(self):
         self.meshes = [];self.bones = {};self.rest = {};self.limbs = {};self.digits = {}
-        self.hind_joint_support = {}
+        self.joint_support = {}
         self.body_mat = material('Original leaf-green dorsal skin', (.2, .55, .04),
                                  maps=painted_maps('Original trunk', 2048, 1024, 'body'))
         limb_maps = painted_maps('Original limbs', 1024, 512, 'limb')
@@ -312,14 +312,15 @@ class Frog:
             center = Vector((sign*.0297, -.049, .0595))
             self.bone('FX_eye.'+side, center, center+Vector((0, -.01, 0)), 'Head')
             self.bone('Lid.'+side, center, center+Vector((0, 0, .01)), 'Head')
-        for side in ('L','R'):
-            points, names = self.limbs[(side,'leg')]
-            for joint, label in ((1,'knee'),(2,'ankle')):
-                support = f'DEF-{label}_skin.{side}'
-                # Share the downstream bone's rest transform and parent so
-                # the local motion can be followed at half the bend angle.
-                self.bone(support, points[joint], points[joint+1], names[joint-1])
-                self.hind_joint_support[names[joint]] = support
+        for limb, labels in (('leg', ('knee', 'ankle')), ('arm', ('elbow', 'wrist'))):
+            for side in ('L', 'R'):
+                points, names = self.limbs[(side, limb)]
+                for joint, label in enumerate(labels, 1):
+                    support = f'DEF-{label}_skin.{side}'
+                    # Match the downstream rest axes and parent so the support
+                    # can follow the local rotation halfway through the bend.
+                    self.bone(support, points[joint], points[joint+1], names[joint-1])
+                    self.joint_support[names[joint]] = support
         bpy.ops.object.mode_set(mode='OBJECT')
         self.rest = {bone.name:bone.matrix_local.to_quaternion() for bone in arm_data.bones}
 
@@ -523,7 +524,7 @@ class Frog:
             current = min(span, len(bones)-1)
             skin = {bones[current]:1.0}
             if span > 0 and t < .25 and bones[current] != bones[current-1]:
-                support = self.hind_joint_support.get(bones[current])
+                support = self.joint_support.get(bones[current])
                 if support:
                     mix = float(smooth(0,.25,t))
                     skin = {support:1-mix,bones[current]:mix}
@@ -531,7 +532,7 @@ class Frog:
                     mix = .5*(1-t/.25)
                     skin = {bones[current]:1-mix,bones[current-1]:mix}
             elif current+1 < len(bones) and t > .75 and bones[current] != bones[current+1]:
-                support = self.hind_joint_support.get(bones[current+1])
+                support = self.joint_support.get(bones[current+1])
                 if support:
                     mix = float(smooth(.75,1,t))
                     skin = {bones[current]:1-mix,support:mix}
@@ -750,6 +751,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v41'
+        self.arm['model_revision'] = 'original-red-eye-v42'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self
