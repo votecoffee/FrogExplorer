@@ -72,6 +72,7 @@ func _distance(meters:float)->String:
 
 func _place_details(item:Dictionary)->String:
  var extent=_coverage(item);var summary=""
+ if item.get("provider","")=="activity":summary="Select from Places · Single player"
  if extent.x>0 and extent.y>0:summary="Mapped extent: %s × %s"%[_distance(extent.x),_distance(extent.y)]
  var kind=_badge_kind(item)
  if kind in ["large","large_detail"]:summary+=" · Large area"

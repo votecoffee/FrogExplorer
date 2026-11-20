@@ -28,7 +28,7 @@ func _ready():
   for item in parsed.get("places",[]):
    if item is Dictionary:catalog.append(item)
  var args=OS.get_cmdline_user_args()
- persist_history=not ("--smoke" in args or "--travel-smoke" in args or "--size-smoke" in args or "--ride-smoke" in args or "--test-session" in args)
+ persist_history=not ("--smoke" in args or "--travel-smoke" in args or "--size-smoke" in args or "--ride-smoke" in args or "--activity-smoke" in args or "--test-session" in args)
  if persist_history:_load_history()
 
 func place(id:String)->Dictionary:
@@ -39,6 +39,9 @@ func place(id:String)->Dictionary:
 func profile()->String:
  if OS.get_name()=="Windows":return "windows"
  return "pi5" if Engine.get_architecture_name() in ["arm64","arm32"] else "linux"
+
+func in_activity()->bool:
+ return place(current_id).get("provider","")=="activity"
 
 func unavailable(item:Dictionary)->String:
  if item.is_empty():return "That place is not in the installed catalog."
@@ -51,6 +54,10 @@ func unavailable(item:Dictionary)->String:
  var sizes=item.get("size_range",[FrogBodyMetrics.MIN_FACTOR,FrogBodyMetrics.MAX_FACTOR])
  if sizes.size()!=2 or size<float(sizes[0]) or size>float(sizes[1]):return "This place does not support the default arrival size."
  if item.get("provider","")=="pond":return ""
+ if item.get("provider","")=="activity":
+  if game.party and (game.party.records.size()!=1 or game.party.lan.role!="local"):
+   return "Activities are for single-player sessions."
+  return "" if item.get("activity","") in ExplorerActivityWorld.ACTIVITIES else "This activity is not installed."
  if item.get("provider","")!="local_mesh":return "This world provider is not installed."
  var tiles=WorldTiles.manifest(item)
  if tiles.has("error"):return tiles.error
@@ -68,7 +75,7 @@ func available_places()->Array[Dictionary]:
 func choose_random()->String:
  var options:Array[Dictionary]=[]
  for item in available_places():
-  if item.id!=current_id and item.get("random_eligible",false) and (category=="any" or item.get("category","")==category):options.append(item)
+  if item.id!=current_id and item.get("provider","")!="activity" and item.get("random_eligible",false) and (category=="any" or item.get("category","")==category):options.append(item)
  if options.is_empty():return ""
  # Prefer places absent from the last ten visits, shorten for a small pool.
  var fresh=options.filter(func(item):return not item.id in history.slice(maxi(0,history.size()-10)))
@@ -125,6 +132,10 @@ func _prepare(item:Dictionary,token:int):
  if not _valid(token):return
  status="collision";progress=.65;message="Preparing the ground...";changed.emit()
  if item.provider=="pond":staged=WoodlandWorld.new()
+ elif item.provider=="activity":
+  var activity:=ExplorerActivityWorld.new()
+  activity.activity=item.activity
+  staged=activity
  else:
   var local_world=LocalMeshWorld.new() if tiles.is_empty() else TiledMeshWorld.new()
   local_world.packed_scene=scene;local_world.pack=item
@@ -150,7 +161,7 @@ func _prepare(item:Dictionary,token:int):
  if not reason.is_empty():_fail(reason);return
  status="arrival";progress=.85;message="Checking a safe arrival...";changed.emit()
  var p=item.get("spawn",[2.8,.2,3.5]);var expected=Vector3(float(p[0]),float(p[1]),float(p[2]))
- var spawn=_safe_spawn(staged,expected)
+ var spawn=_safe_spawn(staged,staged.spawn_point if staged is ExplorerActivityWorld else expected)
  if spawn.is_empty():_fail("There is no clear, walkable ground at this arrival point. Staying here.");return
  _commit(item,spawn)
 
@@ -199,7 +210,8 @@ func _commit(item:Dictionary,spawn:Dictionary):
  var was_paused=game.pilot.paused;game.pilot.paused=true
  if game.rides:game.rides.clear_for_travel()
  game.pilot.release_contacts() # release the old tree/tongue references first
- staged.spawn_point=spawn.position;staged.spawn_heading=deg_to_rad(float(item.get("heading_degrees",0)))
+ staged.spawn_point=spawn.position
+ if not staged is ExplorerActivityWorld:staged.spawn_heading=deg_to_rad(float(item.get("heading_degrees",0)))
  old.set_collision_layers(0)
  game.woodland=staged;game.pilot.woodland=staged;game.camera_rig.woodland=staged
  game.remove_child(old);old.queue_free()

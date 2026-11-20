@@ -12,6 +12,8 @@ var ros:ExplorerRosLink
 var ambience:AudioStreamPlayer
 var marker:Label3D
 var party:ExplorerParty
+var activities:CanvasLayer
+const Activities=preload("res://scripts/activities/activities.gd")
 var clock=0.0
 var pending_events=[]
 var quitting=false
@@ -34,6 +36,7 @@ func _ready():
  travel_menu=ExplorerTravelMenu.new();travel_menu.game=self;add_child(travel_menu)
  rides=ExplorerRides.new();rides.game=self;rides.pilot=pilot;rides.controls=controls;pilot.rides=rides;add_child(rides)
  party=ExplorerParty.new();party.game=self;add_child(party)
+ activities=Activities.new();activities.game=self;add_child(activities)
  _arguments()
 
 func _arguments():
@@ -42,6 +45,7 @@ func _arguments():
  if "--travel-smoke" in args:_travel_smoke.call_deferred()
  if "--size-smoke" in args:_size_smoke.call_deferred()
  if "--ride-smoke" in args:_ride_smoke.call_deferred()
+ if "--activity-smoke" in args:_activity_smoke.call_deferred()
  for arg in args:
   if arg.begins_with("--place="):travel.request.call_deferred(arg.trim_prefix("--place="))
   if arg.begins_with("--host="):party.lan.host.call_deferred(int(arg.trim_prefix("--host=")),"--lan-test" in args)
@@ -57,6 +61,8 @@ func _physics_process(delta):
 
 func tick_player(slot,_delta):
  var input=slot.controls;input.sample()
+ if slot==self and activities.editor_open():
+  input.neutralize();return
  if slot==self and party and party.menu.visible:
   for action in input.drain():
    if action=="help":party.toggle_menu()
@@ -72,6 +78,7 @@ func tick_player(slot,_delta):
  input.size_requests.clear()
  for action in input.drain():
   if slot==self and travel_menu.visible and travel_menu.handle_action(action):continue
+  if slot==self and activities.handle_action(action):continue
   if slot.rides.handle_action(action):continue
   if action in ["travel_random","travel_home","travel_menu","travel_cancel"] and party and not party.can_travel(slot):slot.hud.toast("Player 1 chooses travel for the whole group.");continue
   match action:
@@ -157,6 +164,10 @@ func _size_smoke():
 func _ride_smoke():
  await get_tree().create_timer(.5).timeout
  var script=load("res://scripts/ride_smoke.gd").new();add_child(script);await script.run(self)
+
+func _activity_smoke():
+ await get_tree().create_timer(.3).timeout
+ var script=load("res://scripts/activities/activity_smoke.gd").new();add_child(script);await script.run(self)
 
 func _save_view(path):
  await get_tree().create_timer(.8).timeout

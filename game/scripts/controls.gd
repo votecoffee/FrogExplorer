@@ -29,7 +29,7 @@ var device_name = "Keyboard"
 var device_profile:Dictionary={}
 
 const BUTTONS = {JOY_BUTTON_X:"jump", JOY_BUTTON_Y:"catch_fly", JOY_BUTTON_A:"croak", JOY_BUTTON_B:"silly", JOY_BUTTON_LEFT_SHOULDER:"next_frog", JOY_BUTTON_RIGHT_SHOULDER:"next_camera", JOY_BUTTON_START:"help", JOY_BUTTON_BACK:"travel_random", JOY_BUTTON_RIGHT_STICK:"travel_menu", JOY_BUTTON_LEFT_STICK:"toggle_trigger_mode"}
-const KEYS = {KEY_SPACE:"jump", KEY_X:"jump", KEY_F:"catch_fly", KEY_Y:"catch_fly", KEY_V:"croak", KEY_B:"silly", KEY_G:"silly", KEY_TAB:"next_frog", KEY_Q:"next_frog", KEY_C:"next_camera", KEY_ESCAPE:"help", KEY_F1:"help", KEY_R:"reset", KEY_M:"mute", KEY_F2:"debug", KEY_T:"travel_random", KEY_N:"travel_menu", KEY_H:"travel_home", KEY_0:"reset_size", KEY_KP_0:"reset_size", KEY_F3:"toggle_trigger_mode", KEY_1:"ride_balloon", KEY_2:"ride_car", KEY_3:"ride_exit"}
+const KEYS = {KEY_SPACE:"jump", KEY_X:"jump", KEY_F:"catch_fly", KEY_Y:"catch_fly", KEY_V:"croak", KEY_B:"silly", KEY_G:"silly", KEY_TAB:"next_frog", KEY_Q:"next_frog", KEY_C:"next_camera", KEY_ESCAPE:"help", KEY_F1:"help", KEY_R:"reset", KEY_M:"mute", KEY_F2:"debug", KEY_T:"travel_random", KEY_N:"travel_menu", KEY_H:"travel_home", KEY_0:"reset_size", KEY_KP_0:"reset_size", KEY_F3:"toggle_trigger_mode", KEY_F5:"activity", KEY_1:"ride_balloon", KEY_2:"ride_car", KEY_3:"ride_exit"}
 
 func _ready():
  Input.joy_connection_changed.connect(_connection)

@@ -46,6 +46,7 @@ func tell(text:String):
  message=text;notice_time=4;game.hud.toast(text)
 
 func _input(event):
+ if game.activities and game.activities.editor_open():return
  if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode==KEY_F4:
   toggle_menu();get_viewport().set_input_as_handled();return
  if event is InputEventJoypadButton and event.pressed and event.button_index==JOY_BUTTON_START:
@@ -70,6 +71,7 @@ func join_local(device:int)->bool:
  var first=local_records()[0]
  if first.device<0:
   first.device=device;first.slot.controls.assign_device(device);first.slot.controls.neutralize();tell("Controller assigned to Player 1.");return true
+ if game.travel.in_activity():tell("Leave the activity before joining split screen.");return false
  if local_records().size()>=MAX_LOCAL or (not lan.is_client() and records.size()>=MAX_PLAYERS):tell("The local or party player limit has been reached.");return false
  var index=1
  while local_records().any(func(r):return r.index==index):index+=1

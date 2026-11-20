@@ -1,0 +1,171 @@
+extends Node
+
+const Run = preload("res://scripts/activities/course_run.gd")
+const Program = preload("res://scripts/activities/garden_program.gd")
+const IDS = ["car_circuit", "balloon_rings", "lily_code_garden"]
+var failures: Array[String] = []
+var checks := 0
+
+func check(value: bool, message: String) -> void:
+ checks += 1
+ print(("PASS " if value else "FAIL ") + message)
+ if not value:
+  failures.append(message)
+
+func frames(count: int) -> void:
+ for frame in count:
+  await get_tree().physics_frame
+
+func f5() -> void:
+ var event := InputEventKey.new()
+ event.keycode = KEY_F5
+ event.physical_keycode = KEY_F5
+ event.pressed = true
+ Input.parse_input_event(event)
+ var release := event.duplicate() as InputEventKey
+ release.pressed = false
+ Input.parse_input_event(release)
+
+func travel(game, id: String) -> bool:
+ game.travel.request(id)
+ var until := Time.get_ticks_msec() + 10000
+ while game.travel.busy and Time.get_ticks_msec() < until:
+  await get_tree().physics_frame
+ await frames(6)
+ return game.travel.current_id == id
+
+func run(game) -> void:
+ var t: WorldTravel = game.travel
+ game.travel_menu.open()
+ for id in IDS:
+  var item := t.place(id)
+  check(id in game.travel_menu.destinations and not item.random_eligible, id + " appears in Places and is manual")
+ game.travel_menu.close()
+ for i in range(8):
+  check(t.choose_random() not in IDS, "Random travel draw %d excludes activities" % (i + 1))
+
+ var run_state := Run.new()
+ var gate := {"center":Vector3.ZERO, "forward":Vector3.FORWARD, "radius":3.0}
+ check(Run.crossing(Vector3(4,0,2), Vector3(4,0,-2), gate) < 0, "A ring miss does not count")
+ check(Run.crossing(Vector3(0,0,-2), Vector3(0,0,2), gate) < 0, "Reverse ring crossings do not count")
+ check(is_equal_approx(Run.crossing(Vector3(0,0,2), Vector3(0,0,-2), gate), .5), "Swept crossings count between ticks")
+
+ var has_car := await travel(game, IDS[0])
+ check(has_car and game.woodland is ExplorerActivityWorld, "Travel stages a procedural car circuit")
+ if has_car:
+  f5()
+  await frames(24)
+  check(game.rides.kind == "CAR" and game.rides.body.is_on_floor(), "F5 action boards the grounded convertible")
+  if game.rides.kind == "CAR":
+   var world: ExplorerActivityWorld = game.woodland
+   var course = game.activities.course
+   var start: Vector3 = game.rides.body.position
+   game.controls.remote_move = Vector2(0,-1)
+   game.controls.remote_until = Time.get_ticks_msec() / 1000.0 + 3.5
+   await frames(120)
+   check(game.rides.body.position.distance_to(start) > 5.0, "The convertible accelerates on the physical track")
+   check(course.timed and course.cursor == 1, "Driving crosses the first timing gate")
+   game.controls.neutralize()
+   # Use swept, forward samples through the actual gate layout to validate order
+   # and lap counting without a frame-rate-dependent automated race driver.
+   course.setup(world.gates, 2, start)
+   for target in course.order:
+    var lap_gate: Dictionary = world.gates[target]
+    var center: Vector3 = lap_gate.center
+    var direction: Vector3 = lap_gate.forward
+    course.previous = center - direction * 2
+    game.rides.body.position = center + direction * 2
+    game.activities._physics_process(0.25)
+   check(course.finished and course.cursor == world.gates.size() * 2 + 1, "Two complete ordered laps finish the race")
+   check(course.elapsed > 0, "Circuit timing starts on the first start-line crossing")
+
+ var has_balloon := await travel(game, IDS[1])
+ check(has_balloon, "Travel arrives at the balloon course")
+ if has_balloon:
+  var prior_device: int = game.controls.device
+  game.controls.device = 42
+  var event := InputEventJoypadButton.new()
+  event.device = 42
+  event.button_index = JOY_BUTTON_A
+  event.pressed = true
+  Input.parse_input_event(event)
+  await frames(12)
+  var release := event.duplicate() as InputEventJoypadButton
+  release.pressed = false
+  Input.parse_input_event(release)
+  game.controls.device = prior_device
+  check(game.rides.kind == "BALLOON", "A action deploys the balloon")
+  if game.rides.kind == "BALLOON":
+   var air: ExplorerActivityWorld = game.woodland
+   var course = game.activities.course
+   var first_altitude: float = game.rides.body.position.y
+   game.controls.remote_aux = Vector2(0, -.8)
+   game.controls.remote_until = Time.get_ticks_msec() / 1000.0 + 1.5
+   await frames(33)
+   check(game.rides.body.position.y > first_altitude + 1.0, "Altitude control lifts the balloon toward the rings")
+   game.camera_rig.view_mode = 0
+   var first: Dictionary = air.gates[0]
+   for frame in range(240):
+    if course.cursor > 0:
+     break
+    var altitude_error: float = first.center.y - game.rides.body.position.y
+    game.controls.remote_move = Vector2(0, -1)
+    game.controls.remote_aux = Vector2(0, clampf(-.20 * altitude_error, -.8, .8))
+    game.controls.remote_until = Time.get_ticks_msec() / 1000.0 + .5
+    await frames(1)
+   check(course.cursor == 1, "Flight controls navigate through the first physical ring")
+   game.controls.neutralize()
+   course.setup(air.gates, 0, game.rides.body.position)
+   check(air.gates.size() == 8, "The balloon course has eight ordered rings")
+   var second: Dictionary = air.gates[1]
+   course.previous = second.center - second.forward * 2.0
+   course.advance(second.center + second.forward * 2.0, .2)
+   check(course.cursor == 0, "Crossing a later ring cannot skip the active ring")
+   for current in air.gates:
+    course.previous = current.center - current.forward * 2.0
+    game.rides.body.position = current.center + current.forward * 2.0
+    game.activities._physics_process(.2)
+   check(course.finished and course.elapsed > 0, "The ordered balloon-ring run finishes")
+   check(game.activities.best.has(IDS[1]), "The integrated course records a session best")
+
+ var has_garden := await travel(game, IDS[2])
+ check(has_garden, "Travel arrives at Lily Code Garden")
+ check(Program.compile("print(42)").has("error"), "Garden command parser rejects other languages")
+ check(Program.compile("repeat 16\nrepeat 16\nwait\nwait\nend\nend").has("error"), "Expanded garden programs are bounded")
+ check(Program.compile("repeat 3\nwater").has("error"), "Missing end produces a line error")
+
+ # Solve both additional layouts with ordinary script commands.
+ var solutions := [
+  "fill\nrepeat 2\nhop east\nwater\nwait\ngather\nend",
+  "fill\nhop east\nhop east\nwater\nwait\ngather\nhop south\nhop east\nwater\nwait\ngather\nhop west\nhop south\nwater\nwait\ngather",
+  "fill\nhop east\nhop east\nwater\nwater\nwait\ngather\nhop south\nhop south\nwater\nwait\ngather\nhop north\nhop north\nhop west\nhop west\nfill\nhop east\nhop east\nhop south\nhop south\nhop west\nwater\nwater\nwait\ngather",
+ ]
+ for index in solutions.size():
+  var program := Program.new()
+  program.load_puzzle(index)
+  var compiled := Program.compile(solutions[index])
+  var error := str(compiled.get("error",""))
+  for action in compiled.get("steps", []):
+   if error.is_empty():
+    error = program.step(action)
+  check(error.is_empty() and program.harvested == program.plants.size(), "Garden puzzle %d can be solved with commands and loops" % (index + 1))
+
+ if has_garden:
+  f5()
+  await frames(4)
+  var popup = game.activities.garden
+  check(popup.visible and game.pilot.paused and popup.source.has_focus(), "The garden popup owns keyboard focus and pauses movement")
+  game.controls.pending.append("travel_home")
+  await frames(4)
+  check(t.current_id == IDS[2] and not t.busy, "Game shortcuts are suspended while editing")
+  popup._run()
+  var deadline := Time.get_ticks_msec() + 8000
+  while popup.running and Time.get_ticks_msec() < deadline:
+   await get_tree().process_frame
+  check(popup.solved.get(0, false) and popup.garden.harvested == 2, "The popup animates and completes the starter program")
+  popup._close()
+  check(not popup.visible and not game.pilot.paused, "Closing the popup restores frog controls")
+
+ check(await travel(game, "home_woodland_pond"), "Return home from activities")
+ print("ACTIVITY_SMOKE " + JSON.stringify({"checks":checks, "failures":failures}))
+ await game.shutdown(0 if failures.is_empty() else 1)

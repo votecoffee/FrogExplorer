@@ -35,6 +35,69 @@
       ]
     },
     {
+      "id": "car_circuit",
+      "name": "Kingfisher Circuit",
+      "category": "activity",
+      "provider": "activity",
+      "activity": "car_circuit",
+      "status": "ready",
+      "profiles": [
+        "windows",
+        "linux",
+        "pi5"
+      ],
+      "random_eligible": false,
+      "description": "Board the convertible and race two timed laps through ordered gates. A / F5 starts or restarts.",
+      "attribution": "FrogExplorer procedural activity",
+      "anchor": {},
+      "size_range": [
+        0.25,
+        16.0
+      ]
+    },
+    {
+      "id": "balloon_rings",
+      "name": "Cloudring Course",
+      "category": "activity",
+      "provider": "activity",
+      "activity": "balloon_rings",
+      "status": "ready",
+      "profiles": [
+        "windows",
+        "linux",
+        "pi5"
+      ],
+      "random_eligible": false,
+      "description": "Pilot a helium balloon through eight rings. A / F5 launches. Use the right stick for altitude and strafing.",
+      "attribution": "FrogExplorer procedural activity",
+      "anchor": {},
+      "size_range": [
+        0.25,
+        16.0
+      ]
+    },
+    {
+      "id": "lily_code_garden",
+      "name": "Lily Code Garden",
+      "category": "activity",
+      "provider": "activity",
+      "activity": "lily_code_garden",
+      "status": "ready",
+      "profiles": [
+        "windows",
+        "linux",
+        "pi5"
+      ],
+      "random_eligible": false,
+      "description": "Open the popup editor with A / F5. Program Pondbot to water and gather lilies in three puzzles.",
+      "attribution": "FrogExplorer procedural activity",
+      "anchor": {},
+      "size_range": [
+        0.25,
+        16.0
+      ]
+    },
+    {
       "id": "helsinki_senate_square",
       "name": "Senate Square · Helsinki, Finland",
       "category": "city",

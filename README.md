@@ -164,6 +164,7 @@ Linux equivalents are `--host 24970` and `--join 192.168.1.20:24970`.
 | — | 0 | Attempt default 1× size |
 | Back / Select | T | Random travel; cancel an in-progress trip |
 | R3 | N | Places list |
+| A at an activity | F5 | Start or restart a race, or open the garden editor |
 | Select Woodland pond | H | Return home |
 | — | R | Recover at current arrival point |
 | Start | Escape / F1 | Pause/help; extra-controller Start joins |
@@ -184,6 +185,33 @@ Size ranges from **0.25× to 16×**, subject to physical clearance. Movement spe
 Hold movement keys or the D-pad to ramp up balloon speed over about four seconds. At normal frog size, full joystick or digital input reaches **36 m/s** (about 130 km/h); small stick movements give finer control, and releasing the controls brakes to a hover. Balloon altitude controls reach **12 m/s**. The parachute accelerates to a **12 m/s** descent, so returning from a high flight is quicker. Ride speeds continue to scale with frog size, with upper limits.
 
 ## World travel
+
+### Manual activities
+
+Open Places with **N / R3** to select these single-player destinations. Random travel skips them. Press **F5** or the gamepad's **A** button after arrival.
+
+| Destination | Activity |
+| --- | --- |
+| Kingfisher Circuit | Board the convertible and drive two timed laps. The first start-line crossing starts the clock. Drive through each gate in order. |
+| Cloudring Course | Launch a helium balloon and fly through eight rings in order. The next ring glows gold. Use the right stick or I/K and J/L for altitude and strafe. |
+| Lily Code Garden | Open a popup editor and program Pondbot to water and gather lilies across three grid puzzles. |
+
+Press **F5 / A** again to restart a race. The course shows your current time and session best. Use **H** or Places to return to the pond.
+
+In the garden, use the popup's **Run** button or **Ctrl+Enter**. **Esc** closes the editor. The board shows Pondbot, its water supply, and how many lilies remain. Fill at a spring, hop onto a plot, water it, then allow another turn before gathering. The first puzzle includes this complete example:
+
+```text
+fill
+repeat 2
+  hop east
+  water
+  wait
+  gather
+end
+```
+
+Use **hop north**, **hop east**, **hop south**, or **hop west** to move one square. **repeat N** accepts a count from 1 to 16 and ends with **end**. **#** starts a comment. The editor reports the line of a syntax error or blocked action. Drafts and puzzle completion are kept for the current game session.
+
 
 The catalog includes **12 city areas and four historic destinations**: Helsinki, five US cities, Tokyo, Shanghai, Berlin, Moscow, Montréal, Mexico City, Machu Picchu, a Great Wall section, Giza and the Colosseum. A fresh clone includes their runtime tiles and the pond; only present, device-qualified packs appear in the places list.
 

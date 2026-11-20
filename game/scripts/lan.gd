@@ -67,6 +67,7 @@ func _available_ids()->Array:
  return ids
 
 func host(port=DEFAULT_PORT,loopback=false)->bool:
+ if game.travel.in_activity() or game.travel.staged is ExplorerActivityWorld:party.tell("Leave the activity before hosting.");return false
  if role!="local":party.tell("Disconnect the current LAN session first.");return false
  if port<1024 or port>65535:return false
  fingerprint();peer=ENetMultiplayerPeer.new()
@@ -80,6 +81,7 @@ func host(port=DEFAULT_PORT,loopback=false)->bool:
  status="Hosting UDP %d · %s"%[port,", ".join(addresses)];party.tell(status);return true
 
 func join(address:String)->bool:
+ if game.travel.in_activity() or game.travel.staged is ExplorerActivityWorld:party.tell("Leave the activity before joining LAN.");return false
  if role!="local":party.tell("Disconnect the current LAN session first.");return false
  var host_name=address.strip_edges();var port=DEFAULT_PORT
  if ":" in host_name:
