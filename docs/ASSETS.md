@@ -84,7 +84,13 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v37**. Fuller corneal
+The current authored revision is **original-red-eye-v38**. The trunk
+rounds over the hips, ending 9.5 mm farther forward at the authored scale.
+At mid-thigh, the modeled cross-section is about 15 percent narrower and
+25 percent shallower. Forearms and calves have fuller muscle bellies
+near the elbow and knee and taper into narrower wrists and ankles.
+
+In v37 fuller corneal
 shoulders surround a slightly flatter center. Radial iris pigment warms
 toward a tapered pupil and deepens toward the edge. The cornea carries a
 softer highlight, and both eyelids fit the new profile through the blink.

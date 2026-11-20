@@ -448,11 +448,24 @@ class Frog:
             u = (y-controls[0,0])/(controls[-1,0]-controls[0,0])
             section = self.section_at(y)
             width, bottom, top = section[1:]
+            torso = float(smooth(-.022,-.011,y))
+            chest = torso*exp(-((y+.002)/.016)**2)
+            waist = torso*exp(-((y-.021)/.014)**2)
+            pelvis = torso*exp(-((y-.045)/.016)**2)
+            taper = .0095*float(smooth(.043,.073,y))
             for theta in angles:
                 x = width*cos(theta)
-                z = self.body_height(x, y, sin(theta)>=0, section)
+                arc = sin(theta)
+                z = self.body_height(x, y, arc>=0, section)
                 point = orbital_recess((x,y,z),centers)
                 point.x += tympanic_relief(y,theta)
+                if torso:
+                    # Broaden the haunches and round the belly between the
+                    # shoulders and hips. Shorten the free rump behind them.
+                    point.x *= 1+.040*chest-.042*waist+.112*pelvis
+                    point.y -= taper
+                    point.z += (.00145*chest+.00118*pelvis)*max(0,arc)**1.6
+                    point.z -= (.00165*waist+.00065*pelvis)*max(0,-arc)**1.4
                 vertices.append(point);uv.append((u,theta/(2*pi)))
                 head = float(1-smooth(-.038, -.015, y))
                 weights.append({'Head':head, 'DEF-spine.003':1-head})
@@ -484,7 +497,7 @@ class Frog:
                 # A small lateral soft-tissue roll rounds the ankle hairpin;
                 # its derivative keeps the loft frame tangent to that roll.
                 roll = np.exp(-((value-2)/.20)**2)
-                shift = Vector((sign*.0030,0,.0010))
+                shift = Vector((sign*.0021,0,.0013))
                 point += shift*roll
                 tangent += shift*(-4*(value-2)/.20**2*roll)
             tangent.normalize();axis = tangent.cross(Vector((0, 0, 1)))
@@ -492,7 +505,11 @@ class Frog:
             axis.normalize();up = tangent.cross(axis).normalized()
             if up.z < 0:up = -up;axis = -axis
             radius = radii[span]*(1-t)+radii[span+1]*t
-            if bulges:radius *= 1+bulges[span]*sin(pi*t)**2
+            if bulges:
+                swell = sin(pi*t)**2
+                if attachment:
+                    swell *= 1+.90*(.5-t)
+                radius *= 1+bulges[span]*swell
             vertical = .91 if flatten is None else flatten[span]*(1-t)+flatten[span+1]*t
             if span == 0:radius *= .75+.25*sin(min(1, t*3)*pi/2)
             current = min(span, len(bones)-1)
@@ -506,7 +523,7 @@ class Frog:
                 radial = radius
                 if crease:radial *= 1-.10*np.exp(-((value-1)/.10)**2)*max(0,sin(angle))
                 if attachment and len(points)==5:
-                    radial *= 1+.30*np.exp(-((value-2)/.18)**2)
+                    radial *= 1+.19*np.exp(-((value-2)/.18)**2)
                 vertex = point+axis*(cos(angle)*radial)+up*(sin(angle)*radial*vertical)
                 entry = skin
                 if root>0:
@@ -688,10 +705,14 @@ class Frog:
     def limbs_and_digits(self):
         for (side, label), (points, bones) in self.limbs.items():
             if label == 'arm':
-                radii = [.0059, .0041, .0028, .0033];bulges = [.18, .30, .0];flatten = [.84,.78,.65,.32]
+                radii = [.00545,.00375,.00248,.00330]
+                bulges = [.24,.51,0]
+                flatten = [.88,.84,.70,.32]
                 inset = .0095
             else:
-                radii = [.0084, .0048, .0035, .0030, .0042];bulges = [.18, .20, .05, .0];flatten = [.78,.76,.76,.60,.30]
+                radii = [.00760,.00412,.00305,.00286,.00420]
+                bulges = [.13,.57,.02,0]
+                flatten = [.65,.70,.82,.64,.30]
                 inset = .0100
             self.tube('Continuous '+label+' '+side, points, radii, bones, self.limb_mat, 24 if label=='leg' else 12, 24, bulges, flatten, True,
                       (-1 if side=='L' else 1, inset))
@@ -710,6 +731,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v37'
+        self.arm['model_revision'] = 'original-red-eye-v38'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self
