@@ -173,16 +173,23 @@ def swim(frog, t):
 
 
 def hop(frog, t):
-    settle = smooth(0,.10,t)*(1-smooth(.88,1,t))
+    settle = smooth(0, .10, t)*(1-smooth(.70, .93, t))
     crouch = smooth(0,.10,t)*(1-smooth(.10,.22,t))
     extension = .65*smooth(.12,.38,t)*(1-smooth(.55,.92,t))
-    torso = body(frog,(.028*crouch-.018*extension,0,0),(0,0,-.002*crouch))
+    reach = smooth(.52, .80, t)*(1-smooth(.82, .95, t))
+    tuck = smooth(.64, .82, t)*(1-smooth(.85, .96, t))
+    torso = body(frog, (.028*crouch-.018*extension+.040*reach, 0, 0),
+                 (0, 0, -.002*crouch-.0011*reach))
     for side in ['L','R']:
         sign = -1 if side=='L' else 1
-        kick(frog,side,extension,torso,settle=settle)
+        # Let the small hop fold under the shoulders while the forefeet reach.
+        kick(frog, side, extension, torso, recovery=.55*tuck, settle=settle)
         palm = frog.limbs[(side,'arm')][0][-1].copy()
-        palm += Vector((sign*.002*extension,.018*extension,.015*extension))
-        place(frog,side,'arm',palm,torso,pole_blend=settle)
+        palm.x += sign*(.002*extension+.0015*reach)
+        palm.y += .018*extension-.011*reach
+        palm.z += .015*extension*(1-reach)
+        place(frog, side, 'arm', palm, torso, pole_blend=settle)
+        lift_digits(frog, side, 'arm', extension*(1-reach))
 
 
 def water_entry(frog, t):
