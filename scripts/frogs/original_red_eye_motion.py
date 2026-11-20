@@ -90,7 +90,13 @@ def animate(frog):
                 # The tongue folds rearward at rest and flips over the lower lip.
                 projection = pulse(t, .22, .48)
                 global_rotation(frog, 'Tongue', (2.32*projection, 0, 0))
-                global_rotation(frog, 'TongueTip', (.18*projection, 0, 0))
+                # Lead with the tip at release, then curl it in as it returns.
+                curl = .18*projection+.68*pulse(t, .22, .354)+.23*pulse(t, .345, .50)
+                global_rotation(frog, 'TongueTip', (curl, 0, 0))
+                # Shorten along the shaft while it folds back below the palate.
+                tongue = frog.arm.pose.bones['Tongue']
+                tongue.scale.y = 1-.55*pulse(t,.363,.502)
+                tongue.keyframe_insert('scale',frame=frame,group=tongue.name)
                 if clip == 'Catch_Fly_Swallow':throat += .65*pulse(t, .55, .94)
             if clip in ['Swallow', 'Croak', 'Victory_Ribbit']:
                 croak = pulse(t, .06, .85)

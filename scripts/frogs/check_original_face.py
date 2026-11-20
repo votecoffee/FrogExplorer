@@ -9,6 +9,8 @@ import bpy
 from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
 
+FEEDING_CLIPS = ('Catch_Fly', 'Catch_Fly_Swallow', 'Tongue_Snap')
+
 
 def check_open_oral_floor(arm):
     """Count oral-floor faces obscured by the exterior throat skin."""
@@ -66,10 +68,15 @@ def evaluated_vertices(name, depsgraph, into_space):
     return points
 
 
-def check_tongue_projection(arm):
+def check_tongue_projection(arm, mesh_name):
     """Measure the strike in head space, independent of body or head motion."""
+    mesh = bpy.data.objects[mesh_name]
+    tip_group = mesh.vertex_groups['TongueTip'].index
+    pad_indices = [vertex.index for vertex in mesh.data.vertices
+                   if any(weight.group==tip_group and weight.weight>=.99 for weight in vertex.groups)]
+    assert pad_indices, 'Missing tongue pad skin weights'
     tongue = {}
-    for clip in ('Catch_Fly', 'Catch_Fly_Swallow', 'Tongue_Snap'):
+    for clip in FEEDING_CLIPS:
         action = bpy.data.actions[clip]
         arm.animation_data.action = action
         arm.animation_data.action_slot = action.slots[0]
@@ -80,13 +87,50 @@ def check_tongue_projection(arm):
         into_head = head.bone.matrix_local @ (arm.matrix_world @ head.matrix).inverted()
         muzzle = evaluated_vertices('Original continuous trunk and muzzle', depsgraph, into_head)
         jaw = evaluated_vertices('Articulated jaw and recessed oral floor', depsgraph, into_head)
-        tip = evaluated_vertices('Tongue rounded tip', depsgraph, into_head)
-        center = sum(tip, Vector((0,0,0)))/len(tip)
+        points = evaluated_vertices(mesh_name, depsgraph, into_head)
+        center = sum((points[index] for index in pad_indices), Vector((0,0,0)))/len(pad_indices)
         lip_y = min(vertex.y for vertex in jaw)
         lip_z = max(vertex.z for vertex in jaw if vertex.y < lip_y+.001)
         tongue[clip] = {'frame':frame, 'forward_of_muzzle_m':min(vertex.y for vertex in muzzle)-center.y,
                          'above_lower_lip_m':center.z-lip_z}
     return tongue
+
+
+def check_tongue_sweep(arm, mesh_name):
+    """Track exposed tongue vertices above the muzzle and beneath the lower lip."""
+    surfaces = {}
+    for label, name, bone, direction in (
+        ('muzzle', 'Original continuous trunk and muzzle', 'Head', 1),
+        ('jaw', 'Articulated jaw and recessed oral floor', 'FX-jaw', -1),
+    ):
+        mesh = bpy.data.objects[name].data
+        tree = BVHTree.FromPolygons([v.co for v in mesh.vertices], [tuple(p.vertices) for p in mesh.polygons])
+        surfaces[label] = (tree, arm.pose.bones[bone], Vector((0,0,direction)))
+
+    report = {}
+    scene = bpy.context.scene
+    for clip in FEEDING_CLIPS:
+        action = bpy.data.actions[clip]
+        arm.animation_data.action = action
+        arm.animation_data.action_slot = action.slots[0]
+        sample_count = round(2*action.frame_range[1])+1
+        maxima = {label:0.0 for label in surfaces}
+        for sample in range(sample_count):
+            scene.frame_set(sample//2,subframe=.5*(sample%2))
+            points = evaluated_vertices(mesh_name,bpy.context.evaluated_depsgraph_get(),Matrix.Identity(4))
+            for label,(tree,bone,axis) in surfaces.items():
+                into_rest = bone.bone.matrix_local @ (arm.matrix_world @ bone.matrix).inverted()
+                for world_point in points:
+                    point = into_rest @ world_point
+                    # The front of the muzzle is rigid in head space and the lip in jaw space.
+                    if point.y > -.044:
+                        continue
+                    hit, _, _, _ = tree.ray_cast(point+axis*.10,-axis,.20)
+                    if hit is not None:
+                        maxima[label] = max(maxima[label],(point-hit).dot(axis))
+        report[clip] = {'pose_samples':sample_count,
+                        'above_muzzle_m':maxima['muzzle'], 'below_jaw_m':maxima['jaw']}
+    return report
 
 
 def main():
@@ -101,8 +145,10 @@ def main():
     for name in ['Original continuous trunk and muzzle','Articulated jaw and recessed oral floor']:
         obj=bpy.data.objects[name].evaluated_get(depsgraph);mesh=obj.to_mesh()
         envelopes.append(BVHTree.FromPolygons([obj.matrix_world@v.co for v in mesh.vertices],[tuple(p.vertices) for p in mesh.polygons]));obj.to_mesh_clear()
+    tongue_parts = (('Articulated tongue',) if 'Articulated tongue' in bpy.data.objects
+                    else ('Tongue folded muscle', 'Tongue rounded tip'))
     hidden_parts = {}
-    for name in ('Recessed curved palate', 'Tongue folded muscle', 'Tongue rounded tip'):
+    for name in ('Recessed curved palate', *tongue_parts):
         maximum = -float('inf')
         for point in evaluated_vertices(name, depsgraph, Matrix.Identity(4)):
             distances = []
@@ -112,7 +158,7 @@ def main():
             maximum = max(maximum,min(distances))
         hidden_parts[name] = maximum
     palate_exposure = hidden_parts['Recessed curved palate']
-    tongue_exposure = max(hidden_parts['Tongue folded muscle'],hidden_parts['Tongue rounded tip'])
+    tongue_exposure = max(hidden_parts[name] for name in tongue_parts)
     if palate_exposure>.00020:issues.append('Closed palate protrudes beyond both head and jaw surfaces')
     if tongue_exposure>.00020:issues.append('The tucked tongue protrudes through the closed mouth')
     for label,frame in [('open',0),('closed',float(action.frame_range[1])*.79)]:
@@ -176,15 +222,20 @@ def main():
     oral_floor = check_open_oral_floor(arm)
     if oral_floor['obstructed_faces']:
         issues.append('Throat skin protrudes through the oral floor during Catch_Fly')
-    tongue = check_tongue_projection(arm)
+    tongue = check_tongue_projection(arm, tongue_parts[-1])
     for clip, strike in tongue.items():
         if strike['forward_of_muzzle_m'] < .006 or strike['above_lower_lip_m'] < .002:
             issues.append(clip+': tongue pad does not clear the front of the mouth')
+    sweep = check_tongue_sweep(arm,tongue_parts[0]) if len(tongue_parts)==1 else {}
+    for clip,sample in sweep.items():
+        if max(sample['above_muzzle_m'],sample['below_jaw_m'])>.00020:
+            issues.append(clip+': tongue emerges through the muzzle or lower jaw during the strike')
     report={'lid_coverage':coverage,'croak_maximum_jaw_angle_rad':jaw_angle,'croak_maximum_throat_scale':throat_scale,
             'croak_throat_rest_depth_m':throat_depths[0], 'croak_throat_expansion_m':throat_drop,
             'closed_palate_maximum_exposure_m':palate_exposure,'open_oral_floor':oral_floor,
             'tucked_tongue_maximum_exposure_m':tongue_exposure,'tongue_projection':tongue,
-            'issues':issues,'scope':'Blender samples eyelid coverage over the central 92 percent of the corneal radius. At rest, the palate and tongue may protrude up to 0.20 mm beyond the head and jaw. One open Catch_Fly pose checks oral-floor obstruction. Seventeen Croak poses check jaw closure and at least 3 mm of throat skin expansion. At the sampled strike, the tongue pad must project at least 6 mm past the muzzle and 2 mm above the lower lip.'}
+            'tongue_sweep':sweep,'issues':issues,
+            'scope':'Blender samples eyelid coverage over the central 92 percent of the corneal radius. At rest, the palate and tongue may protrude up to 0.20 mm beyond the head and jaw. One open Catch_Fly pose checks oral-floor obstruction. Seventeen Croak poses check jaw closure and at least 3 mm of throat skin expansion. At the sampled strike, the pad must project at least 6 mm past the muzzle and 2 mm above the lower lip. The continuous tongue is checked against the front of the muzzle and jaw every half frame with 0.20 mm clearance tolerance.'}
     args.report.parent.mkdir(parents=True,exist_ok=True)
     args.report.write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8',newline='\n')
     print('ORIGINAL_FACE_CHECK '+json.dumps(report),flush=True)

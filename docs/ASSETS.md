@@ -82,7 +82,14 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v25**. The mouth has
+The current authored revision is **original-red-eye-v26**. One continuous
+tongue surface carries the jaw attachment, flexible shaft and rounded
+pad. The tip leads the strike and curls inward as the shaft shortens
+below the palate during retraction.
+The face check samples the tongue against the front of the muzzle and
+the lower jaw throughout all three feeding clips.
+
+In v25 the mouth
 a recessed floor and a raised inner rim. The tongue narrows into a
 rounded pad that flips forward over the lower lip in the three feeding
 clips. The face check verifies tongue clearance at the strike and while

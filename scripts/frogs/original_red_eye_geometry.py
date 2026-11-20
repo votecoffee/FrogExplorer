@@ -565,19 +565,46 @@ class Frog:
                 faces.append((a,b,b+1,a+1))
         self.mesh('Gular breathing sac', vertices, faces, uv, weights, self.cream)
 
+    def tongue(self):
+        """Loft one pliable surface from the attached base to the rounded pad."""
+        center = self.body_height(0,-.056,False)+.00205
+        sections = np.array([
+            [-.0718,.00000,-.00255,.00000],
+            [-.0698,.00340,-.00235,.00091],
+            [-.0640,.00565,-.00140,.00127],
+            [-.0565,.00505, .00010,.00135],
+            [-.0500,.00465, .00020,.00136],
+            [-.0470,.00545, .00006,.00153],
+            [-.0430,.00705, .00008,.00158],
+            [-.0395,.00640, .00007,.00134],
+            [-.0366,.00390,-.00002,.00092],
+            [-.0352,.00000,-.00016,.00000],
+        ])
+        rings, segments = 42, 36
+        vertices, faces, uv, weights = [], [], [], []
+        for i,y in enumerate(np.linspace(sections[0,0],sections[-1,0],rings+1)):
+            _,width,height,depth = profile(sections,y)
+            anchor = float(1-smooth(-.0705,-.0625,y))
+            tip = float(smooth(-.052,-.0455,y))
+            skin = {'FX-jaw':anchor,'Tongue':(1-anchor)*(1-tip),'TongueTip':(1-anchor)*tip}
+            for j in range(segments+1):
+                angle = 2*pi*j/segments
+                vertices.append((width*cos(angle),y,center+height+depth*sin(angle)))
+                uv.append((i/rings,j/segments))
+                weights.append(skin)
+        for i in range(rings):
+            for j in range(segments):
+                a = i*(segments+1)+j
+                b = a+segments+1
+                faces.append((a,b,b+1,a+1))
+        self.mesh('Articulated tongue',vertices,faces,uv,weights,self.pink)
+
     def features(self):
         self.jaw()
         self.palate()
         self.ellipsoid('Dark rear oral cavity', (0, -.030, .0430), (.024, .002, .0028), self.oral_dark, 'Head')
         self.gular_sac()
-        z = self.body_height(0,-.056,False)+.0019
-        tongue = [(0,-.071,z-.0008), (0,-.065,z-.0001), (0,-.057,z+.0001),
-                  (0,-.049,z-.00015), (0,-.042,z+.00025)]
-        self.tube('Tongue folded muscle',tongue,[.0036,.0058,.00535,.00445,.00265],
-                  ['Tongue','Tongue','Tongue','TongueTip'],self.pink,8,32,
-                  flatten=[.34,.34,.32,.40,.55])
-        self.ellipsoid('Tongue rounded tip',(0,-.0435,z+.00015),
-                       (.0077,.0082,.00185),self.pink,'TongueTip')
+        self.tongue()
         add_features(self)
 
     def limbs_and_digits(self):
@@ -605,6 +632,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v25'
+        self.arm['model_revision'] = 'original-red-eye-v26'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self
