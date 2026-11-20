@@ -4,14 +4,17 @@ All coordinates, topology and pixels are generated here. No downloaded mesh,
 rig, animation or photograph is read by this module. Coordinates are metres,
 Blender Z up / -Y forward. The reference links are documented separately.
 """
-from math import cos, exp, sin, pi, sqrt
+from math import acos, cos, exp, sin, pi, sqrt
 from pathlib import Path
 
 import bpy
 import numpy as np
 from mathutils import Vector
 from original_red_eye_feet import adhesive_pad, digital_web
-from original_red_eye_face import BODY_Y_RANGE, NARIS_XY, FACE_SECTIONS, shorten_muzzle, orbital_recess, tympanic_radius, tympanic_relief, add_features
+from original_red_eye_face import (
+    BODY_Y_RANGE, FACE_SECTIONS, NARIS_ANGLE, NARIS_Y, add_features,
+    naris_radius, orbital_recess, shorten_muzzle, tympanic_radius, tympanic_relief,
+)
 
 
 def profile(controls, y):
@@ -137,14 +140,14 @@ def painted_maps(name, width, height, kind):
         face *= (1+.10*grain+.04*glands)[:,:,None]
         face = face*(1-pigment[:,:,None]*.12)+np.array([.35,.44,.12])*pigment[:,:,None]*.12
         rgb = rgb*(1-head[:,:,None])+face*head[:,:,None]
-        width = profile(np.asarray(FACE_SECTIONS),NARIS_XY[1])[1]
-        naris_v = np.arccos(NARIS_XY[0]/width)/(2*pi)
-        naris_u = (NARIS_XY[1]-BODY_Y_RANGE[0])/(BODY_Y_RANGE[1]-BODY_Y_RANGE[0])
-        pits = sum(np.exp(-((u-naris_u)/.0040)**2-((v-center)/.0050)**2)
-                   for center in [naris_v,.5-naris_v])
-        rgb = rgb*(1-pits[:,:,None])+np.array([.005,.010,.003])*pits[:,:,None]
         y = BODY_Y_RANGE[0]+u*(BODY_Y_RANGE[1]-BODY_Y_RANGE[0])
-        ear_radius = tympanic_radius(y,np.arcsin(dorsal))
+        side_angle = np.arcsin(dorsal)
+        radius = naris_radius(y,side_angle)
+        aperture = .94*(1-smooth(.40,1.07,radius))
+        lip = .22*np.maximum(0,1-((radius-1.12)/.35)**2)**2
+        rgb = rgb*(1-lip[:,:,None])+np.array([.26,.45,.09])*lip[:,:,None]
+        rgb = rgb*(1-aperture[:,:,None])+np.array([.005,.012,.003])*aperture[:,:,None]
+        ear_radius = tympanic_radius(y,side_angle)
         ear = 1-smooth(.68,1.06,ear_radius)
         ear_rim = np.maximum(0,1-((ear_radius-1.02)/.26)**2)**2
         rgb *= (1-.23*ear+.045*ear_rim)[:,:,None]
@@ -206,8 +209,7 @@ class Frog:
         self.oral = material('Warm oral mucosa', (.32, .131, .119), .40, coat=.14)
         self.oral_dark = material('Recessed oral tissue', (.055, .025, .023), .53)
         self.pink = material('Tongue muscle', (.43, .15, .139), .36, coat=.20)
-        self.dark = material('Mouth seam and nares', (.006, .011, .004), .5)
-        self.fold_mat = material('Subtle facial folds',(.011,.086,.003),.50,coat=.03)
+        self.dark = material('Mouth seam', (.006, .011, .004), .5)
         self.iris = material('Original red iris and vertical pupil', (.7, .07, .01), .17,
                              maps=painted_maps('Original iris', 1024, 1024, 'iris'), coat=.45)
         arm_data = bpy.data.armatures.new('Original leaf-frog joint definitions')
@@ -346,13 +348,15 @@ class Frog:
                 crest = .00165*exp(-(offset/.0034)**2)
                 flank = .00075*exp(-((offset-.0054)/.0036)**2)
                 z += envelope*(crest-flank)*s**.4
+            if -.082 < y < -.063:
+                rise = smooth(-.082,-.075,y)*(1-smooth(-.071,-.063,y))
+                z += .00115*rise*float(smooth(.64,.98,s))
             # Both nares are sculpted into the same surface as the muzzle.
-            if abs(y-NARIS_XY[1]) < .006:
-                radius = sqrt(((abs(x)-NARIS_XY[0])/.00185)**2+((y-NARIS_XY[1])/.0022)**2)
-                if radius < 3:
-                    basin = -.00065*exp(-1.5*radius**2)
-                    edge = .00025*exp(-((radius-1.10)/.42)**2)
-                    z += (basin+edge)*s**.4
+            if abs(y-NARIS_Y) < .0022:
+                radius = naris_radius(y,acos(ratio))
+                basin = .00074*max(0,1-(radius/1.04)**2)**2
+                rim = .00022*max(0,1-((radius-1.11)/.40)**2)**2
+                z += (rim-basin)*s**.4
             z += .0012*np.exp(-(x/.006)**2-((y-.041)/.027)**2)*float(smooth(-.003,.013,y))*s**.6
         if -.055 < y < -.020:
             # The lip turns upward behind the eye. The same relief is used on
@@ -373,16 +377,21 @@ class Frog:
         vertices = [];faces = [];uv = [];weights = []
         base_y = np.linspace(controls[0,0], controls[-1,0], 97)
         midpoints = (base_y[:-1]+base_y[1:])*.5
-        near_nares = abs(midpoints-NARIS_XY[1]) < .004
+        near_nares = abs(midpoints-NARIS_Y) < .004
         near_tip = midpoints < controls[0,0]+.005
         near_orbits = (midpoints > -.065) & (midpoints < -.035)
         near_ears = (midpoints > -.043) & (midpoints < -.028)
         rows = np.sort(np.concatenate((base_y,midpoints[near_nares | near_tip | near_orbits | near_ears])))
+        nasal_rows = (rows[:-1]+rows[1:])*.5
+        rows = np.sort(np.concatenate((rows,nasal_rows[abs(nasal_rows-NARIS_Y)<.0018])))
         base_angles = np.linspace(0,2*pi,97)
         angle_midpoints = (base_angles[:-1]+base_angles[1:])*.5
         cheek_angle = np.arctan2(np.sin(angle_midpoints),np.abs(np.cos(angle_midpoints)))
         cheek = (cheek_angle>.07) & (cheek_angle<.79)
         angles = np.sort(np.concatenate((base_angles,angle_midpoints[cheek])))
+        nasal_angles = (angles[:-1]+angles[1:])*.5
+        nasal_side_angles = np.arcsin(np.sin(nasal_angles))
+        angles = np.sort(np.concatenate((angles,nasal_angles[abs(nasal_side_angles-NARIS_ANGLE)<.14])))
         rings, segments = len(rows)-1, len(angles)-1
         centers = [(sign,self.bones['FX_eye.'+side][0]) for side,sign in [('L',-1),('R',1)]]
         for y in rows:
@@ -666,6 +675,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v32'
+        self.arm['model_revision'] = 'original-red-eye-v33'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self

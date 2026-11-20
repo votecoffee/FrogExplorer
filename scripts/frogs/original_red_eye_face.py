@@ -11,7 +11,8 @@ EYE_RADIUS = .0085
 EYE_ASPECT = (1.025, 1.00, .78)
 EYE_APERTURE = 1.31
 BODY_Y_RANGE = (-.083,.073)
-NARIS_XY = (.0140,-.0740)
+NARIS_Y = -.0740
+NARIS_ANGLE = .75
 FACE_SECTIONS = [
     [-.083,.0064,.0444,.0492],[-.078,.0153,.0445,.0541],
     [-.069,.0231,.0450,.0572],[-.049,.0325,.0459,.0628],
@@ -49,6 +50,13 @@ def shorten_muzzle(point):
         point.y += tip*(.00145*side-.00068*(1-.40*side)*bridge)
         point.x *= 1-.18*(1-t)+.17*tip
     return point
+
+
+def naris_radius(y, side_angle):
+    """Share the slanted nostril coordinates between the loft and its texture."""
+    across = (side_angle-NARIS_ANGLE)/.087
+    length = (y-NARIS_Y+.00028*across)/.00082
+    return np.sqrt(across*across+length*length)
 
 
 def orbital_recess(point,centers):
@@ -242,19 +250,3 @@ def add_features(frog):
         lip_radii = [.000048+.000060*sin(pi*i/(len(lip)-1)) for i in range(len(lip))]
         frog.tube('Mouth commissure '+side,lip,lip_radii,['Head']*(len(lip)-1),frog.dark,1,8)
         add_mouth_corner(frog,side,sign,center)
-        # The dark aperture and soft inner rim sit in the sculpted skin dimple.
-        x,y = sign*NARIS_XY[0],NARIS_XY[1];z = frog.body_height(x,y)
-        delta = .0001
-        gx = (frog.body_height(x+delta,y)-frog.body_height(x-delta,y))/(2*delta)
-        gy = (frog.body_height(x,y+delta)-frog.body_height(x,y-delta))/(2*delta)
-        normal = Vector((-gx,-gy,1)).normalized()
-        rotation = Vector((0,0,1)).rotation_difference(normal).to_matrix()
-        center_naris = Vector((x,y,z))+normal*.00021
-        frog.ellipsoid('Nostril '+side,center_naris,(.00062,.00042,.00007),frog.dark,'Head',10,24,rotation)
-        rim = []
-        for a in np.linspace(0,2*pi,33):
-            rim_x = x+.00078*cos(a)
-            rim_y = y+.00070*sin(a)
-            rim_z = frog.body_height(rim_x,rim_y)+.00007
-            rim.append((rim_x,rim_y,rim_z))
-        frog.tube('Soft naris rim '+side,rim,[.000075]*len(rim),['Head']*(len(rim)-1),frog.fold_mat,1,8)

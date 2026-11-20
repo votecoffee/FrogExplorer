@@ -82,9 +82,13 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v32**. A broader crown
-and lower brow peaks soften the slope into the snout. The socket folds taper
-into the cheek with a thin, painted eyelid margin.
+The current authored revision is **original-red-eye-v33**. A raised nasal
+bridge rounds the snout above the upper lip. The slanted nostrils and
+their rims are sculpted into the head, with pigment aligned to each recess.
+
+In v32 a broader crown and lower brow peaks softened the slope into the
+snout. The socket folds taper into the cheek with a thin, painted eyelid
+margin.
 
 In v31 the ear disk and its shallow rim were sculpted into the cheek. Subtle
 changes in skin pigment and roughness define the disk in profile.
