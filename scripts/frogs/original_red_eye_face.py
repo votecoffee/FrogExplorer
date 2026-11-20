@@ -145,13 +145,14 @@ def add_upper_eyelid(frog, side, sign, center, normal, horizontal, vertical):
 
 def add_mouth_corner(frog, side, sign, eye_center):
     """Shape a soft rear lip with its upper and lower edges seated in skin."""
-    length_steps, height_steps = 20, 9
+    rows = np.concatenate((np.linspace(0,.144,7),np.linspace(.17,1,19)))
+    length_steps, height_steps = len(rows)-1, 9
     stride = height_steps+1
-    layer_size = (length_steps+1)*stride
+    inner_offset = length_steps*stride
     vertices, uv, weights, faces = [], [], [], []
     for layer in range(2):
-        for i in range(length_steps+1):
-            along = i/length_steps
+        # Both surfaces share the row at the rolled front edge.
+        for along in rows[layer:]:
             y = -.0418+.0150*along
             arch = sin(pi*along)
             width = frog.section_at(y)[1]
@@ -159,16 +160,19 @@ def add_mouth_corner(frog, side, sign, eye_center):
             x = sign*width*cos(upper_angle)
             upper = orbital_recess((x,y,frog.body_height(x,y,True)),[(sign,eye_center)])
             x = sign*frog.jaw_width(y)*cos(.18)
-            edge_inset = .00070+.00043*(1-arch)+.00042*layer
+            roundness = min(1,along/.145)
+            layer_blend = .5+(layer-.5)*sqrt(roundness*(2-roundness))
+            edge_inset = .00070+.00043*(1-arch)+.00058*layer_blend
             lower = Vector((x,y,frog.body_height(x-sign*edge_inset,y,False)-.00023))
             for j in range(stride):
                 t = j/height_steps
                 rise = sin(pi*t)
                 curved = rise*arch
-                front = rise*(1-along)**2
+                front = rise**1.45*(1-along)
+                roll = .00112*rise*exp(-((along-.13)/.13)**2)
                 point = upper.lerp(lower,t)
-                point.x += sign*(.00130*curved-edge_inset-.0022*front)
-                point.y += .00065*curved+.0054*front
+                point.x += sign*(.00130*curved+roll-edge_inset-.0028*front)
+                point.y += .00065*curved+.0092*front
                 vertices.append(point)
                 theta = upper_angle*(1-t)+.022*t
                 uv.append(((point.y-BODY_Y_RANGE[0])/(BODY_Y_RANGE[1]-BODY_Y_RANGE[0]),
@@ -183,14 +187,19 @@ def add_mouth_corner(frog, side, sign, eye_center):
             b = a+stride
             faces.append((a,b,b+1,a+1))
     outer_count = len(faces)
+    def inner(index):
+        return index if index < stride else index+inner_offset
+
     for face in faces[:outer_count]:
-        faces.append(tuple(index+layer_size for index in reversed(face)))
+        faces.append(tuple(inner(index) for index in reversed(face)))
     perimeter = ([i*stride for i in range(length_steps+1)]
                  +[length_steps*stride+j for j in range(1,stride)]
                  +[i*stride+height_steps for i in range(length_steps-1,-1,-1)]
                  +list(range(height_steps-1,0,-1)))
     for a,b in zip(perimeter,perimeter[1:]+perimeter[:1]):
-        faces.append((a,a+layer_size,b+layer_size,b))
+        wall = tuple(dict.fromkeys((a,inner(a),inner(b),b)))
+        if len(wall) >= 3:
+            faces.append(wall)
     corner = frog.mesh('Soft mouth corner '+side,vertices,faces,uv,weights,frog.body_mat)
     corner.data.materials.append(frog.oral_dark)
     for face in corner.data.polygons[outer_count:2*outer_count]:

@@ -82,7 +82,11 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v28**. Flexible skin
+The current authored revision is **original-red-eye-v29**. The inner and
+outer surfaces of each mouth corner meet at a rounded lip fold. The middle
+of the fold draws farther into the cheek as the jaw opens.
+
+In v28 flexible skin
 at each rear lip connects the cheek to the lower jaw when the mouth
 opens. The rounded front edge folds inward, exposing the existing
 mouth lining, and the tissue seats beneath the cheek at rest.
