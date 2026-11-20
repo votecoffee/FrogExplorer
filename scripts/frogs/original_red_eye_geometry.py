@@ -461,7 +461,10 @@ class Frog:
             chest = torso*exp(-((y+.002)/.016)**2)
             waist = torso*exp(-((y-.021)/.014)**2)
             pelvis = torso*exp(-((y-.045)/.016)**2)
+            shoulder = (exp(-((y+.021)/.010)**2) * float(smooth(-.030,-.023,y))
+                        * float(1-smooth(-.010,.006,y)))
             taper = .0095*float(smooth(.043,.073,y))
+            head = float(1-smooth(-.038, -.015, y))
             for theta in angles:
                 x = width*cos(theta)
                 arc = sin(theta)
@@ -475,9 +478,20 @@ class Frog:
                     point.y -= taper
                     point.z += (.00145*chest+.00118*pelvis)*max(0,arc)**1.6
                     point.z -= (.00165*waist+.00065*pelvis)*max(0,-arc)**1.4
+                skin = {'Head':head, 'DEF-spine.003':1-head}
+                if shoulder:
+                    # Ease the outer chest into the upper arm and let the
+                    # skin nearest the joint follow part of the arm's reach.
+                    blend = shoulder*exp(-((arc-.18)/.49)**2)
+                    blend *= float(smooth(.62,.86,abs(cos(theta))))
+                    side = 'R' if x>0 else 'L'
+                    point.x -= (.00220 if x>0 else -.00220)*blend
+                    point.z -= .00110*blend
+                    follow = .26*blend
+                    skin = {name:weight*(1-follow) for name,weight in skin.items()}
+                    skin['DEF-upper_arm.'+side] = follow
                 vertices.append(point);uv.append((u,theta/(2*pi)))
-                head = float(1-smooth(-.038, -.015, y))
-                weights.append({'Head':head, 'DEF-spine.003':1-head})
+                weights.append(skin)
         for i in range(rings):
             for j in range(segments):
                 a = i*(segments+1)+j;b = a+segments+1
@@ -489,6 +503,7 @@ class Frog:
         points = [Vector(p) for p in points]
         vertices = [];uv = [];weights = [];faces = []
         total = (len(points)-1)*rings_per_span
+        forelimb = attachment is not None and len(points)==4
         for ring in range(total+1):
             value = ring/rings_per_span;span = min(len(points)-2, int(value));t = value-span
             p0 = points[max(0, span-1)];p1 = points[span];p2 = points[span+1];p3 = points[min(len(points)-1, span+2)]
@@ -539,10 +554,14 @@ class Frog:
                 else:
                     mix = .5*(t-.75)/.25
                     skin = {bones[current]:1-mix,bones[current+1]:mix}
+            cap = float(smooth(0,.23,value)*(1-smooth(.30,.71,value))) if forelimb else 0
             for j in range(segments+1):
                 angle = 2*pi*j/segments
                 radial = radius
                 if crease:radial *= 1-.10*np.exp(-((value-1)/.10)**2)*max(0,sin(angle))
+                if cap:
+                    # Taper the upper edge where the arm leaves the chest.
+                    radial -= cap*(.00065+.00110*sin(angle))
                 if attachment and len(points)==5:
                     radial *= 1+.19*np.exp(-((value-2)/.18)**2)
                 vertex = point+axis*(cos(angle)*radial)+up*(sin(angle)*radial*vertical)
@@ -751,6 +770,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v42'
+        self.arm['model_revision'] = 'original-red-eye-v43'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self

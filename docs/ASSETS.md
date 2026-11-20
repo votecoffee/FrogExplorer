@@ -84,7 +84,12 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v42**. Support
+The current authored revision is **original-red-eye-v43**. A shallow
+contour in the outer chest and a tapered upper-arm edge soften the
+shoulder join. Skin near the join partly follows the upper arm during
+each reach.
+
+In v42 support
 joints rotate by half the elbow and wrist bend angles to
 reduce pinching in the exported forelimbs. In the face-wipe clip,
 the thinnest sampled elbow section retains about 87 percent of its
