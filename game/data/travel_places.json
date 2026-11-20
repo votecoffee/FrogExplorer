@@ -89,7 +89,7 @@
         "pi5"
       ],
       "random_eligible": false,
-      "description": "Open the popup editor with A / F5. Program Pondbot to water and gather lilies in three puzzles.",
+      "description": "Open the popup editor with A / F5. Program Pondbot through loops, paths around stones, and trips back to the spring.",
       "attribution": "FrogExplorer procedural activity",
       "anchor": {},
       "size_range": [

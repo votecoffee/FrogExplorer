@@ -5,6 +5,8 @@ const PUZZLES = [
  {"id":"first_bloom", "name":"First bloom", "rows":["~LL"], "hint":"Fill at the spring. For each lily: hop east, water, wait, gather.", "draft":"# Harvest two lilies\nfill\nrepeat 2\n  hop east\n  water\n  wait\n  gather\nend\n"},
  {"id":"around_the_stones", "name":"Around the stones", "rows":["~.L#", "##.L", "..L."], "hint":"Stones block hops. Use the open corridor to reach all three lilies.", "draft":"# Start at the spring\nfill\nhop east\nhop east\n"},
  {"id":"a_second_drink", "name":"A second drink", "rows":["~.H.", "##.#", ".HL."], "hint":"Double lilies need two doses. Return to the spring whenever your tank is empty.", "draft":"# Plan a refill for the double lilies\nfill\n"},
+ {"id":"twin_terraces", "name":"Twin terraces", "rows":[".##", "~LL", "~LL"], "hint":"Start at the lower spring. The two terraces have the same route. After each bed, return to the spring column and hop north.", "draft":"# Repeat a trip along each terrace\nrepeat 2\n  fill\n  # Tend the row and return west\n  hop north\nend\n"},
+ {"id":"reedbank_loop", "name":"Reedbank loop", "rows":["~.H#", ".#..", "L#.L", ".H.."], "hint":"The tank holds three doses. Pair a double lily with a single lily on each trip, then use the lanes around the stones to refill.", "draft":"# Plan two trips from the spring\nfill\n"},
 ]
 const DIRECTIONS = {"north":Vector2i(0,-1), "east":Vector2i(1,0), "south":Vector2i(0,1), "west":Vector2i(-1,0)}
 const CAPACITY = 3

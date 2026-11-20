@@ -194,11 +194,11 @@ Open Places with **N / R3** to select these single-player destinations. Random t
 | --- | --- |
 | Kingfisher Circuit | Board the convertible and drive two timed laps. The first start-line crossing starts the clock. Drive through each gate in order. |
 | Cloudring Course | Launch a helium balloon and fly through eight rings in order. The next ring glows gold. Use the right stick or I/K and J/L for altitude and strafe. |
-| Lily Code Garden | Open a popup editor and program Pondbot to water and gather lilies across three grid puzzles. |
+| Lily Code Garden | Open a popup editor and program Pondbot to water and gather lilies across five grid puzzles. |
 
 Press **F5 / A** again to restart a race. The course shows your current time and saved personal best. After your first timed finish, the HUD compares each gate or ring to your fastest run with recorded splits. Existing personal best times carry over. Use **H** or Places to return to the pond.
 
-In the garden, use **Run** or **Ctrl+Enter** to start, pause, or resume. Use **Step** or **F10** to execute one command and see its source line. Use **Stop** to edit your code while keeping the current board visible, or **Reset board** to start over. **Esc** closes the editor. The board shows Pondbot, its water supply, and how many lilies remain. Fill at a spring, hop onto a plot, water it, then allow another turn before gathering. The first puzzle includes this complete example:
+In the garden, use **Run** or **Ctrl+Enter** to start, pause, or resume. Use **Step** or **F10** to execute one command and see its source line. Use **Stop** to edit your code while keeping the current board visible, or **Reset board** to start over. **Esc** closes the editor. The board shows Pondbot, its water supply, and how many lilies remain. Fill at a spring, hop onto a plot, water it, then allow another turn before gathering. Twin terraces has two matching beds for nested repeats. Reedbank loop needs two tankfuls and a route around the stones. The first puzzle includes this complete example:
 
 ```text
 fill

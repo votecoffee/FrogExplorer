@@ -184,7 +184,7 @@ func _process(_delta: float) -> void:
 func _update_panel() -> void:
  arrow.text = ""
  if current.activity == "lily_code_garden":
-  stats.text = "Program Pondbot to restore three lily gardens."
+  stats.text = "Program Pondbot to water and gather lilies."
   return
  var car := current.activity == "car_circuit"
  if course.finished:

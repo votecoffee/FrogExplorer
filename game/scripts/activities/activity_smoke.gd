@@ -165,12 +165,16 @@ func run(game) -> void:
  check(Program.compile("repeat 16\nrepeat 16\nwait\nwait\nend\nend").has("error"), "Expanded garden programs are bounded")
  check(Program.compile("repeat 3\nwater").has("error"), "Missing end produces a line error")
 
- # Solve both additional layouts with ordinary script commands.
+ # Each garden has a complete solution using the normal commands.
  var solutions := [
   "fill\nrepeat 2\nhop east\nwater\nwait\ngather\nend",
   "fill\nhop east\nhop east\nwater\nwait\ngather\nhop south\nhop east\nwater\nwait\ngather\nhop west\nhop south\nwater\nwait\ngather",
   "fill\nhop east\nhop east\nwater\nwater\nwait\ngather\nhop south\nhop south\nwater\nwait\ngather\nhop north\nhop north\nhop west\nhop west\nfill\nhop east\nhop east\nhop south\nhop south\nhop west\nwater\nwater\nwait\ngather",
+
+  "repeat 2\nfill\nrepeat 2\nhop east\nwater\nwait\ngather\nend\nrepeat 2\nhop west\nend\nhop north\nend",
+  "fill\nrepeat 2\nhop east\nend\nrepeat 2\nwater\nend\nwait\ngather\nhop south\nhop south\nhop east\nwater\nwait\ngather\nhop west\nhop north\nhop north\nrepeat 2\nhop west\nend\nfill\nrepeat 2\nhop south\nend\nwater\nwait\ngather\nhop south\nhop east\nrepeat 2\nwater\nend\nwait\ngather",
  ]
+ check(solutions.size() == Program.PUZZLES.size(), "Every garden has a smoke-test solution")
  for index in solutions.size():
   var program := Program.new()
   program.load_puzzle(index)
@@ -232,6 +236,27 @@ func run(game) -> void:
   await frames(4)
   check(not popup.visible and not game.pilot.paused, "Closing the popup restores frog controls")
   check(popup.steps.is_empty() and popup.source.text == starter and popup.source.editable, "Closing a paused program releases the editor and keeps its draft")
+
+  press_key(KEY_F5)
+  await frames(4)
+  for index in [3, 4]:
+   var item: Dictionary = Program.PUZZLES[index]
+   popup.chooser.item_selected.emit(index)
+   var plot_count: int = item.rows.size() * item.rows[0].length()
+   check(popup.visible and popup.chooser.selected == index and popup.board.get_child_count() == plot_count and popup.world.garden_root.get_child_count() > plot_count, item.name + " loads on the popup board and in the 3D garden")
+   var start := Vector2i(0, 2) if index == 3 else Vector2i.ZERO
+   check(popup.garden.cell == start and popup.garden.plants.size() == 4, item.name + " starts at its spring with four unharvested lilies")
+   popup.source.text = solutions[index]
+   popup.step_button.pressed.emit()
+   for action in Program.MAX_STEPS:
+    if popup.steps.is_empty():
+     break
+    popup.step_button.pressed.emit()
+    await frames(1)
+   check(popup.garden.harvested == 4 and popup.progress.solved.get(item.id, false) and "✓" in popup.chooser.get_item_text(index), item.name + " completes when stepped and receives its own check mark")
+  popup.chooser.item_selected.emit(3)
+  check(popup.source.text == solutions[3] and popup.garden.harvested == 0, "Returning to Twin terraces restores its draft on a fresh board")
+  popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
  print("ACTIVITY_SMOKE " + JSON.stringify({"checks":checks, "failures":failures}))
