@@ -64,7 +64,7 @@ Blender 5.0.1 was used for this build. Blender and NumPy are authoring tools;
 they are not required to play the published asset.
 
 ```powershell
-& "C:\path\to\blender.exe" --background --python scripts/frogs/build_original_red_eye.py -- --output .local/red_eye_original/candidate
+& "C:\path\to\blender.exe" --background --threads 1 --python-exit-code 1 --python scripts/frogs/build_original_red_eye.py -- --output .local/red_eye_original/candidate
 python scripts/frogs/validate_original_red_eye.py .local/red_eye_original/candidate/red_eye_original.glb
 & "C:\path\to\blender.exe" --background --python-exit-code 1 --python scripts/frogs/check_original_gait.py -- --input .local/red_eye_original/candidate/Original_Red_Eyed_Tree_Frog.blend --report state/original_gait.json
 & "C:\path\to\blender.exe" --background --python-exit-code 1 --python scripts/frogs/check_original_attachments.py -- --input .local/red_eye_original/candidate/Original_Red_Eyed_Tree_Frog.blend --report state/original_attachments.json
@@ -75,6 +75,8 @@ python scripts/frogs/validate_original_red_eye.py .local/red_eye_original/candid
 ```
 
 The builder starts with an empty Blender scene and opens no source asset.
+Use Blender 5.0.1 and one thread when checking byte-for-byte GLB output.
+A threaded export can round a surface tangent differently.
 It writes a packed editable Blender file, self-contained GLB and a receipt
 with source-script and output hashes. Review clay, skin and animated poses
 before copying a candidate to `game/assets/frogs/red_eye_original.glb`; then
