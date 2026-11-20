@@ -84,7 +84,12 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v38**. The trunk
+The current authored revision is **original-red-eye-v39**. Four
+additional skin joints follow the knee and ankle bends through the
+exported animations. During the swim kick and big jump, the thinnest
+sampled ankle section retains about 85 percent of its resting diameter.
+
+In v38 the trunk
 rounds over the hips, ending 9.5 mm farther forward at the authored scale.
 At mid-thigh, the modeled cross-section is about 15 percent narrower and
 25 percent shallower. Forearms and calves have fuller muscle bellies

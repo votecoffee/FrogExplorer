@@ -150,6 +150,9 @@ def animate(frog):
                 eye = frog.arm.pose.bones['FX_eye.'+side]
                 eye.location = frog.rest[eye.name].inverted()@(-n*.0008*blink+Vector((0,0,-.0003*blink)))
                 eye.keyframe_insert('location',frame=frame,group=eye.name)
+            for driver, support in frog.hind_joint_support.items():
+                bend_rotation = frog.arm.pose.bones[driver].rotation_quaternion
+                frog.arm.pose.bones[support].rotation_quaternion = Quaternion().slerp(bend_rotation,.5)
             for bone in frog.arm.pose.bones:
                 if bone.name == 'root':continue
                 bone.keyframe_insert('rotation_quaternion', frame=frame, group=bone.name)
