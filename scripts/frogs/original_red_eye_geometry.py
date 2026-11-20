@@ -97,7 +97,14 @@ def painted_maps(name, width, height, kind):
     green = np.array([.075, .40, .018]) if kind == 'body' else np.array([.07, .37, .016])
     rgb = np.broadcast_to(green, (height, width, 3)).copy()
     rgb *= (1+.09*grain+.045*pores)[:, :, None]
-    if kind == 'orbital':return image(name+' color', np.clip(rgb, 0, 1)), None, None
+    if kind == 'orbital':
+        # The mobile eyelid uses the untrimmed bottom of the texture.
+        rgb *= (1+.09*pores)[:,:,None]
+        upper = np.maximum(0,np.sin(2*pi*u))
+        margin = smooth(.925,.997,v)*(.39+.56*upper)
+        edge = np.array([.115,.285,.032])+upper[:,:,None]*np.array([.21,.24,.085])
+        rgb = rgb*(1-margin[:,:,None])+edge*margin[:,:,None]
+        return image(name+' color', np.clip(rgb, 0, 1)), None, None
     belly = 1-smooth(-.75, -.40, dorsal)
     rgb = rgb*(1-belly[:, :, None])+np.array([.83, .83, .62])*belly[:, :, None]
     if kind == 'body':
@@ -201,7 +208,6 @@ class Frog:
         self.pink = material('Tongue muscle', (.43, .15, .139), .36, coat=.20)
         self.dark = material('Mouth seam and nares', (.006, .011, .004), .5)
         self.fold_mat = material('Subtle facial folds',(.011,.086,.003),.50,coat=.03)
-        self.rim_mat = material('Muted gold palpebral margin',(.34,.40,.13),.48,coat=.025)
         self.iris = material('Original red iris and vertical pupil', (.7, .07, .01), .17,
                              maps=painted_maps('Original iris', 1024, 1024, 'iris'), coat=.45)
         arm_data = bpy.data.armatures.new('Original leaf-frog joint definitions')
@@ -323,14 +329,14 @@ class Frog:
             brow_y = y+.049
             brow_length = .012 if brow_y < 0 else .019
             brow = .0060*exp(-((abs(x)-.0250)/.013)**2-(brow_y/brow_length)**2)
+            brow *= 1-.19*float(smooth(-.069,-.055,y)*(1-smooth(-.039,-.024,y)))
             z += brow*float(smooth(0,.22,s))*(1-float(smooth(-.030,-.012,y)))
-            if -.064 < y < -.022:
-                # The forehead bridges the brows and rolls down toward the
-                # snout and shoulders. Fade it out before the orbital rim.
-                forehead = s**8
-                crown = exp(-((y+.048)/.013)**2)
-                taper = smooth(-.064,-.053,y)*(1-smooth(-.034,-.022,y))
-                z += .00435*forehead*crown*taper
+            if -.069 < y < -.022:
+                # Broaden the crown between the brows, with a gentler slope
+                # down to the nasal bridge and a quick roll into the cheeks.
+                forehead = s**4.1*float(smooth(.35,.67,s))
+                taper = smooth(-.069,-.050,y)*(1-smooth(-.039,-.022,y))
+                z += .00390*forehead*taper
             # The canthus follows the edge between the upper snout and cheek.
             # A shallow falloff on its outer side defines that change of plane.
             if -.080 < y < -.045:
@@ -660,6 +666,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v31'
+        self.arm['model_revision'] = 'original-red-eye-v32'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self

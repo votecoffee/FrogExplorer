@@ -82,9 +82,12 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v31**. The ear disk
-and its shallow rim are sculpted into the cheek. Subtle changes in skin
-pigment and roughness define the disk in profile.
+The current authored revision is **original-red-eye-v32**. A broader crown
+and lower brow peaks soften the slope into the snout. The socket folds taper
+into the cheek with a thin, painted eyelid margin.
+
+In v31 the ear disk and its shallow rim were sculpted into the cheek. Subtle
+changes in skin pigment and roughness define the disk in profile.
 
 In v30 the palate gained paired shallow ridges behind the upper lip.
 A continuous lining extends into the rear of the mouth, with a texture

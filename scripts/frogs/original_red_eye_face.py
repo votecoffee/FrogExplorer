@@ -75,7 +75,7 @@ def orbital_recess(point,centers):
         margin = min(1,max(0,(rho-1.02)/span))
         relief = (.00044+.0026*upper**1.4+.00105*lower)*(1+.18*toward_nose)
         falloff = sin(pi*margin)**2*exp(-((depth+.001)/.007)**2)
-        point += falloff*(normal*relief+vertical*(.0032*upper**1.6))
+        point += falloff*(normal*relief+vertical*(.0027*upper**1.6))
     return point
 
 
@@ -99,22 +99,25 @@ def tympanic_relief(y, theta):
 
 
 def add_orbital_socket(frog, side, center, normal, horizontal, vertical):
-    """Seat a thinner upper socket and fuller lower rim behind the cornea."""
+    """Taper the eyelid collar into the brow and cheek around the cornea."""
     rings, segments = 24, 48
-    radius = EYE_RADIUS+.0003
+    radius = EYE_RADIUS+.00021
+    sign = 1 if side == 'R' else -1
     vertices, faces, uv = [], [], []
     for i in range(rings+1):
         t = i/rings
-        phi = (pi-1.25)*t
+        phi = (pi-EYE_APERTURE)*t
         blend = sin(pi*t)**2
-        depth = -radius*cos(phi)*EYE_ASPECT[2]-.00155*blend
+        depth = -radius*cos(phi)*EYE_ASPECT[2]-.00255*blend
         for j in range(segments+1):
             angle = 2*pi*j/segments
             height = sin(angle)
             upper, lower = max(0,height), max(0,-height)
-            spread = 1+blend*(.087*lower-.056*upper)
-            lip = (.00012*lower-.00028*upper)*t**6
-            radial = (-horizontal*(cos(angle)*EYE_ASPECT[0])
+            across = -cos(angle)
+            forward = max(0,sign*across)
+            spread = 1+blend*(.028*lower-.115*upper-.060*forward)
+            lip = -(.00024+.00014*lower)*t**6
+            radial = (horizontal*(across*EYE_ASPECT[0])
                       +vertical*(height*EYE_ASPECT[1]))
             vertices.append(center+normal*(depth+lip)+radial*(radius*sin(phi)*spread))
             uv.append((j/segments,t))
@@ -152,7 +155,7 @@ def add_upper_eyelid(frog, side, sign, center, normal, horizontal, vertical):
             depth += (1-lateral**4)*(crease+ridge)
             radial = horizontal*(x*EYE_ASPECT[0])+vertical*(y*EYE_ASPECT[1])
             vertices.append(center+to_rest@(normal*depth+radial*(radius*edge)))
-            uv.append((.5+.5*x,.5+.5*y))
+            uv.append((.5+.5*x,.40+.40*y))
     for row in range(len(rows)-1):
         for column in range(segments):
             a = row*stride+column
@@ -232,16 +235,6 @@ def add_features(frog):
         frog.cap('Red corneal surface '+side,center,n,EYE_RADIUS,EYE_APERTURE,
                  frog.iris,'FX_eye.'+side,24,64,aspect=EYE_ASPECT)
         add_upper_eyelid(frog, side, sign, center, n, u, v)
-        ring, rim_widths = [], []
-        for angle in np.linspace(0,2*pi,81):
-            height = sin(angle)
-            upper, lower = max(0,height), max(0,-height)
-            radius = EYE_RADIUS+.00028+.00014*upper+.00018*lower
-            depth = radius*cos(EYE_APERTURE)*EYE_ASPECT[2]-.00022*lower
-            radial = u*(cos(angle)*EYE_ASPECT[0])+v*(height*EYE_ASPECT[1])
-            ring.append(center+n*depth+radial*(radius*sin(EYE_APERTURE)))
-            rim_widths.append(.000052+.000083*upper**1.5+.000015*lower)
-        frog.tube('Fine eye rim '+side,ring,rim_widths,['Head']*(len(ring)-1),frog.rim_mat,1,8)
         lip = []
         for y in np.linspace(-.0827,-.0315,48):
             x = sign*frog.jaw_width(y)

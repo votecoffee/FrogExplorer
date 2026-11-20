@@ -18,7 +18,11 @@ def main():
     arm = bpy.data.objects['Original_Red_Eye_Rig']
     parts = sorted([o for o in bpy.data.objects if o.type=='MESH'],key=lambda o:o.name)
     pads = [o for o in parts if 'adhesive disc' in o.name]
-    assert len(parts)>=69 and len(pads)==18
+    required = {'Original continuous trunk and muzzle',
+                'Articulated jaw and recessed oral floor', 'Gular breathing sac'}
+    missing = required - {part.name for part in parts}
+    assert not missing, f'Missing transition surfaces: {sorted(missing)}'
+    assert len(pads)==18, f'Expected 18 adhesive discs, found {len(pads)}'
 
     def pose(clip,phase,objects):
         action = bpy.data.actions[clip];arm.animation_data.action = action;arm.animation_data.action_slot = action.slots[0]
