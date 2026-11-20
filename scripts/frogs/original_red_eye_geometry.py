@@ -522,6 +522,7 @@ class Frog:
         points = [Vector(p) for p in points]
         vertices = [];uv = [];weights = [];faces = []
         total = (len(points)-1)*rings_per_span
+        hindlimb = attachment is not None and len(points)==5
         cap_width, cap_height = (-.00065,-.00110) if len(points)==4 else (.00042,.00085)
         for ring in range(total+1):
             value = ring/rings_per_span;span = min(len(points)-2, int(value));t = value-span
@@ -536,7 +537,7 @@ class Frog:
                 point.x -= sign*inset*root
                 if span==0:point.x += sign*.0010*sin(pi*t)**2
             tangent = (-p0+p2)+(2*p0-5*p1+4*p2-p3)*(2*t)+(-p0+3*p1-3*p2+p3)*(3*t*t)
-            if attachment and len(points)==5:
+            if hindlimb:
                 # A small lateral soft-tissue roll rounds the ankle hairpin;
                 # its derivative keeps the loft frame tangent to that roll.
                 roll = np.exp(-((value-2)/.20)**2)
@@ -557,31 +558,40 @@ class Frog:
             if span == 0:radius *= .75+.25*sin(min(1, t*3)*pi/2)
             current = min(span, len(bones)-1)
             skin = {bones[current]:1.0}
-            if span > 0 and t < .25 and bones[current] != bones[current-1]:
+            before_width = .19 if hindlimb and current==1 else .25
+            after_width = .19 if hindlimb and current==0 else .25
+            if span > 0 and t < before_width and bones[current] != bones[current-1]:
                 support = self.joint_support.get(bones[current])
                 if support:
-                    mix = float(smooth(0,.25,t))
+                    mix = float(smooth(0,before_width,t))
                     skin = {support:1-mix,bones[current]:mix}
                 else:
                     mix = .5*(1-t/.25)
                     skin = {bones[current]:1-mix,bones[current-1]:mix}
-            elif current+1 < len(bones) and t > .75 and bones[current] != bones[current+1]:
+            elif current+1 < len(bones) and t > 1-after_width and bones[current] != bones[current+1]:
                 support = self.joint_support.get(bones[current+1])
                 if support:
-                    mix = float(smooth(.75,1,t))
+                    mix = float(smooth(1-after_width,1,t))
                     skin = {bones[current]:1-mix,support:mix}
                 else:
                     mix = .5*(t-.75)/.25
                     skin = {bones[current]:1-mix,bones[current+1]:mix}
             cap = float(smooth(0,.23,value)*(1-smooth(.30,.71,value))) if attachment else 0
+            fold_crease = .10*np.exp(-((value-1)/.10)**2)
+            if hindlimb and abs(value-1)<1/3:
+                # Ease the knee crease through the short span of skin that
+                # follows the bend, and shift the fold slightly toward the calf.
+                taper = float(1-smooth(.25,1/3,abs(value-1)))
+                fold_crease += taper*(.035*np.exp(-((value-1)/.16)**2)-fold_crease)
+                point.y += .00055*taper*np.exp(-((value-1)/.19)**2)
             for j in range(segments+1):
                 angle = 2*pi*j/segments
                 radial = radius
-                if crease:radial *= 1-.10*np.exp(-((value-1)/.10)**2)*max(0,sin(angle))
+                if crease:radial *= 1-fold_crease*max(0,sin(angle))
                 if cap:
                     # Shape the upper edge where the limb leaves the torso.
                     radial += cap*(cap_width+cap_height*sin(angle))
-                if attachment and len(points)==5:
+                if hindlimb:
                     radial *= 1+.19*np.exp(-((value-2)/.18)**2)
                 vertex = point+axis*(cos(angle)*radial)+up*(sin(angle)*radial*vertical)
                 entry = skin
@@ -789,6 +799,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v45'
+        self.arm['model_revision'] = 'original-red-eye-v46'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self
