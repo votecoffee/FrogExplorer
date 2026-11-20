@@ -84,9 +84,12 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v34**. The lower jaw
-rolls inward beneath the lip and has a shallower chin. Olive pigment along
-the closing edge fades into the pale underside.
+The current authored revision is **original-red-eye-v35**. A shallow ridge
+follows the inside of the lower lip. Warm pigment defines the ridge and
+fades toward the back of the mouth, with less gloss on the oral floor.
+
+In v34 the lower jaw rolled inward beneath the lip and gained a shallower
+chin. Olive pigment along the closing edge fades into the pale underside.
 
 In v33 a raised nasal bridge rounded the snout above the upper lip.
 The slanted nostrils and their rims are sculpted into the head, with

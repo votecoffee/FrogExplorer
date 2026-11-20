@@ -33,6 +33,16 @@ def smooth(a, b, value):
     return t*t*(3-2*t)
 
 
+def oral_floor_folds(along, arc):
+    """Follow the shallow ridge of the inner lip and the groove behind it."""
+    ridge_center = .48+.075*smooth(.14,.69,along)
+    taper = smooth(.07,.28,along)*(1-smooth(.68,.90,along))
+    taper *= smooth(.32,.43,arc)
+    ridge = taper*np.exp(-((arc-ridge_center)/.145)**2)
+    groove = taper*np.exp(-((arc-ridge_center-.23)/.113)**2)
+    return ridge, groove
+
+
 def noise(u, v, seed=9, count=18):
     rng = np.random.default_rng(seed)
     result = np.zeros_like(u+v)
@@ -105,6 +115,14 @@ def painted_maps(name, width, height, kind):
             rgb = rgb*(1-under[:,:,None])+tint*under[:,:,None]
             rgb = rgb*(1-olive[:,:,None])+np.array([.20,.32,.088])*olive[:,:,None]
         rgb *= (1+.045*grain+.025*pores)[:, :, None]
+        return image(name+' color', np.clip(rgb, 0, 1)), None, None
+    if kind == 'oral floor':
+        arc = np.sin(2*pi*v)
+        ridge, groove = oral_floor_folds(u, arc)
+        rear = smooth(.48,.98,u)
+        shade = .97-.24*rear-.07*groove+.10*ridge
+        rgb = np.array([.58,.36,.32])*shade[:,:,None]
+        rgb *= (1+.055*grain+.024*pores)[:,:,None]
         return image(name+' color', np.clip(rgb, 0, 1)), None, None
     dorsal = np.sin(v*2*pi)
     green = np.array([.075, .40, .018]) if kind == 'body' else np.array([.07, .37, .016])
@@ -219,7 +237,9 @@ class Frog:
         jaw_color = painted_maps('Original lower jaw', 512, 256, 'jaw')[0]
         self.jaw_skin = material('Lower lip and chin skin', (.50,.49,.31), .48,
                                   maps=(jaw_color, limb_maps[1], limb_maps[2]), coat=.035)
-        self.oral = material('Warm oral mucosa', (.32, .131, .119), .40, coat=.14)
+        oral_color = painted_maps('Original oral floor', 384, 192, 'oral floor')[0]
+        self.oral = material('Warm oral mucosa', (.32, .131, .119), .53,
+                             maps=(oral_color, None, None), coat=.045)
         self.oral_dark = material('Recessed oral tissue', (.055, .025, .023), .53)
         self.pink = material('Tongue muscle', (.43, .15, .139), .36, coat=.20)
         self.dark = material('Mouth seam', (.006, .011, .004), .5)
@@ -540,7 +560,8 @@ class Frog:
                 if s >= 0:
                     bowl = -oral_depth*s**2.6
                     rim = .00072*exp(-((s-.48)/.19)**2)
-                    z = surface+.00030*sqrt(s)+oral_taper*(bowl+rim)*sqrt(s)
+                    ridge, _ = oral_floor_folds(u, s)
+                    z = surface+.00030*sqrt(s)+(oral_taper*(bowl+rim)+.00032*ridge)*sqrt(s)
                 else:
                     underside = -s
                     lateral_roll = sin(pi*underside)**2
@@ -690,6 +711,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v34'
+        self.arm['model_revision'] = 'original-red-eye-v35'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self
