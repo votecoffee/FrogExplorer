@@ -82,7 +82,14 @@ update the public inventory with `python scripts/prepare_runtime_assets.py`
 and rerun the installer with `-Test`. Earlier models stay untouched.
 The historical reference lock continues to describe its own older file set.
 
-The current authored revision is **original-red-eye-v24**. The throat
+The current authored revision is **original-red-eye-v25**. The mouth has
+a recessed floor and a raised inner rim. The tongue narrows into a
+rounded pad that flips forward over the lower lip in the three feeding
+clips. The face check verifies tongue clearance at the strike and while
+tucked into the closed mouth. The projection uses the forward flip
+documented in [high-speed frog feeding research](https://pmc.ncbi.nlm.nih.gov/articles/PMC4593688/).
+
+In v24 the throat
 curves under the lower jaw and tapers into the neck. The edges follow the
 jaw while the center expands during a croak. The face check measures
 expansion on the deformed skin and checks for throat obstruction in the

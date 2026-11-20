@@ -87,8 +87,10 @@ def animate(frog):
             if clip in ['Catch_Fly', 'Catch_Fly_Swallow', 'Tongue_Snap']:
                 jaw = .60*pulse(t, .08, .62)
                 global_rotation(frog, 'Head', (-.06*pulse(t, .08, .62), 0, 0))
-                global_rotation(frog, 'Tongue', (-2.4*pulse(t, .19, .46), 0, 0))
-                global_rotation(frog, 'TongueTip', (-.2*pulse(t, .19, .46), 0, 0))
+                # The tongue folds rearward at rest and flips over the lower lip.
+                projection = pulse(t, .22, .48)
+                global_rotation(frog, 'Tongue', (2.32*projection, 0, 0))
+                global_rotation(frog, 'TongueTip', (.18*projection, 0, 0))
                 if clip == 'Catch_Fly_Swallow':throat += .65*pulse(t, .55, .94)
             if clip in ['Swallow', 'Croak', 'Victory_Ribbit']:
                 croak = pulse(t, .06, .85)

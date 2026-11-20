@@ -190,9 +190,9 @@ class Frog:
         ventral = painted_maps('Original ventral skin', 512, 256, 'ventral')[0]
         self.cream = material('Ivory granular throat', (.50, .54, .31), .48,
                               maps=(ventral, limb_maps[1], limb_maps[2]))
-        self.oral = material('Warm oral mucosa', (.32, .19, .17), .43, coat=.12)
+        self.oral = material('Warm oral mucosa', (.32, .131, .119), .40, coat=.14)
         self.oral_dark = material('Recessed oral tissue', (.055, .025, .023), .53)
-        self.pink = material('Tongue muscle', (.48, .19, .16), .39, coat=.16)
+        self.pink = material('Tongue muscle', (.43, .15, .139), .36, coat=.20)
         self.dark = material('Mouth seam and nares', (.006, .011, .004), .5)
         self.fold_mat = material('Subtle facial folds',(.011,.086,.003),.50,coat=.03)
         self.rim_mat = material('Muted gold palpebral margin',(.34,.40,.13),.48,coat=.025)
@@ -484,19 +484,27 @@ class Frog:
             tip = 1-smooth(-.080,-.062,y)
             depth = .00065+.00170*exp(-((y+.059)/.0155)**2)-.00043*tip
             inset = .00028*(1-smooth(-.082,-.069,y))
+            oral_taper = float(smooth(-.080,-.067,y)*(1-smooth(-.034,-.024,y)))
+            # Leave .48 mm of wall at the center of the shallower rear jaw.
+            oral_depth = min(.00145,.00025+depth+.00030-.00048)
             for j in range(segments+1):
                 angle = j/segments*2*pi
                 x = width*cos(angle)
                 s = sin(angle)
                 surface = self.body_height(x,y,False)
-                z = surface+.00030*sqrt(s) if s>=0 else surface-(.00025+depth)*sqrt(-s)
+                if s >= 0:
+                    bowl = -oral_depth*s**2.6
+                    rim = .00072*exp(-((s-.48)/.19)**2)
+                    z = surface+.00030*sqrt(s)+oral_taper*(bowl+rim)*sqrt(s)
+                else:
+                    z = surface-(.00025+depth)*sqrt(-s)
                 # Seat the lip rim inside the curved nose at rest.
                 z += inset*exp(-(s/.63)**2)
                 vertices.append((x, y+.80*inset, z));uv.append((u, j/segments))
         for i in range(rings):
             for j in range(segments):
                 a = i*(segments+1)+j;b = a+segments+1
-                faces.append((a, b, b+1, a+1));inside.append(sin((j+.5)/segments*2*pi)>.40)
+                faces.append((a, b, b+1, a+1));inside.append(sin((j+.5)/segments*2*pi)>.28)
         faces.extend([tuple(reversed(range(segments))), tuple(rings*(segments+1)+j for j in range(segments))])
         obj = self.mesh('Articulated jaw and recessed oral floor', vertices, faces, uv,
                         [{'FX-jaw':1} for _ in vertices], self.cream)
@@ -511,7 +519,7 @@ class Frog:
             width = .93*self.jaw_width(y)
             for j in range(segments+1):
                 x = width*(2*j/segments-1)
-                vertices.append((x, y, self.body_height(x, y, False)-.0003))
+                vertices.append((x, y, self.body_height(x, y, False)-.00008))
                 uv.append((j/segments,i/rings))
         for i in range(rings):
             for j in range(segments):
@@ -541,7 +549,11 @@ class Frog:
                 x = .0250*(1-.29*neck)*radius*cos(theta)
                 front = float(smooth(-.069,-.050,y))
                 depth = .00625*belly**1.4*(.68+.32*front)*(1-.21*neck)
-                z = self.body_height(x,y,False)-.00090+.00048*max(0,dome)-depth
+                # Recess the medial roof below the oral floor while retaining
+                # the outer throat contour where it meets the jaw.
+                medial = 1-float(smooth(.011,.022,abs(x)))
+                roof_inset = medial*(.0010*(1-belly)+.00105*max(0,dome))
+                z = self.body_height(x,y,False)-.00090+.00048*max(0,dome)-roof_inset-depth
                 vertices.append((x,y,z))
                 uv.append((j/segments,i/rings))
                 # The rim rides with the jaw. The center expands with the sac.
@@ -558,8 +570,14 @@ class Frog:
         self.palate()
         self.ellipsoid('Dark rear oral cavity', (0, -.030, .0430), (.024, .002, .0028), self.oral_dark, 'Head')
         self.gular_sac()
-        self.ellipsoid('Tongue folded muscle', (0, -.056, self.body_height(0, -.056, False)+.0011), (.009, .012, .0018), self.pink, 'Tongue')
-        self.ellipsoid('Tongue rounded tip', (0, -.044, self.body_height(0, -.044, False)+.0011), (.010, .007, .0018), self.pink, 'TongueTip')
+        z = self.body_height(0,-.056,False)+.0019
+        tongue = [(0,-.071,z-.0008), (0,-.065,z-.0001), (0,-.057,z+.0001),
+                  (0,-.049,z-.00015), (0,-.042,z+.00025)]
+        self.tube('Tongue folded muscle',tongue,[.0036,.0058,.00535,.00445,.00265],
+                  ['Tongue','Tongue','Tongue','TongueTip'],self.pink,8,32,
+                  flatten=[.34,.34,.32,.40,.55])
+        self.ellipsoid('Tongue rounded tip',(0,-.0435,z+.00015),
+                       (.0077,.0082,.00185),self.pink,'TongueTip')
         add_features(self)
 
     def limbs_and_digits(self):
@@ -587,6 +605,6 @@ class Frog:
         self.body();self.limbs_and_digits();self.features()
         self.arm['provenance'] = 'Original parametric mesh, painted pixels, joint layout and motions; MIT. No imported model data.'
         self.arm['species'] = 'Agalychnis callidryas'
-        self.arm['model_revision'] = 'original-red-eye-v24'
+        self.arm['model_revision'] = 'original-red-eye-v25'
         self.arm['forward_axis'] = 'Blender -Y, glTF +Z'
         return self
