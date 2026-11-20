@@ -75,17 +75,22 @@ Install ROS separately using the [official Windows instructions](https://docs.ro
 
 The prefix must contain `local_setup.ps1`. The launcher recognizes the usual `.pixi/envs/default/python.exe` layout; pass `-RosPython "C:\path\to\ros-python.exe"` for another layout. ROS uses its own compatible Python, rather than assuming the installer's Python has `rclpy`.
 
-This builds `ros2_ws/src/frog_explorer` into ignored `ros2_ws/build`, `install` and `log` directories. After ROS is configured, the normal launcher starts its bridge automatically. Use `-WithoutRos` for standalone play.
+The Windows build defaults to the checkout's `ros2_ws` directory. A checkout on C: keeps `build`, `install` and `log` on C:. After ROS is configured, the launcher starts its bridge automatically. Use `-WithoutRos` for standalone play.
 
-To put the build, install and log directories on another drive, add `-RosWorkspace` to the installer.
+Pass `-RosWorkspace` to build into a separate workspace for one run. For example:
 
 ```powershell
-.\scripts\install_windows.ps1 -WithRos -RosPrefix "C:\path\to\lyrical" -RosWorkspace "D:\workspaces\FrogExplorer" -BuildRos -Test
-.\scripts\build_windows.ps1 -Test
+.\scripts\build_windows.ps1 -RosWorkspace "G:\workspaces\FrogExplorer" -Test
+```
+
+To configure the launcher and future installer runs to use an external workspace, pass the same option to the installer:
+
+```powershell
+.\scripts\install_windows.ps1 -WithRos -RosPrefix "C:\path\to\lyrical" -RosWorkspace "G:\workspaces\FrogExplorer" -BuildRos -Test
 .\Start-FrogExplorer.cmd
 ```
 
-The installer saves the workspace path in `.local/settings.json`. Subsequent builds read the package and game source from this checkout and write to that workspace. The launcher opens the installed game and, when ROS is enabled, starts the bridge from the same installation. Use `-Editor` to edit the checkout's game.
+The installer saves the path in `.local/settings.json`. The launcher opens the installed game and starts ROS from the same installation when enabled. Direct calls to `build_windows.ps1` use the checkout's workspace unless you pass `-RosWorkspace`. Use `-Editor` to edit the checkout's game.
 
 For Windows builds that cross drive letters, FrogExplorer stages the package source on the workspace drive. Colcon reads the game assets through a temporary directory junction and installs regular copies. When the workspace filesystem cannot create a junction, the build stages the selected runtime assets as copies.
 

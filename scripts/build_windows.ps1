@@ -1,6 +1,7 @@
-param([int]$DomainId=79,[string]$RosPrefix="",[switch]$Test)
+param([int]$DomainId=79,[string]$RosPrefix="",[switch]$Test,[string]$RosWorkspace="")
 . "$PSScriptRoot\environment.ps1" -DomainId $DomainId -RosPrefix $RosPrefix
-$Workspace=Resolve-FrogRosWorkspace
+$Workspace=Resolve-FrogRosWorkspace -Workspace $RosWorkspace
+Write-Host "Building ROS workspace: $Workspace"
 $Arguments=@("$PSScriptRoot\build_ros_windows.py",$Workspace)
 if ($Test) { $Arguments+='--test' }
 & $RosPython @Arguments

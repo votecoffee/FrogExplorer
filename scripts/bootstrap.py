@@ -101,7 +101,11 @@ def main():
     logged([engine,"--headless","--editor","--path",ROOT/"game","--import"],ROOT/"state/import.log")
     if args.build_ros:
         command=["powershell.exe","-NoProfile","-ExecutionPolicy","Bypass","-File",ROOT/"scripts/build_windows.ps1"] if os.name=="nt" else ["bash",ROOT/"scripts/build_linux.sh"]
-        if args.test and os.name=="nt":command.append("-Test")
+        if os.name=="nt":
+            if settings.get("ros_workspace"):
+                command.extend(["-RosWorkspace", settings["ros_workspace"]])
+            if args.test:
+                command.append("-Test")
         env=os.environ.copy();env["ROS_PREFIX"]=settings["ros_prefix"];env["GODOT_BIN"]=str(engine)
         logged(command,ROOT/"state/build.log",env)
     if args.test:logged([engine,"--headless","--path",ROOT/"game","--","--smoke","--test-session","--no-ros"],ROOT/"state/install-smoke.log")

@@ -3,6 +3,7 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -81,18 +82,72 @@ class WorkspaceSettingsTests(unittest.TestCase):
             workspace = Path(directory) / "external workspace"
             engine = root / "godot"
             command = ["bootstrap.py", "--godot", str(engine)]
+            prefix = root / "lyrical"
+            prefix.mkdir()
+            windows = sys.platform == "win32"
+            (prefix / ("local_setup.ps1" if windows else "setup.bash")).touch()
             with (
                 patch.object(bootstrap, "ROOT", root),
-                patch.object(bootstrap, "logged"),
+                patch.object(bootstrap, "logged") as logged,
                 patch.object(bootstrap, "validate_engine", return_value="4.7"),
                 patch("builtins.print"),
             ):
-                with patch.object(sys, "argv", [*command, "--ros-workspace", str(workspace)]):
+                with patch.object(
+                    sys, "argv", [*command, "--ros-prefix", str(prefix), "--ros-workspace", str(workspace)]
+                ):
                     bootstrap.main()
-                with patch.object(sys, "argv", command):
+                with patch.object(sys, "argv", [*command, "--build-ros", "--test"]):
                     bootstrap.main()
+            build_command = next(
+                call.args[0] for call in logged.call_args_list if call.args[1].name == "build.log"
+            )
+            if windows:
+                self.assertEqual(build_command[-3:], ["-RosWorkspace", str(workspace.resolve()), "-Test"])
             settings = json.loads((root / ".local/settings.json").read_bytes())
             self.assertEqual(settings["ros_workspace"], str(workspace.resolve()))
+
+    @unittest.skipUnless(sys.platform == "win32", "requires Windows PowerShell")
+    def test_direct_build_defaults_to_checkout_and_accepts_workspace_override(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve() / "checkout"
+            scripts = root / "scripts"
+            scripts.mkdir(parents=True)
+            for name in ("build_windows.ps1", "project_paths.ps1"):
+                (scripts / name).write_bytes((SCRIPTS / name).read_bytes())
+
+            # Keep the real PowerShell path resolution and record the Python
+            # entrypoint arguments without requiring a ROS underlay.
+            executable = sys.executable.replace("'", "''")
+            (scripts / "environment.ps1").write_bytes(
+                ("param([int]$DomainId,[string]$RosPrefix)\n"
+                 '. "$PSScriptRoot\\project_paths.ps1"\n'
+                 f"$RosPython='{executable}'\n").encode("utf-8")
+            )
+            (scripts / "build_ros_windows.py").write_bytes(
+                b"import json, sys\nprint(json.dumps(sys.argv[1:]))\n"
+            )
+
+            settings = root / ".local/settings.json"
+            settings.parent.mkdir()
+            original = json.dumps({"ros_workspace": str(root / "saved workspace")}).encode("utf-8")
+            settings.write_bytes(original)
+            command = [
+                "powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                "-File", str(scripts / "build_windows.ps1"), "-Test",
+            ]
+            external = root.parent / "external workspace"
+            for options, expected in (
+                ([], root / "ros2_ws"),
+                (["-RosWorkspace", str(external)], external),
+                (["-RosWorkspace", "local output"], root / "local output"),
+            ):
+                with self.subTest(options=options):
+                    output = subprocess.run(
+                        [*command, *options], cwd=directory, capture_output=True, text=True, check=True,
+                    )
+                    self.assertEqual(json.loads(output.stdout.splitlines()[-1]), [str(expected), "--test"])
+
+            self.assertEqual(settings.read_bytes(), original)
 
 
 class WindowsStageTests(unittest.TestCase):
