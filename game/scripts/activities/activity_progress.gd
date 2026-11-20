@@ -7,6 +7,7 @@ const Programs = preload("res://scripts/activities/garden_program.gd")
 const COURSES := ["car_circuit", "balloon_rings"]
 
 var best: Dictionary = {}
+var split_records: Dictionary = {}
 var drafts: Dictionary = {}
 var solved: Dictionary = {}
 var folder := ""
@@ -22,10 +23,15 @@ func load_from(path: String) -> void:
   for name in names:
    if not name.begins_with(prefix) or not name.ends_with(".ms"):
     continue
-   var value := name.trim_prefix(prefix).trim_suffix(".ms")
-   if not value.is_valid_int() or int(value) <= 0:
+   var record := name.trim_prefix(prefix).trim_suffix(".ms").split("-", true, 1)
+   if not record[0].is_valid_int() or int(record[0]) <= 0:
     continue
-   best[course] = minf(float(best.get(course, INF)), int(value) / 1000.0)
+   var milliseconds := int(record[0])
+   best[course] = minf(float(best.get(course, INF)), milliseconds / 1000.0)
+   if record.size() == 2 and record[1].length() == 64:
+    var data := JSON.new()
+    if data.parse(FileAccess.get_file_as_string(folder.path_join(name))) == OK and data.data is Array:
+     _remember_splits(course, record[1], data.data, milliseconds)
  for puzzle in Programs.PUZZLES:
   var id: String = puzzle.id
   var draft := folder.path_join("draft-" + id + ".txt")
@@ -34,17 +40,44 @@ func load_from(path: String) -> void:
   if FileAccess.file_exists(folder.path_join("solved-" + id)):
    solved[id] = true
 
-func record_time(course: String, seconds: float) -> Error:
- if course not in COURSES or not is_finite(seconds) or seconds <= 0:
+func comparison(course: String, layout: String, checkpoints: int) -> Array:
+ return split_records.get(_split_key(course, layout, checkpoints), [])
+
+func record_run(course: String, seconds: float, layout: String, splits: PackedFloat64Array) -> Error:
+ if course not in COURSES or not is_finite(seconds) or seconds <= 0 or splits.is_empty():
   return ERR_INVALID_PARAMETER
  var milliseconds := maxi(1, roundi(seconds * 1000))
- var value := milliseconds / 1000.0
- if value >= float(best.get(course, INF)):
+ var times_ms: Array[int] = []
+ for split in splits:
+  times_ms.append(roundi(split * 1000))
+ times_ms[-1] = milliseconds
+ if not _remember_splits(course, layout, times_ms, milliseconds):
   return OK
- best[course] = value
- # Each record has a distinct key. Two instances can finish a race at the
- # same time and both results contribute to the minimum on the next load.
- return _save("best-%s-%d.ms" % [course, milliseconds], "")
+ best[course] = minf(float(best.get(course, INF)), milliseconds / 1000.0)
+ # Layout-specific runs can coexist with older time-only records and with
+ # finishes saved by another instance of the game.
+ return _save("best-%s-%d-%s.ms" % [course, milliseconds, layout], JSON.stringify(times_ms))
+
+func _remember_splits(course: String, layout: String, times_ms: Array, milliseconds: int) -> bool:
+ if times_ms.is_empty():
+  return false
+ var previous := 0
+ var validated: Array[int] = []
+ for value in times_ms:
+  if not (value is int or value is float) or value < previous or value > milliseconds or value != int(value):
+   return false
+  previous = int(value)
+  validated.append(previous)
+ if previous != milliseconds:
+  return false
+ var key := _split_key(course, layout, validated.size())
+ if split_records.has(key) and split_records[key][-1] <= milliseconds:
+  return false
+ split_records[key] = validated
+ return true
+
+func _split_key(course: String, layout: String, checkpoints: int) -> String:
+ return "%s/%s/%d" % [course, layout, checkpoints]
 
 func edit_draft(id: String, text: String) -> Error:
  drafts[id] = text

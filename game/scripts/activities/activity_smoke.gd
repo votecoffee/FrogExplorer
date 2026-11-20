@@ -26,6 +26,15 @@ func f5() -> void:
  release.pressed = false
  Input.parse_input_event(release)
 
+func cross_next(game, tick: float) -> void:
+ var course = game.activities.course
+ var gate: Dictionary = game.woodland.gates[course.next_gate()]
+ var center: Vector3 = gate.center
+ var direction: Vector3 = gate.forward
+ course.previous = center - direction * 2
+ game.rides.body.position = center + direction * 2
+ game.activities._physics_process(tick)
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -51,6 +60,9 @@ func run(game) -> void:
  check(Run.crossing(Vector3(0,0,-2), Vector3(0,0,2), gate) < 0, "Reverse ring crossings do not count")
  check(is_equal_approx(Run.crossing(Vector3(0,0,2), Vector3(0,0,-2), gate), .5), "Swept crossings count between ticks")
 
+ run_state.setup([gate], 0, Vector3(0,0,1))
+ run_state.advance(Vector3(0,0,-3), .4)
+ check(run_state.splits.size() == 1 and is_equal_approx(run_state.elapsed, .1) and is_equal_approx(run_state.splits[0], .1), "A split uses the fractional crossing time within the tick")
  var has_car := await travel(game, IDS[0])
  check(has_car and game.woodland is ExplorerActivityWorld, "Travel stages a procedural car circuit")
  if has_car:
@@ -66,20 +78,29 @@ func run(game) -> void:
    await frames(120)
    check(game.rides.body.position.distance_to(start) > 5.0, "The convertible accelerates on the physical track")
    check(course.timed and course.cursor == 1, "Driving crosses the first timing gate")
+   check(course.splits.is_empty(), "Crossing the first start line only starts the clock")
    game.controls.neutralize()
    # Use swept, forward samples through the actual gate layout to validate order
    # and lap counting without a frame-rate-dependent automated race driver.
    course.setup(world.gates, 2, start)
-   for target in course.order:
-    var lap_gate: Dictionary = world.gates[target]
-    var center: Vector3 = lap_gate.center
-    var direction: Vector3 = lap_gate.forward
-    course.previous = center - direction * 2
-    game.rides.body.position = center + direction * 2
-    game.activities._physics_process(0.25)
+   for step in course.order.size():
+    cross_next(game, .25)
    check(course.finished and course.cursor == world.gates.size() * 2 + 1, "Two complete ordered laps finish the race")
    check(course.elapsed > 0, "Circuit timing starts on the first start-line crossing")
    check(game.activities.progress.best.has(IDS[0]), "The car circuit records a personal best")
+   check(course.splits.size() == world.gates.size() * 2 and is_equal_approx(course.splits[-1], course.elapsed), "The car stores a separate split for each gate on both laps")
+   var best: float = game.activities.progress.best.get(IDS[0], 0.0)
+   f5()
+   await frames(24)
+   var replay = game.activities.course
+   check(not game.activities.split_status.visible and not game.activities.reference.is_empty(), "Restart clears the old split display and loads the previous run for comparison")
+   if not replay.order.is_empty():
+    cross_next(game, .60)
+    cross_next(game, .60)
+    check(game.activities.split_status.visible and "behind" in game.activities.split_status.text, "The car HUD reports time lost at a gate")
+    for step in range(2, replay.order.size()):
+     cross_next(game, .60)
+    check(is_equal_approx(game.activities.progress.best.get(IDS[0], 0.0), best), "A slower finished run leaves the existing race record intact")
 
  var has_balloon := await travel(game, IDS[1])
  check(has_balloon, "Travel arrives at the balloon course")
@@ -123,12 +144,19 @@ func run(game) -> void:
    course.previous = second.center - second.forward * 2.0
    course.advance(second.center + second.forward * 2.0, .2)
    check(course.cursor == 0, "Crossing a later ring cannot skip the active ring")
-   for current in air.gates:
-    course.previous = current.center - current.forward * 2.0
-    game.rides.body.position = current.center + current.forward * 2.0
-    game.activities._physics_process(.2)
+   for step in air.gates.size():
+    cross_next(game, .2)
    check(course.finished and course.elapsed > 0, "The ordered balloon-ring run finishes")
    check(game.activities.progress.best.has(IDS[1]), "The integrated course records a personal best")
+   check(course.splits.size() == air.gates.size() and is_equal_approx(course.splits[-1], course.elapsed), "The balloon stores a split for every ring")
+   f5()
+   await frames(24)
+   var replay = game.activities.course
+   check(not game.activities.reference.is_empty() and replay.checkpoint_count == air.gates.size(), "The balloon loads its own split times")
+   if not replay.order.is_empty():
+    replay.elapsed = 0.0
+    cross_next(game, .1)
+    check(game.activities.split_status.visible and "Ring 1" in game.activities.split_status.text and "ahead" in game.activities.split_status.text, "The balloon HUD reports time gained at a ring")
 
  var has_garden := await travel(game, IDS[2])
  check(has_garden, "Travel arrives at Lily Code Garden")

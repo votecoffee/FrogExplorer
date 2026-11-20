@@ -9,15 +9,22 @@ var elapsed := 0.0
 var timed := false
 var finished := false
 var previous := Vector3.ZERO
+var splits := PackedFloat64Array()
+var layout := ""
+var checkpoint_count := 0
 
 func setup(course: Array[Dictionary], laps: int, start: Vector3) -> void:
  gates = course
  order.clear()
+ splits.clear()
+ # Include the lap rule and oriented gate geometry in the comparison key.
+ layout = var_to_str([laps, course]).sha256_text()
  for lap in range(maxi(1, laps)):
   for index in gates.size():
    order.append(index)
  if laps > 0:
   order.append(0)
+ checkpoint_count = order.size() - (1 if laps > 0 else 0)
  cursor = 0
  elapsed = 0
  timed = laps == 0
@@ -41,10 +48,10 @@ func advance(point: Vector3, delta: float) -> bool:
  if not timed:
   timed = true
   elapsed += delta * (1.0 - crossed_at)
- elif finished:
-  elapsed += delta * crossed_at
  else:
-  elapsed += delta
+  var split := elapsed + delta * crossed_at
+  splits.append(split)
+  elapsed = split if finished else elapsed + delta
  return true
 
 static func crossing(from: Vector3, to: Vector3, gate: Dictionary) -> float:

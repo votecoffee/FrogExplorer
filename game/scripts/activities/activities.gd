@@ -9,6 +9,7 @@ var current: ExplorerActivityWorld
 var panel: PanelContainer
 var title: Label
 var stats: Label
+var split_status: Label
 var guide: Label
 var arrow: Label
 var garden: PanelContainer
@@ -16,6 +17,7 @@ var saved_pause := false
 var course := Course.new()
 var ride: CharacterBody3D
 var progress := Progress.new()
+var reference: Array = []
 var starting := false
 var start_token := 0
 var note := ""
@@ -34,9 +36,11 @@ func _ready() -> void:
  panel.add_child(list)
  title = game.hud.label("", 20, Color("#ffe4a3"))
  stats = game.hud.label("", 16)
+ split_status = game.hud.label("", 15)
+ split_status.hide()
  guide = game.hud.label("", 14, Color("#c4dbcc"))
  arrow = game.hud.label("", 18, Color("#ffe4a3"))
- for label in [title, stats, guide, arrow]:
+ for label in [title, stats, split_status, guide, arrow]:
   label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
   label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
   label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -69,6 +73,7 @@ func _travel_changed() -> void:
  starting = false
  ride = null
  course = Course.new()
+ _clear_comparison()
  note = ""
  garden.enter_place(current if is_instance_valid(current) and current.activity == "lily_code_garden" else null)
  panel.visible = is_instance_valid(current)
@@ -105,6 +110,7 @@ func start_course() -> void:
  ride = null
  note = ""
  course = Course.new()
+ _clear_comparison()
  game.rides.clear_for_travel()
  game.pilot.arrive_at_default_size(current.spawn_point)
  game.controls.neutralize()
@@ -125,6 +131,7 @@ func start_course() -> void:
   return
  ride = game.rides.body
  course.setup(current.gates, CIRCUIT_LAPS if car else 0, ride.position)
+ reference = progress.comparison(current.activity, course.layout, course.checkpoint_count)
  current.mark_gate(course.next_gate())
 
 func _physics_process(delta: float) -> void:
@@ -132,16 +139,43 @@ func _physics_process(delta: float) -> void:
   return
  if not is_instance_valid(ride) or ride != game.rides.body:
   course.order.clear()
+  _clear_comparison()
   note = "Run ended. A / F5 restarts."
   current.mark_gate(0)
   return
  if course.advance(ride.position, delta):
   current.mark_gate(course.next_gate())
+  _show_split()
   if course.finished:
    var id := current.activity
-   if progress.record_time(id, course.elapsed) != OK:
+   var prior: float = progress.best.get(id, INF)
+   if progress.record_run(id, course.elapsed, course.layout, course.splits) != OK:
     game.hud.toast("Could not save activity progress.")
+   if progress.best.get(id, INF) < prior:
+    note = "New personal best"
    game._event("course_finished", {"place_id":game.travel.current_id, "seconds":course.elapsed, "best_seconds":progress.best.get(id, course.elapsed)})
+
+func _clear_comparison() -> void:
+ reference = []
+ split_status.hide()
+
+func _show_split() -> void:
+ var count := course.splits.size()
+ if count == 0 or reference.is_empty():
+  return
+ var difference := course.splits[-1] - float(reference[count - 1]) / 1000.0
+ var result := "on pace"
+ var color := Color("#c4dbcc")
+ if difference < -.005:
+  result = "%.2f s ahead" % -difference
+  color = Color("#c2f4ad")
+ elif difference > .005:
+  result = "%.2f s behind" % difference
+  color = Color("#f9cf8a")
+ var checkpoint := "Ring" if current.activity == "balloon_rings" else "Split"
+ split_status.text = "%s %d · %s" % [checkpoint, count, result]
+ split_status.add_theme_color_override("font_color", color)
+ split_status.show()
 
 func _process(_delta: float) -> void:
  if is_instance_valid(current):
@@ -155,6 +189,8 @@ func _update_panel() -> void:
  var car := current.activity == "car_circuit"
  if course.finished:
   stats.text = "Finished · %.2f s · personal best %.2f s" % [course.elapsed, progress.best.get(current.activity, course.elapsed)]
+  if not note.is_empty():
+   stats.text += "\n" + note
   return
  var index := course.next_gate()
  if index < 0:
