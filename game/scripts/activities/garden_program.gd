@@ -91,6 +91,9 @@ func plant_status(location: Vector2i) -> String:
   return "Thirsty ×%d" % plant.need
  return "Ripe" if turn >= plant.ready else "Growing"
 
+func is_complete() -> bool:
+ return harvested == plants.size()
+
 func step(action: Dictionary) -> String:
  var plant: Dictionary = plants.get(cell, {})
  match action.command:

@@ -205,9 +205,43 @@ func run(game) -> void:
   game.controls.pending.append("travel_home")
   await frames(4)
   check(t.current_id == IDS[2] and not t.busy, "Game shortcuts are suspended while editing")
+  var starter: String = popup.source.text
+  var first_card: Node = popup.board.get_child(0)
+  var first_plot: Node = popup.world.garden_root.get_child(0)
+  var puzzle_id: String = Program.PUZZLES[0].id
+  popup.check_button.pressed.emit()
+  check("9 actions to harvest all 2 lilies" in popup.status.text and "meets target" in popup.status.text, "Check predicts the starter program's action count and target")
+  check(popup.garden.turn == 0 and not popup.progress.solved.has(puzzle_id) and not popup.progress.garden_best.has(puzzle_id) and popup.board.get_child(0) == first_card and popup.world.garden_root.get_child(0) == first_plot, "Check preserves both boards and the completion record")
+  popup.source.set_caret_line(0)
+  popup.source.set_caret_column(0)
+  popup.source.insert_text_at_caret("# Edit after checking\n")
+  await frames(3)
+  check("Code changed" in popup.status.text, "Editing invalidates the previous check result")
+  popup.source.set_caret_line(0)
+  popup.source.set_caret_column(0)
+  popup.source.insert_text_at_caret("# Check this edit immediately\n")
+  popup.check_button.pressed.emit()
+  await frames(3)
+  check("9 actions to harvest all 2 lilies" in popup.status.text, "Check keeps a result for the current draft when a text change is delivered later")
+  popup.source.text = "fill\nhop east\nwater"
+  popup.check_button.pressed.emit()
+  check("0 of 2 lilies harvested in 3 actions" in popup.status.text, "Check distinguishes a valid unfinished program")
+  popup.source.text = "fill\nrepeat 3\n  hop east\nend"
+  popup.check_button.pressed.emit()
+  check("Check · Line 3" in popup.status.text and "blocks this hop" in popup.status.text and popup.source.get_executing_lines() == PackedInt32Array([2]), "Check marks a blocked command inside a loop")
+  popup.source.text = "fill\nunknown"
+  popup.check_button.pressed.emit()
+  check("Line 2" in popup.status.text and popup.source.get_executing_lines() == PackedInt32Array([1]), "Check marks a compile error before running")
+  popup.source.text = starter + "hop north"
+  popup.check_button.pressed.emit()
+  check("9 actions to harvest all 2 lilies" in popup.status.text, "Check stops at the final harvest just like Run")
+  popup.source.text = starter
   press_key(KEY_F10)
   await frames(18)
   check(popup.garden.turn == 1 and popup.garden.tank == Program.CAPACITY and not popup.running, "F10 executes one command and waits for the next step")
+  var paused_note: String = popup.status.text
+  popup.check_button.pressed.emit()
+  check(popup.check_button.disabled and popup.garden.turn == 1 and popup.status.text == paused_note, "Check cannot interrupt a paused program")
   check(popup.source.get_executing_lines() == PackedInt32Array([1]) and "next line 4" in popup.status.text, "The editor marks fill and shows the line of the next command")
   popup.step_button.pressed.emit()
   check(popup.garden.turn == 2 and popup.garden.cell == Vector2i(1, 0) and not popup.source.editable, "The Step button advances the same board and protects the active program")
@@ -227,10 +261,11 @@ func run(game) -> void:
   check(popup.progress.solved.get(Program.PUZZLES[0].id, false) and popup.garden.harvested == 2, "The popup animates and completes the starter program")
   check(popup.source.get_executing_lines() == PackedInt32Array([6]) and popup.source.editable, "The completed loop marks its gather command and unlocks the editor")
   check(popup.progress.garden_best.get("first_bloom", 0) == 9 and "Target met" in popup.score.text, "A finished program saves the action count and marks the target")
-  var starter: String = popup.source.text
   popup.step_button.pressed.emit()
   popup.stop_button.pressed.emit()
   check(popup.garden.turn == 1 and popup.source.text == starter and popup.source.editable, "Stop preserves the current board and draft for editing")
+  popup.check_button.pressed.emit()
+  check("9 actions to harvest all 2 lilies" in popup.status.text and popup.garden.turn == 1 and popup.garden.tank == Program.CAPACITY, "Check starts fresh while preserving a stopped board")
   popup.step_button.pressed.emit()
   popup._reset()
   check(popup.garden.turn == 0 and popup.garden.tank == 0 and popup.source.get_executing_lines().is_empty() and popup.source.text == starter, "Reset clears a paused run and keeps the draft")
@@ -261,6 +296,11 @@ func run(game) -> void:
   popup.chooser.item_selected.emit(3)
   check(popup.source.text == terrace_patrol and popup.garden.harvested == 0, "Returning to Twin terraces restores its draft on a fresh board")
   check(popup.progress.garden_best.get("twin_terraces", 0) == 21 and "Target · 19 actions" in popup.score.text, "An above-target completion still records a personal best")
+  popup.check_button.pressed.emit()
+  check("21 actions to harvest all 4 lilies · 2 over target" in popup.status.text, "Check reports how far a valid plan is above the target")
+  popup.source.text = solutions[3]
+  popup.check_button.pressed.emit()
+  check("19 actions to harvest all 4 lilies · meets target" in popup.status.text and popup.progress.garden_best.get("twin_terraces", 0) == 21, "Checking a better route leaves the personal best for a completed run")
   await finish_by_steps(popup, solutions[3])
   check(popup.progress.garden_best.get("twin_terraces", 0) == 19 and "Target met" in popup.score.text and "New personal best" in popup.status.text, "A more efficient program updates the record and marks the target")
   await finish_by_steps(popup, terrace_patrol)

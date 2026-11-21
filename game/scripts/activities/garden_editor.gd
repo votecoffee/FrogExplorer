@@ -17,6 +17,7 @@ var info: Label
 var score: Label
 var hint: Label
 var chooser: OptionButton
+var check_button: Button
 var run_button: Button
 var step_button: Button
 var stop_button: Button
@@ -24,6 +25,7 @@ var steps: Array = []
 var offset := 0
 var interval := 0.0
 var running := false
+var checked_source: Variant = null
 
 func _ready() -> void:
  set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -49,6 +51,8 @@ func _ready() -> void:
  pair.add_child(left)
  var actions := HBoxContainer.new()
  left.add_child(actions)
+ check_button = _button(actions, "Check", _check_code)
+ check_button.tooltip_text = "Check the draft on a fresh board"
  run_button = _button(actions, "Run · Ctrl+Enter", _run)
  step_button = _button(actions, "Step · F10", _step)
  stop_button = _button(actions, "Stop", _stop)
@@ -128,8 +132,12 @@ func _close() -> void:
  dismissed.emit()
 
 func _queue_save() -> void:
- if steps.is_empty():
+ var matches_check: bool = checked_source is String and checked_source == source.text
+ if steps.is_empty() and not matches_check:
   source.clear_executing_lines()
+  if checked_source is String:
+   checked_source = null
+   status.text = "Code changed. Check again for an updated result."
  if puzzle >= 0 and source.text != loaded_draft:
   draft_timer.start()
 
@@ -158,6 +166,7 @@ func _clear_program() -> void:
  offset = 0
 
 func _reset() -> void:
+ checked_source = null
  _clear_program()
  source.clear_executing_lines()
  garden.load_puzzle(puzzle)
@@ -170,16 +179,45 @@ func _stop() -> void:
  status.text = "Stopped. Run or Step starts from a fresh board."
  _draw()
 
-func _prepare_program() -> bool:
- if not steps.is_empty():
-  return true
+func _compile_draft() -> Array:
  var result: Dictionary = Programs.compile(source.text)
  if result.has("error"):
   _line_error(result.error, result.line)
+  return []
+ return result.steps
+
+func _check_code() -> void:
+ if not steps.is_empty():
+  return
+ checked_source = source.text
+ source.grab_focus()
+ var commands := _compile_draft()
+ if commands.is_empty():
+  return
+ source.clear_executing_lines()
+ var preview := Programs.new()
+ preview.load_puzzle(puzzle)
+ for action: Dictionary in commands:
+  var error := preview.step(action)
+  if not error.is_empty():
+   _line_error("Check · Line %d · %s" % [action.line + 1, error], action.line)
+   return
+  if preview.is_complete():
+   var over: int = preview.turn - Programs.PUZZLES[puzzle].target
+   var target := "meets target" if over <= 0 else "%d over target" % over
+   status.text = "Check · %d actions to harvest all %d lilies · %s" % [preview.turn, preview.harvested, target]
+   return
+ status.text = "Check · %d of %d lilies harvested in %d actions" % [preview.harvested, preview.plants.size(), preview.turn]
+
+func _prepare_program() -> bool:
+ if not steps.is_empty():
+  return true
+ checked_source = null
+ steps = _compile_draft()
+ if steps.is_empty():
   return false
  garden.load_puzzle(puzzle)
  source.clear_executing_lines()
- steps = result.steps
  return true
 
 func _run() -> void:
@@ -232,7 +270,7 @@ func _advance() -> void:
  else:
   _mark_line(action.line)
   offset += 1
-  if garden.harvested == garden.plants.size():
+  if garden.is_complete():
    _clear_program()
    var item: Dictionary = Programs.PUZZLES[puzzle]
    var previous: int = progress.garden_best.get(item.id, 0)
@@ -257,6 +295,7 @@ func _draw() -> void:
  var best_text := "%d actions" % best_actions if best_actions > 0 else "—"
  score.text = "%s · %d actions\nPersonal best · %s" % [target_status, item.target, best_text]
  var active := not steps.is_empty()
+ check_button.disabled = active
  run_button.text = ("Pause" if running else "Resume" if active else "Run") + " · Ctrl+Enter"
  step_button.disabled = running
  stop_button.disabled = not active
