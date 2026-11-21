@@ -194,11 +194,11 @@ Open Places with **N / R3** to select these single-player destinations. Random t
 | --- | --- |
 | Kingfisher Circuit | Board the convertible and drive two timed laps. The first start-line crossing starts the clock. Drive through each gate in order. |
 | Cloudring Course | Launch a helium balloon and fly through eight rings in order. The next ring glows gold. Use the right stick or I/K and J/L for altitude and strafe. |
-| Lily Code Garden | Open a popup editor and program Pondbot to water and gather lilies across five grid puzzles. |
+| Lily Code Garden | Open a popup editor and program Pondbot to water and gather lilies across six grid puzzles. |
 
 Press **F5 / A** again to restart a race. The course shows your current time and saved personal best. After your first timed finish, the HUD compares each gate or ring to your fastest run with recorded splits. Existing personal best times carry over. Use **H** or Places to return to the pond.
 
-In the garden, use **Check** to preview your draft on a fresh board. It reports the expected harvest and action count or marks a command that would fail. Open **Review** and use the slider or the **Left/Right** arrow keys to inspect Pondbot's predicted position, water supply and lilies after each action. Choose **Back to board** to return to the live garden. Use **Run** or **Ctrl+Enter** to start, pause, or resume and record a completed run. Use **Step** or **F10** to execute one command and see its source line. Click beside a line number or press **F9** on a command to toggle a breakpoint. **Run** pauses before the marked command each time a loop reaches it. **Resume** runs that command and continues. Use **Stop** to edit your code while keeping the current board visible, or **Reset board** to start over. **Esc** closes the editor. The board shows Pondbot, its water supply, and how many lilies remain. Fill at a spring, hop onto a plot, water it, then allow another turn before gathering. Twin terraces has two matching beds for nested repeats. Reedbank loop needs two tankfuls and a route around the stones. The first puzzle includes this complete example:
+In the garden, use **Check** to preview your draft on a fresh board. It reports the expected harvest and action count or marks a command that would fail. Open **Review** and use the slider or the **Left/Right** arrow keys to inspect Pondbot's predicted position, water supply and lilies after each action. Choose **Back to board** to return to the live garden. Use **Run** or **Ctrl+Enter** to start, pause, or resume and record a completed run. Use **Step** or **F10** to execute one command and see its source line. Click beside a line number or press **F9** on a command to toggle a breakpoint. **Run** pauses before the marked command each time a loop reaches it. **Resume** runs that command and continues. Use **Stop** to edit your code while keeping the current board visible, or **Reset board** to start over. **Esc** closes the editor. The board shows Pondbot, its water supply, and how many lilies remain. Fill at a spring, hop onto a plot, water it, then allow another turn before gathering. Twin terraces has two matching beds for nested repeats. Reedbank loop needs two tankfuls and a route around the stones. Stone spillway has two beds with double lilies and a starter routine. The first puzzle includes this complete example:
 
 ```text
 fill
@@ -210,7 +210,9 @@ repeat 2
 end
 ```
 
-Use **hop north**, **hop east**, **hop south**, or **hop west** to move one square. **repeat N** accepts a count from 1 to 16 and ends with **end**. **#** starts a comment. The editor reports the line of a syntax error or blocked action. Each board has an optional action target. The editor saves your fewest actions for a completed run and marks the target when you reach it. The count includes each executed Pondbot command, including every iteration of a loop. Drafts save while you type and when you close the editor. Personal bests, drafts and completed puzzles are saved locally across restarts.
+Use **routine NAME** and **end** to define a reusable sequence, then use **call NAME** to run it. Define each routine before calling it. Routines can contain repeats and calls to earlier routines.
+
+Use **hop north**, **hop east**, **hop south**, or **hop west** to move one square. **repeat N** accepts a count from 1 to 16 and ends with **end**. **#** starts a comment. The editor reports the line of a syntax error or blocked action. Each board has an optional action target. The editor saves your fewest actions for a completed run and marks the target when you reach it. The count includes each executed Pondbot command, including every iteration of a loop and every command inside a routine call. Drafts save while you type and when you close the editor. Personal bests, drafts and completed puzzles are saved locally across restarts.
 
 ### Real-world maps
 

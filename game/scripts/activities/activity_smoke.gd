@@ -180,15 +180,28 @@ func run(game) -> void:
  check(Program.compile("print(42)").has("error"), "Garden command parser rejects other languages")
  check(Program.compile("repeat 16\nrepeat 16\nwait\nwait\nend\nend").has("error"), "Expanded garden programs are bounded")
  check(Program.compile("repeat 3\nwater").has("error"), "Missing end produces a line error")
+ var called := Program.compile("routine rest\nwait\nend\nroutine rest_twice\nrepeat 2\ncall rest\nend\nend\ncall rest_twice")
+ var called_steps: Array = called.get("steps", [])
+ check(called_steps.size() == 2 and called_steps[0].line == 1 and called_steps[1].line == 1, "Routines compose with earlier routines and keep their source lines through a repeat")
+ check(Program.compile("routine 1bad\nwait\nend").get("line", -1) == 0, "A routine requires a valid name")
+ check(Program.compile("routine pause\nwait\nend\nroutine PAUSE\nwait\nend").get("line", -1) == 3, "Duplicate routine names report the new definition")
+ check(Program.compile("routine again\ncall again\nend\ncall again").get("line", -1) == 1, "A routine cannot call itself before its definition closes")
+ check(Program.compile("call later\nroutine later\nwait\nend").get("line", -1) == 0, "Calling an undefined routine reports the call site")
+ check(Program.compile("routine unfinished\nwait").get("line", -1) == 0, "An unfinished routine points to its opening line")
+ check(Program.compile("repeat 2\nroutine nested\nwait\nend\nend").get("line", -1) == 1, "Routine definitions stay outside repeat blocks")
+ var full_routine := "routine full\nrepeat 16\nrepeat 16\nwait\nend\nend\nend\ncall full"
+ check(Program.compile(full_routine).get("steps", []).size() == Program.MAX_STEPS and Program.compile(full_routine + "\ncall full").get("line", -1) == 8, "Routine expansion allows exactly 256 actions and rejects a call that exceeds the limit")
 
  # Each garden has a complete solution using the normal commands.
  var terrace_patrol := "repeat 2\nfill\nrepeat 2\nhop east\nwater\nwait\ngather\nend\nrepeat 2\nhop west\nend\nhop north\nend"
+ var spillway_solution := "routine finish_lily\n  wait\n  gather\nend\nfill\nhop east\nhop east\nwater\nwater\nhop east\nwater\ncall finish_lily\nhop west\ngather\nhop west\nhop west\nfill\nhop east\nwater\ncall finish_lily\nhop west\nhop north\nhop north\nhop east\nwater\nhop west\nfill\nhop east\ngather\nhop east\nwater\nwater\ncall finish_lily\nhop east\nwater\ncall finish_lily"
  var solutions := [
   "fill\nrepeat 2\nhop east\nwater\nwait\ngather\nend",
   "fill\nhop east\nhop east\nwater\nwait\ngather\nhop south\nhop east\nwater\nwait\ngather\nhop west\nhop south\nwater\nwait\ngather",
   "fill\nhop east\nhop east\nwater\nwater\nhop west\nhop west\nfill\nhop east\nhop east\ngather\nhop south\nhop south\nwater\nwait\ngather\nhop west\nwater\nwater\nwait\ngather",
   "fill\nhop east\nwater\nwait\ngather\nhop north\nwater\nhop west\nfill\nhop east\ngather\nhop east\nwater\nwait\ngather\nhop south\nwater\nwait\ngather",
   "fill\nhop south\nhop south\nwater\nhop south\nhop east\nwater\nwater\nwait\ngather\nhop west\nhop north\ngather\nhop north\nhop north\nfill\nhop east\nhop east\nwater\nwater\nwait\ngather\nhop south\nhop east\nhop south\nwater\nwait\ngather",
+  spillway_solution,
  ]
  check(solutions.size() == Program.PUZZLES.size(), "Every garden has a smoke-test solution")
  for index in solutions.size():
@@ -359,6 +372,28 @@ func run(game) -> void:
   check(popup.garden.turn == 21 and popup.progress.garden_best.get("twin_terraces", 0) == 19 and "19 actions" in popup.score.text, "A slower clear retains the target and the lowest action count")
   await finish_by_steps(popup, "wait")
   check(popup.garden.harvested == 0 and popup.progress.garden_best.get("twin_terraces", 0) == 19, "A program that ends early does not replace a completed score")
+  popup.chooser.item_selected.emit(solutions.size() - 1)
+  var spillway: Dictionary = Program.PUZZLES[popup.puzzle]
+  check(spillway.id == "stone_spillway" and popup.board.get_child_count() == 16 and popup.garden.cell == Vector2i(0, 3) and "routine finish_lily" in popup.source.text, "Stone spillway opens at its lower spring with a reusable routine in the draft")
+  popup.check_button.pressed.emit()
+  check("1 of 6 lilies harvested" in popup.status.text, "The starter routine tends one lily")
+  popup.source.text = spillway_solution
+  popup.check_button.pressed.emit()
+  check("36 actions to harvest all 6 lilies · meets target" in popup.status.text and not popup.progress.solved.has(spillway.id), "Check counts the actions inside calls without completing Stone spillway")
+  popup.review_button.pressed.emit()
+  popup.review_slider.value = 8
+  check(popup.source.get_executing_lines() == PackedInt32Array([1]), "Review highlights the routine body at the called wait command")
+  popup.review_button.pressed.emit()
+  popup.source.set_caret_line(1)
+  press_key(KEY_F9)
+  press_key(KEY_ENTER, true)
+  await wait_for_garden_pause(popup)
+  check("Breakpoint · line 2" in popup.status.text and popup.garden.turn == 7, "A breakpoint inside a routine pauses before its command")
+  press_key(KEY_F10)
+  check(popup.garden.turn == 8 and not popup.running, "Step runs a single command inside the routine")
+  popup.stop_button.pressed.emit()
+  await finish_by_steps(popup, spillway_solution)
+  check(popup.garden.harvested == 6 and popup.progress.garden_best.get(spillway.id, 0) == 36, "Stepping through routine calls completes Stone spillway at the target")
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
