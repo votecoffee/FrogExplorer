@@ -11,8 +11,11 @@ LOWER = runpy.run_path(
 class GardenPythonTests(unittest.TestCase):
     def test_lowering_preserves_original_source_lines(self):
         result = LOWER("# Start\nfor _ in range(2):\n    hop(east)\n    wait()\n")
-        self.assertEqual(result["source"], "repeat 2\nhop east\nwait\nend")
+        self.assertEqual(result["source"], "for\nhop east\nwait\nend")
         self.assertEqual(result["lines"], [1, 2, 3, 3])
+        self.assertEqual(result["details"]["0"]["range"], {
+            "target": "", "args": [{"op": "literal", "value": 2}],
+        })
 
     def test_compound_conditions_preserve_python_grouping(self):
         result = LOWER("if (lily(north) or ripe()) and not spring():\n    gather()\n")
@@ -104,11 +107,33 @@ print()
         })
         self.assertEqual(result["details"]["2"]["output"][0]["op"], "-")
 
+    def test_range_preserves_named_index_and_orders_bound_expressions(self):
+        result = LOWER("Limit = column()\nfor Step in range(Limit, -1, -2):\n    print(Step)\n")
+        self.assertEqual(result["source"], "assign\nfor\ndiagnostic\nend")
+        self.assertEqual(result["details"]["1"]["range"], {
+            "target": "Step",
+            "args": [{"op": "variable", "name": "Limit"}, {"op": "literal", "value": -1},
+                     {"op": "literal", "value": -2}],
+        })
+        self.assertEqual(result["details"]["2"]["output"], [{"op": "variable", "name": "Step"}])
+
+    def test_range_bounds_can_use_routine_direction_arguments(self):
+        result = LOWER("def travel(Heading):\n    for _ in range(clear(Heading)):\n        hop(Heading)\ntravel(east)\n")
+        self.assertEqual(result["source"], "routine travel Heading\nfor\nhop Heading\nend\nend\ncall travel east")
+        self.assertEqual(result["details"]["1"]["range"]["args"], [
+            {"op": "sensor", "name": "clear", "direction": "Heading"},
+        ])
+
     def test_unsupported_syntax_is_rejected_at_its_source_line(self):
         for source, line in [
             ("fill()\nimport math\n", 1),
             ("garden.fill()\n", 0),
-            ("for x in range(2):\n    wait()\n", 0),
+            ("for x in range():\n    wait()\n", 0),
+            ("for x in range(1, 2, 3, 4):\n    wait()\n", 0),
+            ("for a, b in range(2):\n    wait()\n", 0),
+            ("for water_level in range(2):\n    wait()\n", 0),
+            ("def trip():\n    for step in range(2):\n        wait()\n", 1),
+            ("for step in range(2):\n    wait()\nelse:\n    wait()\n", 0),
             ("fill()\nif spring()\n    wait()\n", 1),
             ("fill()\nprint(plant())\n", 1),
             ("print(has_water(east))\n", 0),

@@ -105,6 +105,7 @@ const EMPTY_BED := "Empty bed"
 const CAPACITY = 3
 const MAX_STEPS = 256
 const MAX_WHILE_ITERATIONS := 16
+const MAX_FOR_ITERATIONS := 16
 const MAX_COMPUTATION_STEPS := MAX_STEPS * MAX_WHILE_ITERATIONS
 const MIN_VALUE := -2147483648
 const MAX_VALUE := 2147483647
@@ -120,7 +121,7 @@ var turn := 0
 var harvested := 0
 var runtime_error := ""
 var runtime_error_line := -1
-var while_entries: Dictionary = {}
+var loop_entries: Dictionary = {}
 var output: Array[Dictionary] = []
 var variables: Dictionary = {}
 var variable_revision := 0
@@ -156,14 +157,16 @@ static func compile(source: String, case_sensitive := false, details: Dictionary
     parameters.append(parameter)
    blocks.append({"steps":[], "routine":words[1], "line":index})
    continue
-  if command in ["repeat", "if", "while"]:
+  if command in ["repeat", "if", "while"] or (command == "for" and detail.has("range")):
    var block_limit := 6 if blocks.size() > 1 and blocks[1].has("routine") else 5
    if blocks.size() >= block_limit:
-    return _error(index, "Nest up to four repeat, if, and while blocks.")
+    return _error(index, "Nest up to four condition and loop blocks.")
    if command == "repeat":
     if words.size() != 2 or not words[1].is_valid_int() or int(words[1]) not in range(1, 17):
      return _error(index, "Use repeat 1–16.")
     blocks.append({"steps":[], "times":int(words[1]), "line":index})
+   elif command == "for":
+    blocks.append({"steps":[], "range":detail.range, "line":index, "loop":true})
    else:
     var test: Variant = detail.get("test")
     if test == null:
@@ -196,10 +199,10 @@ static func compile(source: String, case_sensitive := false, details: Dictionary
     parameters = PackedStringArray()
     continue
    var outer: Array = blocks.back().steps
-   if inner.has("test"):
+   if inner.has("test") or inner.has("range"):
     var has_else := inner.has("then_steps")
     var is_loop: bool = inner.loop
-    var kind := "while" if is_loop else "if"
+    var kind := "for" if inner.has("range") else ("while" if is_loop else "if")
     if inner.steps.is_empty():
      if has_else:
       return _error(inner.else_line, "Add at least one command after else.")
@@ -210,7 +213,13 @@ static func compile(source: String, case_sensitive := false, details: Dictionary
     if outer.size() + 1 + skip + else_steps.size() > MAX_STEPS:
      return _error(index, "This %s block exceeds the 256-instruction limit." % kind)
     # Relative jumps still work when a repeat or routine copies these instructions.
-    outer.append({"test":inner.test, "skip":skip, "line":inner.line, "loop":is_loop})
+    var header := {"skip":skip, "line":inner.line}
+    if inner.has("range"):
+     header.range = inner.range
+    else:
+     header.test = inner.test
+     header.loop = is_loop
+    outer.append(header)
     if is_loop:
      _append_loop_body(outer, then_steps, outer.size() + skip, true)
      outer.append({"back":skip, "line":inner.line})
@@ -257,7 +266,7 @@ static func compile(source: String, case_sensitive := false, details: Dictionary
    instruction.direction = words[1]
   elif command in ["break", "continue"]:
    if words.size() != 1 or not blocks.any(func(block): return block.has("times") or block.get("loop", false)):
-    return _error(index, "Put %s on its own line inside repeat or while." % command)
+    return _error(index, "Put %s on its own line inside a loop." % command)
    instruction = {"loop_control":command, "line":index}
   elif words.size() != 1 or command not in ["fill", "plant", "water", "wait", "gather"]:
    return _error(index, "Use hop, fill, plant, water, wait, gather, repeat, routine, call, if, while, break, or continue.")
@@ -269,6 +278,8 @@ static func compile(source: String, case_sensitive := false, details: Dictionary
   var kind := "routine" if unclosed.has("routine") else "repeat block"
   if unclosed.has("test"):
    kind = "while block" if unclosed.loop else "if block"
+  elif unclosed.has("range"):
+   kind = "for block"
   return _error(unclosed.line, "Close this %s with end." % kind)
  if blocks[0].steps.is_empty():
   return _error(0, "Add at least one action.")
@@ -316,18 +327,18 @@ static func compile_python(source: String) -> Dictionary:
   result.steps[index] = instruction
  return result
 
-static func _append_loop_body(outer: Array, body: Array, loop_end: int, is_while := false) -> void:
+static func _append_loop_body(outer: Array, body: Array, loop_end: int, has_loop_header := false) -> void:
  var start := outer.size()
  for instruction: Dictionary in body:
   if not instruction.has("loop_control"):
    outer.append(instruction)
    continue
-  # Continue reaches the next repeat copy or the while back edge.
+  # Continue reaches the next repeat copy or the loop's back edge.
   var leaving: bool = instruction.loop_control == "break"
   var destination := loop_end if leaving else start + body.size()
   var jump := {"skip":destination - outer.size() - 1, "line":instruction.line}
-  if leaving and is_while:
-   jump.leave_while = outer.size() - start + 1
+  if leaving and has_loop_header:
+   jump.leave_loop = outer.size() - start + 1
   outer.append(jump)
 
 static func _is_direction(word: String, parameters: PackedStringArray) -> bool:
@@ -352,6 +363,8 @@ static func _bind_directions(instructions: Array, bindings: Dictionary) -> Array
   elif instruction.has("output"):
    for value: Dictionary in instruction.output:
     _bind_expression(value, bindings)
+  elif instruction.has("range"):
+   _bind_expression(instruction.range, bindings)
   expanded.append(instruction)
  return expanded
 
@@ -443,7 +456,7 @@ func load_puzzle(index: int) -> void:
 func reset_program() -> void:
  runtime_error = ""
  runtime_error_line = -1
- while_entries.clear()
+ loop_entries.clear()
  output.clear()
  variables.clear()
  variable_revision = 0
@@ -504,9 +517,7 @@ func next_action_index(instructions: Array, first: int) -> int:
    if value == null:
     runtime_error_line = instruction.line
     break
-   if not variables.has(variable) or not is_same(variables[variable], value):
-    variables[variable] = value
-    variable_revision += 1
+   _set_variable(variable, value)
    index += 1
    continue
   if not instruction.has("skip"):
@@ -514,10 +525,15 @@ func next_action_index(instructions: Array, first: int) -> int:
     runtime_error = "The program reached its %d-action limit." % MAX_STEPS
     runtime_error_line = instruction.line
    break
-  if instruction.has("leave_while"):
-   while_entries.erase(index - int(instruction.leave_while))
+  if instruction.has("leave_loop"):
+   loop_entries.erase(index - int(instruction.leave_loop))
   var passes := false
-  if instruction.has("test"):
+  if instruction.has("range"):
+   passes = _next_counted_iteration(index, instruction.range)
+   if not runtime_error.is_empty():
+    runtime_error_line = instruction.line
+    break
+  elif instruction.has("test"):
    if instruction.test is Dictionary:
     var value: Variant = _expression_value(instruction.test)
     if value == null:
@@ -528,7 +544,7 @@ func next_action_index(instructions: Array, first: int) -> int:
     passes = _meets_any_clause(instruction.test)
   if instruction.get("loop", false):
    if passes:
-    var entry: Dictionary = while_entries.get(index, {"turn":-1, "revision":-1, "iterations":0})
+    var entry: Dictionary = loop_entries.get(index, {"turn":-1, "revision":-1, "iterations":0})
     if entry.turn == turn and entry.revision == variable_revision:
      runtime_error = "This while loop came back without doing an action."
     elif not practice and entry.iterations >= MAX_WHILE_ITERATIONS:
@@ -536,11 +552,51 @@ func next_action_index(instructions: Array, first: int) -> int:
     if not runtime_error.is_empty():
      runtime_error_line = instruction.line
      break
-    while_entries[index] = {"turn":turn, "revision":variable_revision, "iterations":int(entry.iterations) + 1}
+    loop_entries[index] = {"turn":turn, "revision":variable_revision, "iterations":int(entry.iterations) + 1}
    else:
-    while_entries.erase(index)
+    loop_entries.erase(index)
   index += 1 if passes else 1 + int(instruction.skip)
  return index if runtime_error.is_empty() else instructions.size()
+
+func _set_variable(variable: String, value: Variant) -> void:
+ if not variables.has(variable) or not is_same(variables[variable], value):
+  variables[variable] = value
+  variable_revision += 1
+
+func _next_counted_iteration(index: int, spec: Dictionary) -> bool:
+ var entry: Dictionary = loop_entries.get(index, {})
+ if entry.is_empty():
+  var args: Array[int] = []
+  for operand: Dictionary in spec.args:
+   var value: Variant = _expression_value(operand)
+   if value == null:
+    return false
+   args.append(int(value))
+  var start := 0 if args.size() == 1 else args[0]
+  var stop := args[0] if args.size() == 1 else args[1]
+  var stride := args[2] if args.size() == 3 else 1
+  if stride == 0:
+   runtime_error = "Use a nonzero step in range()."
+   return false
+  # A value at position 16 still inside the range would require a 17th iteration.
+  var next_after_limit := start + stride * MAX_FOR_ITERATIONS
+  if _in_range(next_after_limit, stop, stride):
+   runtime_error = "Use a range with at most %d iterations." % MAX_FOR_ITERATIONS
+   return false
+  entry = {"next":start, "stop":stop, "stride":stride}
+
+ var item: int = entry.next
+ if not _in_range(item, entry.stop, entry.stride):
+  loop_entries.erase(index)
+  return false
+ if not spec.target.is_empty():
+  _set_variable(spec.target, item)
+ entry.next = item + int(entry.stride)
+ loop_entries[index] = entry
+ return true
+
+static func _in_range(value: int, stop: int, stride: int) -> bool:
+ return value < stop if stride > 0 else value > stop
 
 func _append_output(instruction: Dictionary) -> void:
  var fields := PackedStringArray()

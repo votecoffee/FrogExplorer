@@ -95,6 +95,51 @@ print(start, start_row, visits, column())
  check("computed too many steps" in popup.status.text and popup.garden.turn == 3, "A changing endless counter stops within the computation budget")
  popup._reset()
 
+func check_python_ranges(popup) -> void:
+ var survey := """def move(heading):
+    for _ in range(clear(heading)):
+        hop(heading)
+for stride in range(1, 4, 2):
+    move(east)
+    print(stride, column())
+for stride in range(3, 2):
+    wait()
+print(stride)
+"""
+ var expected := "Line 6 · 1 1\nLine 6 · 3 2\nLine 9 · 3"
+ popup.source.text = survey
+ popup.check_button.pressed.emit()
+ check(popup.checked_route.actions.size() == 2 and popup.garden.turn == 0 and popup.output_text.text == expected, "Check previews a stepped range with a direction-bound routine and skips an empty range")
+ await finish_by_steps(popup, survey)
+ check(popup.garden.cell == Vector2i(2, 1) and popup.garden.turn == 2 and popup.garden.variables.get("stride") == 3 and popup.output_text.text == expected, "A named loop moves Pondbot and retains its final index")
+
+ var nested := """limit = 3
+for lap in range(limit):
+    limit = 1
+    if lap == 1:
+        continue
+    for offset in range(3, -1, -1):
+        if offset < 2:
+            break
+        print(lap, offset)
+        wait()
+print(lap, offset, limit)
+"""
+ var nested_log := "Line 9 · 0 3\nLine 9 · 0 2\nLine 9 · 2 3\nLine 9 · 2 2\nLine 11 · 2 1 1"
+ popup.source.text = nested
+ popup.check_button.pressed.emit()
+ check(popup.checked_route.actions.size() == 4 and popup.garden.turn == 2 and popup.output_text.text == nested_log, "A counted loop captures its bound once and nested break and continue advance the right loop")
+ await finish_by_steps(popup, nested)
+ check(popup.garden.turn == 6 and popup.garden.loop_entries.is_empty() and popup.output_text.text == nested_log, "Live descending ranges restart after a break and release their finished cursors")
+
+ popup.source.text = "print(1)\nfor i in range(0, 4, 0):\n    wait()\n"
+ popup.check_button.pressed.emit()
+ check(popup.checked_route.get("line", -1) == 1 and "nonzero step" in popup.status.text and popup.garden.turn == 6, "Check reports a zero step on the range line before any board action")
+ popup.source.text = "for i in range(1, 35, 2):\n    wait()\n"
+ popup.check_button.pressed.emit()
+ check(popup.checked_route.get("line", -1) == 0 and "at most 16 iterations" in popup.status.text and popup.garden.turn == 6, "Counted loops preserve the 16-iteration limit")
+ popup._reset()
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -913,6 +958,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   var bad_measurement := Program.compile_python("if row(north) == 1:\n    wait()")
   check(classic_measurement.has("steps") and popup.garden.next_action_index(classic_measurement.get("steps", []), 0) == 1 and bad_measurement.get("line", -1) == 0, "Classic comparisons share the simulator and invalid Python sensor calls report their line")
   check_python_variables(popup)
+  await check_python_ranges(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

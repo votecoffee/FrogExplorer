@@ -31,6 +31,13 @@ def name(token, node):
     return token
 
 
+def variable_name(node, routine_names):
+    token = name(node.id, node)
+    if token in VARIABLE_RESERVED_NAMES or token in routine_names:
+        raise GardenError(node, "Choose a variable name distinct from garden commands and functions.")
+    return token
+
+
 def arguments(node):
     if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name) or node.keywords:
         raise GardenError(node, "Call a garden function by name with positional arguments.")
@@ -149,9 +156,7 @@ def lower(source):
                 targets = node.targets if isinstance(node, ast.Assign) else [node.target]
                 if len(targets) != 1 or not isinstance(targets[0], ast.Name):
                     raise GardenError(node, "Assign one variable at a time, such as visits = 0.")
-                token = name(targets[0].id, targets[0])
-                if token in VARIABLE_RESERVED_NAMES or token in routine_names:
-                    raise GardenError(node, "Choose a variable name distinct from garden commands and functions.")
+                token = variable_name(targets[0], routine_names)
                 value = node.value
                 if isinstance(node, ast.AugAssign):
                     value = ast.copy_location(ast.BinOp(targets[0], node.op, value), node)
@@ -184,11 +189,19 @@ def lower(source):
                 emit("end", node.end_lineno)
             elif isinstance(node, ast.For):
                 iterator, args = arguments(node.iter)
-                if (not isinstance(node.target, ast.Name) or node.target.id != "_" or node.orelse or
-                    iterator != "range" or len(args) != 1 or not isinstance(args[0], ast.Constant) or
-                    type(args[0].value) is not int or not 1 <= args[0].value <= 16):
-                    raise GardenError(node, "Use for _ in range(N) with a count from 1 to 16.")
-                emit(f"repeat {args[0].value}", node.lineno)
+                if iterator != "range" or not isinstance(node.target, ast.Name) or not 1 <= len(args) <= 3:
+                    raise GardenError(node, "Use for index in range(stop) or range(start, stop, step).")
+                if node.orelse:
+                    raise GardenError(node, "Use else with if in the garden.")
+                target = ""
+                if node.target.id != "_":
+                    if routine_parameters is not None:
+                        raise GardenError(node, "Use a named loop index outside def, or use _ inside a function.")
+                    target = variable_name(node.target, routine_names)
+                details[str(len(lines))] = {
+                    "range": {"target": target, "args": [expression(arg, routines, parameters) for arg in args]},
+                }
+                emit("for", node.lineno)
                 block(node.body, routine_parameters)
                 emit("end", node.end_lineno)
             elif isinstance(node, (ast.Break, ast.Continue)):

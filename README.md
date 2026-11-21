@@ -214,7 +214,7 @@ gather()
 
 The first three lessons are available when you arrive. A completed puzzle adds its lilies to the garden total once. Later sets open at **2**, **8**, **18**, and **26** earned lilies. The lesson list shows the requirement beside each locked puzzle. After a clear, press **Ctrl+Page Down** or choose **Next lesson** to open the first available unfinished puzzle. Earlier drafts and completed boards stay accessible.
 
-Lily Code Garden uses Python 3.10 or newer to parse the garden language. The supported subset includes Pondbot calls, `def`, `if` / `elif` / `else`, `while`, `for _ in range(N)`, `break`, and `continue`. The game interprets these through Pondbot's board simulator. The Python executable is found on `PATH`. Set `FROG_GARDEN_PYTHON` to its full path if needed.
+Lily Code Garden uses Python 3.10 or newer to parse the garden language. The supported subset includes Pondbot calls, `def`, `if` / `elif` / `else`, `while`, `for` with `range()`, `break`, and `continue`. The game interprets these through Pondbot's board simulator. The Python executable is found on `PATH`. Set `FROG_GARDEN_PYTHON` to its full path if needed.
 
 Use `hop(east)` to move one tile. The game provides `north`, `east`, `south`, and `west` as direction values. Use `has_water()` to check the tank. The tile tests `spring()`, `lily()`, `thirsty()`, `growing()`, and `ripe()` inspect the current tile by default. Pass a direction to inspect the neighboring tile, as in `lily(north)`. Use `clear(east)` before hopping into an unfamiliar tile. Combine tests with `not`, `and`, `or`, and parentheses.
 
@@ -237,7 +237,9 @@ while hops < 2 and clear(east):
 print("Started at", start, "and hopped", hops, "times")
 ```
 
-Define reusable functions above their first call. Functions can accept direction parameters, as in `def seek(heading):` with `hop(heading)` inside. `seek(north)` then uses north for that call. For a counted loop, use a value from 1 to 16 in `range(N)`. `break` exits the innermost loop and `continue` advances it. A `while` loop stops with a line error if it repeats without an action or a change to a variable. Scored puzzles allow up to 16 iterations of each `while` loop and 256 board actions. Programs that keep computing without an action also have an instruction limit.
+Use `for bed in range(2):` to count from zero or `for bed in range(2, 0, -1):` to count down. A range takes up to 16 iterations, excludes its stop value, and reads its bounds once on entry. Bounds can come from variables or garden readings. Use named indices outside function bodies and `for _ in range(...):` when you just need repetition.
+
+Define reusable functions above their first call. Functions can accept direction parameters, as in `def seek(heading):` with `hop(heading)` inside. `seek(north)` then uses north for that call. `break` exits the innermost loop and `continue` advances it. A `while` loop stops with a line error if it repeats without an action or a change to a variable. Scored puzzles allow up to 16 iterations of each `while` loop and 256 board actions. Programs that keep computing without an action also have an instruction limit.
 
 Each board has an action target and saves your fewest actions for a completed run. Open **Best program** to read and replay the source that earned the score. Use **Back to draft** or **Esc** to return to the editor. Select **Classic Pondbot** in the language menu to open an earlier draft written with commands such as `hop east` and `repeat 2`. The two formats have separate drafts and share each puzzle's score. Drafts, completed puzzles, and best programs save locally across restarts.
 
