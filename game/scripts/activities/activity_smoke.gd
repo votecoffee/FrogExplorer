@@ -192,6 +192,10 @@ func run(game) -> void:
  var full_routine := "routine full\nrepeat 16\nrepeat 16\nwait\nend\nend\nend\ncall full"
  check(Program.compile(full_routine).get("steps", []).size() == Program.MAX_STEPS and Program.compile(full_routine + "\ncall full").get("line", -1) == 8, "Routine expansion allows exactly 256 actions and rejects a call that exceeds the limit")
  check(Program.compile("fill\nif muddy\nwait\nend").get("line", -1) == 1, "An unknown condition marks the if line")
+ check(Program.compile("else\nwait\nend").get("line", -1) == 0, "An else requires an enclosing if")
+ check(Program.compile("if ripe\nwait\nelse\nfill\nelse\nwait\nend").get("line", -1) == 4, "A second else points to the duplicate line")
+ check(Program.compile("if ripe\ngather\nelse\nend").get("line", -1) == 2, "An empty fallback points to its else line")
+ check(Program.compile("if clear upward\nwait\nend").get("line", -1) == 0, "A clear condition requires a valid direction")
  check(Program.compile("if not\nwait\nend").get("line", -1) == 0, "A negated condition requires a test")
  check(Program.compile("if ripe\ngather").get("line", -1) == 0, "An unclosed conditional marks its opening line")
  check(Program.compile("repeat 2\nif spring\nrepeat 2\nif thirsty\nif ripe\nwait\nend\nend\nend\nend\nend").get("line", -1) == 4, "Repeats and conditions share a bounded nesting depth")
@@ -200,6 +204,7 @@ func run(game) -> void:
  var terrace_patrol := "repeat 2\nfill\nrepeat 2\nhop east\nwater\nwait\ngather\nend\nrepeat 2\nhop west\nend\nhop north\nend"
  var spillway_solution := "routine finish_lily\n  wait\n  gather\nend\nfill\nhop east\nhop east\nwater\nwater\nhop east\nwater\ncall finish_lily\nhop west\ngather\nhop west\nhop west\nfill\nhop east\nwater\ncall finish_lily\nhop west\nhop north\nhop north\nhop east\nwater\nhop west\nfill\nhop east\ngather\nhop east\nwater\nwater\ncall finish_lily\nhop east\nwater\ncall finish_lily"
  var patchwork_solution := "routine water_plot\n  repeat 2\n    if thirsty\n      if has_water\n        water\n      end\n    end\n  end\nend\nroutine finish_plot\n  if growing\n    wait\n  end\n  if ripe\n    gather\n  end\nend\nfill\nhop east\nhop east\ncall water_plot\nhop east\ncall water_plot\ncall finish_plot\nhop west\ncall finish_plot\nhop west\nhop west\nhop north\nhop north\nfill\nhop east\ncall water_plot\ncall finish_plot\nhop east\nhop east\ncall water_plot\ncall finish_plot"
+ var banks_solution := "routine to_lily\n  if clear east\n    repeat 2\n      hop east\n    end\n  else\n    hop south\n    repeat 2\n      hop east\n    end\n    hop north\n  end\nend\nroutine to_spring\n  if clear west\n    repeat 2\n      hop west\n    end\n  else\n    hop south\n    repeat 2\n      hop west\n    end\n    hop north\n  end\nend\nroutine tend\n  repeat 2\n    if thirsty\n      water\n    end\n  end\n  wait\n  gather\nend\nfill\ncall to_lily\ncall tend\ncall to_spring\nrepeat 2\n  hop north\nend\ncall to_lily\ncall tend\n"
  var solutions := [
   "fill\nrepeat 2\nhop east\nwater\nwait\ngather\nend",
   "fill\nhop east\nhop east\nwater\nwait\ngather\nhop south\nhop east\nwater\nwait\ngather\nhop west\nhop south\nwater\nwait\ngather",
@@ -208,6 +213,7 @@ func run(game) -> void:
   "fill\nhop south\nhop south\nwater\nhop south\nhop east\nwater\nwater\nwait\ngather\nhop west\nhop north\ngather\nhop north\nhop north\nfill\nhop east\nhop east\nwater\nwater\nwait\ngather\nhop south\nhop east\nhop south\nwater\nwait\ngather",
   spillway_solution,
   patchwork_solution,
+  banks_solution,
  ]
  check(solutions.size() == Program.PUZZLES.size(), "Every garden has a smoke-test solution")
  for index in solutions.size():
@@ -380,7 +386,7 @@ func run(game) -> void:
   check(popup.garden.turn == 21 and popup.progress.garden_best.get("twin_terraces", 0) == 19 and "19 actions" in popup.score.text, "A slower clear retains the target and the lowest action count")
   await finish_by_steps(popup, "wait")
   check(popup.garden.harvested == 0 and popup.progress.garden_best.get("twin_terraces", 0) == 19, "A program that ends early does not replace a completed score")
-  popup.chooser.item_selected.emit(solutions.size() - 2)
+  popup.chooser.item_selected.emit(solutions.size() - 3)
   var spillway: Dictionary = Program.PUZZLES[popup.puzzle]
   check(spillway.id == "stone_spillway" and popup.board.get_child_count() == 16 and popup.garden.cell == Vector2i(0, 3) and "routine finish_lily" in popup.source.text, "Stone spillway opens at its lower spring with a reusable routine in the draft")
   popup.check_button.pressed.emit()
@@ -402,7 +408,7 @@ func run(game) -> void:
   popup.stop_button.pressed.emit()
   await finish_by_steps(popup, spillway_solution)
   check(popup.garden.harvested == 6 and popup.progress.garden_best.get(spillway.id, 0) == 36, "Stepping through routine calls completes Stone spillway at the target")
-  popup.chooser.item_selected.emit(solutions.size() - 1)
+  popup.chooser.item_selected.emit(solutions.size() - 2)
   var patchwork: Dictionary = Program.PUZZLES[popup.puzzle]
   check(patchwork.id == "patchwork_beds" and popup.board.get_child_count() == 12 and popup.garden.cell == Vector2i(0, 2) and "if thirsty" in popup.source.text, "Patchwork beds opens with empty plots and a conditional starter program")
   popup.check_button.pressed.emit()
@@ -435,6 +441,36 @@ func run(game) -> void:
   popup.stop_button.pressed.emit()
   await finish_by_steps(popup, patchwork_solution)
   check(popup.garden.harvested == 4 and popup.progress.garden_best.get(patchwork.id, 0) == 26, "Stepping through conditions saves the verified Patchwork beds score")
+  popup.chooser.item_selected.emit(solutions.size() - 1)
+  var banks: Dictionary = Program.PUZZLES[popup.puzzle]
+  check(banks.id == "forked_banks" and popup.board.get_child_count() == 16 and popup.garden.cell == Vector2i(0, 2) and "if clear east" in popup.source.text, "Forked banks starts at the blocked bank with a route routine")
+  popup.check_button.pressed.emit()
+  check("0 of 2 lilies harvested in 6 actions" in popup.status.text, "The starter takes the detour to the double lily")
+  popup.source.text = "if not has_water\nfill\nelse\nhop east\nend"
+  popup.check_button.pressed.emit()
+  check("0 of 2 lilies harvested in 1 action" in popup.status.text, "An if branch runs once even when its action changes the condition")
+  popup.source.text = "if not clear west\nwait\nelse\nhop west\nend"
+  popup.check_button.pressed.emit()
+  check("0 of 2 lilies harvested in 1 action" in popup.status.text, "The board edge counts as blocked")
+  popup.source.text = banks_solution
+  popup.check_button.pressed.emit()
+  check("20 actions to harvest all 2 lilies · meets target" in popup.status.text and not popup.progress.solved.has(banks.id), "Check predicts both branches of the route routine and its exact action count")
+  popup.review_button.pressed.emit()
+  popup.review_slider.value = 2
+  var detour_shown: bool = popup.source.get_executing_lines() == PackedInt32Array([6]) and "●" in popup.board.get_child(12).get_child(0).text
+  popup.review_slider.value = 16
+  check(detour_shown and popup.source.get_executing_lines() == PackedInt32Array([3]) and "●" in popup.board.get_child(1).get_child(0).text, "Review follows the detour on the lower bank and the direct path on the upper bank")
+  popup.review_button.pressed.emit()
+  popup.source.set_caret_line(3)
+  press_key(KEY_F9)
+  press_key(KEY_ENTER, true)
+  await wait_for_garden_pause(popup)
+  check("Breakpoint · line 4 · 15 actions" in popup.status.text and popup.garden.cell == Vector2i.ZERO, "A breakpoint in the direct path is skipped at the blocked bank and reached at the open bank")
+  press_key(KEY_F10)
+  check(popup.garden.turn == 16 and popup.garden.cell == Vector2i(1, 0), "Step executes the marked hop once the path is clear")
+  popup.stop_button.pressed.emit()
+  await finish_by_steps(popup, banks_solution)
+  check(popup.garden.harvested == 2 and popup.progress.garden_best.get(banks.id, 0) == 20, "The reusable route completes Forked banks at its action target")
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

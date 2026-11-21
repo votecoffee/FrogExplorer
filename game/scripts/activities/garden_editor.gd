@@ -79,7 +79,7 @@ func _ready() -> void:
  source.text_changed.connect(_queue_save)
  source.add_theme_font_size_override("font_size", 18)
  var ink := CodeHighlighter.new()
- for word in ["hop", "fill", "water", "wait", "gather", "repeat", "routine", "call", "if", "not", "end"]:
+ for word in ["hop", "fill", "water", "wait", "gather", "repeat", "routine", "call", "if", "else", "not", "end"]:
   ink.add_keyword_color(word, Color("#8bd5bc"))
  ink.add_color_region("#", "", Color("#a5ad99"), true)
  source.syntax_highlighter = ink
@@ -118,7 +118,7 @@ func _ready() -> void:
  hint = hud.label("", 15)
  hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  right.add_child(hint)
- var guide: Label = hud.label("hop north / east / south / west\nfill     water     wait     gather\nrepeat N … end     # comment\nroutine NAME … end / call NAME\nif CONDITION … end\nF9 toggles a breakpoint", 15, Color("#b9dccc"))
+ var guide: Label = hud.label("hop north / east / south / west\nfill     water     wait     gather\nrepeat N … end     # comment\nroutine NAME … end / call NAME\nif CONDITION … else … end\nclear north / east / south / west\nF9 toggles a breakpoint", 15, Color("#b9dccc"))
  right.add_child(guide)
  var legend: Label = hud.label("● Pondbot     ~ Spring     # Stone\nA watered lily ripens on the next turn.", 14)
  right.add_child(legend)
@@ -238,7 +238,8 @@ func _check_code() -> void:
    break
   index = preview.next_action_index(commands, index + 1)
  if blocked_line < 0 and not preview.is_complete():
-  status.text = "Check · %d of %d lilies harvested in %d actions" % [preview.harvested, preview.plants.size(), preview.turn]
+  var unit := "action" if preview.turn == 1 else "actions"
+  status.text = "Check · %d of %d lilies harvested in %d %s" % [preview.harvested, preview.plants.size(), preview.turn, unit]
  if not checked_actions.is_empty() or blocked_line >= 0:
   review_button.show()
 
