@@ -194,7 +194,7 @@ Open Places with **N / R3** to select these single-player destinations. Random t
 | --- | --- |
 | Kingfisher Circuit | Board the convertible and drive two timed laps. The first start-line crossing starts the clock. Drive through each gate in order. |
 | Cloudring Course | Launch a helium balloon and fly through eight rings in order. The next ring glows gold. Use the right stick or I/K and J/L for altitude and strafe. |
-| Lily Code Garden | Open a popup editor and program Pondbot to water and gather lilies across ten grid puzzles. |
+| Lily Code Garden | Open a popup editor and program Pondbot to water and gather lilies across eleven grid puzzles. |
 
 Press **F5 / A** again to restart a race. The course shows your current time and saved personal best. After your first timed finish, the HUD compares each gate or ring to your fastest run with recorded splits. Existing personal best times carry over. Use **H** or Places to return to the pond.
 
@@ -212,7 +212,7 @@ end
 
 Use **routine NAME** and **end** to define a reusable sequence, then use **call NAME** to run it. Define each routine before calling it. Routines can contain repeats, conditions, and calls to earlier routines.
 
-Use **if CONDITION** and **end** to run a block when the condition is true. Add **else** for a different action when the condition is false. **if not CONDITION** reverses the test. Use **spring** for a spring tile, **has_water** for a tank with water, or **thirsty**, **growing**, and **ripe** to test the current lily. Use **clear north**, **clear east**, **clear south**, or **clear west** to check whether Pondbot can hop to the next tile in that direction. You can put a condition inside a routine or loop. Only commands that execute count toward your score.
+Use **if CONDITION** and **end** to run a block when the condition is true. Add **else** for a different action when the condition is false. Use **has_water** to check the tank or **clear east** to check whether a neighboring tile can be reached with a hop. Tile tests **spring**, **lily**, **thirsty**, **growing**, and **ripe** inspect the current tile by default. Add **north**, **east**, **south**, or **west** to inspect the adjacent tile in that direction. In Side channels, **if lily north** detects an unharvested lily north of the path before Pondbot hops there. Only commands that execute count toward your score.
 
 Use **while CONDITION** and **end** to repeat a block while its condition is true. In **if** and **while**, join tests with **and** when both must pass or **or** when either can pass. For example, **while clear east and has_water** can guide a sweep until the next tile is blocked or the tank runs dry. **not** reverses the next test. The editor evaluates **not** first, then **and**, then **or**. Pondbot stops with a line error if a while loop repeats without doing an action or reaches its 16-iteration limit. A program can execute up to 256 actions.
 

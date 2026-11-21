@@ -202,6 +202,9 @@ func run(game) -> void:
  check(Program.compile("if not\nwait\nend").get("line", -1) == 0, "A negated condition requires a test")
  check(Program.compile("fill\nif spring and\nwait\nend").get("line", -1) == 1, "A dangling conjunction points to the condition line")
  check(Program.compile("while clear or has_water\nwait\nend").get("line", -1) == 0 and Program.compile("if spring or and ripe\nwait\nend").get("line", -1) == 0, "Compound tests reject missing directions and operands")
+ var tank_error := Program.compile("fill\nif has_water north\nwait\nend")
+ check(tank_error.get("line", -1) == 1 and "tank" in tank_error.get("error", ""), "A tank condition rejects a direction and explains why")
+ check(Program.compile("if lily upward\nwait\nend").get("line", -1) == 0, "A lily condition rejects an unknown direction")
  check(Program.compile("if ripe\ngather").get("line", -1) == 0, "An unclosed conditional marks its opening line")
  check(Program.compile("repeat 2\nif spring\nrepeat 2\nif thirsty\nif ripe\nwait\nend\nend\nend\nend\nend").get("line", -1) == 4, "Repeats and conditions share a bounded nesting depth")
 
@@ -212,6 +215,7 @@ func run(game) -> void:
  var banks_solution := "routine to_lily\n  if clear east\n    repeat 2\n      hop east\n    end\n  else\n    hop south\n    repeat 2\n      hop east\n    end\n    hop north\n  end\nend\nroutine to_spring\n  if clear west\n    repeat 2\n      hop west\n    end\n  else\n    hop south\n    repeat 2\n      hop west\n    end\n    hop north\n  end\nend\nroutine tend\n  repeat 2\n    if thirsty\n      water\n    end\n  end\n  wait\n  gather\nend\nfill\ncall to_lily\ncall tend\ncall to_spring\nrepeat 2\n  hop north\nend\ncall to_lily\ncall tend\n"
  var lantern_solution := "routine tend_plot\n  repeat 2\n    if thirsty\n      water\n    end\n  end\n  if growing\n    wait\n  end\n  if ripe\n    gather\n  end\nend\nroutine sweep_east\n  while clear east\n    hop east\n    call tend_plot\n  end\nend\nfill\ncall sweep_east\nwhile clear west\n  hop west\nend\nrepeat 2\n  hop north\nend\nfill\ncall sweep_east\n"
  var relay_solution: String = Program.PUZZLES[9].draft + "while not spring and clear west\n  hop west\nend\nrepeat 2\n  hop north\nend\nfill\ncall sweep_east\nwhile not spring and clear west\n  hop west\nend\nfill\ncall sweep_east\n"
+ var channels_solution: String = Program.PUZZLES[10].draft + "while not spring\n  hop west\nend\nfill\ncall sweep_east\n"
  var solutions := [
   "fill\nrepeat 2\nhop east\nwater\nwait\ngather\nend",
   "fill\nhop east\nhop east\nwater\nwait\ngather\nhop south\nhop east\nwater\nwait\ngather\nhop west\nhop south\nwater\nwait\ngather",
@@ -223,6 +227,7 @@ func run(game) -> void:
   banks_solution,
   lantern_solution,
   relay_solution,
+  channels_solution,
  ]
  check(solutions.size() == Program.PUZZLES.size(), "Every garden has a smoke-test solution")
  for index in solutions.size():
@@ -595,6 +600,23 @@ func run(game) -> void:
   popup.best_button.pressed.emit()
   popup.review_slider.value = popup.review_slider.max_value
   check("Best run · 35 / 35 actions" == popup.review_position.text and "Lilies 5 / 5" in popup.info.text, "Best program replays a solution with compound tests")
+
+  popup.chooser.item_selected.emit(10)
+  var channels: Dictionary = Program.PUZZLES[popup.puzzle]
+  check(channels.id == "side_channels" and popup.garden.cell == Vector2i(0, 1) and popup.garden.plants.size() == 4 and "lily north" in popup.source.text, "Side channels opens at the west spring with four off-path lilies")
+  popup.check_button.pressed.emit()
+  check("3 of 4 lilies harvested in 19 actions" in popup.status.text, "The Side channels starter checks both sides and tends three lilies on one tank")
+  var look_ahead := "fill\nhop east\nif spring west and not spring and thirsty south and not lily north\n  hop south\nend\nwater\nhop north\nif ripe south and lily south and not thirsty south\n  hop south\n  gather\nend\nif lily\n  hop west\nend"
+  await finish_by_steps(popup, look_ahead)
+  check(popup.garden.turn == 7 and popup.garden.harvested == 1 and popup.garden.cell == Vector2i(1, 2), "Direction checks find the adjacent spring and lily, follow ripeness, and skip gathered plants")
+  popup.source.text = channels_solution
+  popup.check_button.pressed.emit()
+  check("31 actions to harvest all 4 lilies · meets target" in popup.status.text and not popup.progress.solved.has(channels.id), "The second sweep passes the gathered plots and finds the last lily")
+  await finish_by_steps(popup, channels_solution)
+  check(popup.garden.harvested == 4 and popup.progress.garden_best.get(channels.id, 0) == 31, "Live stepping records the Side channels target")
+  popup.best_button.pressed.emit()
+  popup.review_slider.value = popup.review_slider.max_value
+  check("Best run · 31 / 31 actions" == popup.review_position.text and "Lilies 4 / 4" in popup.info.text, "Best program replays the completed route with neighboring-tile checks")
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

@@ -12,9 +12,10 @@ const PUZZLES = [
  {"id":"forked_banks", "name":"Forked banks", "rows":["~.L#",".###","~#H#","...#"], "target":20, "hint":"Start at the lower spring. The stone blocks the direct east route here. Reuse the same route routine from the upper spring, where east is open.", "draft":"# Reach both beds by checking whether east is open\nroutine to_lily\n  if clear east\n    repeat 2\n      hop east\n    end\n  else\n    hop south\n    repeat 2\n      hop east\n    end\n    hop north\n  end\nend\n\nfill\ncall to_lily\nwater\n"},
  {"id":"lantern_rows", "name":"Lantern rows", "rows":["~.L.L",".####","~.H##"], "target":22, "hint":"Start at the short bed. Sweep east until the path closes. Walk west to the spring column, hop north twice, then refill and sweep the long bed.", "draft":"# Sweep the short bed, then reuse sweep_east on the long bed\nroutine tend_plot\n  repeat 2\n    if thirsty\n      water\n    end\n  end\n  if growing\n    wait\n  end\n  if ripe\n    gather\n  end\nend\nroutine sweep_east\n  while clear east\n    hop east\n    call tend_plot\n  end\nend\n\nfill\ncall sweep_east\n"},
  {"id":"spring_relay", "name":"Spring relay", "rows":["~LHL.",".####","~.HL."], "target":35, "hint":"Sweep the lower bed. Go back west to the spring column and hop north twice. The upper bed takes two tankfuls. Already gathered plots can be crossed again.", "draft":"# Sweep the lower bed, then plan two trips along the upper bed\nroutine tend_plot\n  while thirsty and has_water\n    water\n  end\n  if growing or ripe\n    if growing\n      wait\n    end\n    gather\n  end\nend\nroutine sweep_east\n  while clear east and has_water\n    hop east\n    call tend_plot\n  end\nend\n\nfill\ncall sweep_east\n"},
+ {"id":"side_channels", "name":"Side channels", "rows":["##L#L","~....","#L#L#"], "target":31, "hint":"Follow the center path and look for lilies to the north or south. Return west to refill after the third lily. A second sweep can skip the lilies you already gathered.", "draft":"# Look for lilies off the center path before hopping\nroutine tend_plot\n  water\n  wait\n  gather\nend\nroutine sweep_east\n  while clear east and has_water\n    hop east\n    if lily north\n      hop north\n      call tend_plot\n      hop south\n    end\n    if lily south and has_water\n      hop south\n      call tend_plot\n      hop north\n    end\n  end\nend\n\nfill\ncall sweep_east\n"},
 ]
 const DIRECTIONS = {"north":Vector2i(0,-1), "east":Vector2i(1,0), "south":Vector2i(0,1), "west":Vector2i(-1,0)}
-const CONDITIONS := ["spring", "has_water", "thirsty", "growing", "ripe"]
+const CONDITIONS := ["spring", "has_water", "lily", "thirsty", "growing", "ripe"]
 const CAPACITY = 3
 const MAX_STEPS = 256
 const MAX_WHILE_ITERATIONS := 16
@@ -161,7 +162,12 @@ static func _parse_condition(words: PackedStringArray) -> Dictionary:
    direction = words[index]
    index += 1
   elif condition not in CONDITIONS:
-   return {"error":"Expected a condition. Try spring, has_water, thirsty, growing, ripe, or clear east."}
+   return {"error":"Expected a condition. Try spring, has_water, lily north, thirsty, growing, ripe, or clear east."}
+  elif index < words.size() and DIRECTIONS.has(words[index]):
+   if condition == "has_water":
+    return {"error":"Use has_water without a direction. It checks Pondbot's tank."}
+   direction = words[index]
+   index += 1
   clause.append({"condition":condition, "direction":direction, "negated":negated})
   if index == words.size():
    clauses.append(clause)
@@ -256,20 +262,25 @@ func _meets_any_clause(clauses: Array) -> bool:
  return false
 
 func _meets_condition(condition: String, direction: String) -> bool:
+ var location := cell
+ if not direction.is_empty():
+  location += DIRECTIONS[direction]
  match condition:
   "clear":
-   return tile(cell + DIRECTIONS[direction]) != "#"
+   return tile(location) != "#"
   "spring":
-   return tile(cell) == "~"
+   return tile(location) == "~"
   "has_water":
    return tank > 0
+  "lily":
+   return plants.has(location) and not plants[location].harvested
   "thirsty":
-   var plant: Dictionary = plants.get(cell, {})
+   var plant: Dictionary = plants.get(location, {})
    return int(plant.get("need", 0)) > 0
   "growing":
-   return plant_status(cell) == "Growing"
+   return plant_status(location) == "Growing"
   "ripe":
-   return plant_status(cell) == "Ripe"
+   return plant_status(location) == "Ripe"
   _:
    return false
 
