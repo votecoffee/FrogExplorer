@@ -8,6 +8,8 @@ import sys
 
 ACTIONS = {"fill", "hop", "plant", "water", "wait", "gather"}
 SENSORS = {"clear", "spring", "has_water", "empty_bed", "lily", "thirsty", "growing", "ripe"}
+NUMERIC_SENSORS = {"water_level", "row", "column"}
+COMPARISONS = {ast.Lt: "<", ast.LtE: "<=", ast.Eq: "==", ast.NotEq: "!=", ast.GtE: ">=", ast.Gt: ">"}
 DIRECTIONS = {"north", "east", "south", "west"}
 # Older Python drafts could define these two names as routines.
 RESERVED_NAMES = (ACTIONS | SENSORS | DIRECTIONS | {"range"}) - {"plant", "empty_bed"}
@@ -42,11 +44,30 @@ def direction(node):
 
 def sensor_call(node, routines):
     sensor, args = arguments(node)
-    if sensor not in SENSORS or sensor in routines:
+    if sensor not in SENSORS | NUMERIC_SENSORS or sensor in routines:
         raise GardenError(node, "Use a garden test such as empty_bed(north) or has_water().")
+    if sensor in NUMERIC_SENSORS and args:
+        raise GardenError(node, f"Use {sensor}() without arguments.")
     if len(args) > 1 or (sensor == "clear" and not args) or (sensor == "has_water" and args):
         raise GardenError(node, "Check the direction arguments for this garden test.")
     return sensor, direction(args[0]) if args else ""
+
+
+def numeric_operand(node, routines):
+    if isinstance(node, ast.Call):
+        sensor, _ = sensor_call(node, routines)
+        if sensor in NUMERIC_SENSORS:
+            return sensor
+    sign = 1
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
+        sign = -1 if isinstance(node.op, ast.USub) else 1
+        node = node.operand
+    if isinstance(node, ast.Constant) and type(node.value) is int:
+        value = sign * node.value
+        if -(2 ** 31) <= value < 2 ** 31:
+            return str(value)
+        raise GardenError(node, "Use a 32-bit integer in a comparison.")
+    raise GardenError(node, "Compare whole numbers and readings such as water_level(), row(), or column().")
 
 
 def print_value(node, routines):
@@ -73,6 +94,15 @@ def clauses(node, routines, inverted=False):
         return [["always" if node.value != inverted else "not always"]]
     if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
         return clauses(node.operand, routines, not inverted)
+    if isinstance(node, ast.Compare):
+        if len(node.ops) > 64:
+            raise GardenError(node, "Split this test into smaller conditions.")
+        if any(type(op) not in COMPARISONS for op in node.ops):
+            raise GardenError(node, "Use <, <=, ==, !=, >=, or > to compare numbers.")
+        operands = [numeric_operand(value, routines) for value in [node.left, *node.comparators]]
+        tests = [f"{left} {COMPARISONS[type(op)]} {right}"
+                 for left, op, right in zip(operands, node.ops, operands[1:])]
+        return [[f"not {term}"] for term in tests] if inverted else [tests]
     if isinstance(node, ast.BoolOp):
         join = isinstance(node.op, ast.And) != inverted
         result = [[]] if join else []
@@ -90,7 +120,10 @@ def clauses(node, routines, inverted=False):
                 raise GardenError(node, "Split this test into smaller conditions.")
         return result
     sensor, target = sensor_call(node, routines)
-    term = f"{sensor} {target}" if target else sensor
+    if sensor in NUMERIC_SENSORS:
+        term = f"{sensor} != 0"
+    else:
+        term = f"{sensor} {target}" if target else sensor
     return [[f"not {term}" if inverted else term]]
 
 

@@ -98,6 +98,8 @@ while True:
 const GARDENS := PUZZLES + [OPEN_NURSERY]
 const DIRECTIONS = {"north":Vector2i(0,-1), "east":Vector2i(1,0), "south":Vector2i(0,1), "west":Vector2i(-1,0)}
 const CONDITIONS := ["always", "spring", "has_water", "empty_bed", "lily", "thirsty", "growing", "ripe"]
+const NUMERIC_SENSORS := ["water_level", "row", "column"]
+const COMPARISONS := ["<", "<=", "==", "!=", ">=", ">"]
 const PLOT_DOSES := {"B":0, "L":1, "H":2}
 const EMPTY_BED := "Empty bed"
 const CAPACITY = 3
@@ -339,13 +341,17 @@ static func _bind_directions(instructions: Array, bindings: Dictionary) -> Array
   elif instruction.has("clauses"):
    for clause: Array in instruction.clauses:
     for test: Dictionary in clause:
-     test.direction = bindings.get(test.direction, test.direction)
+     if test.has("direction"):
+      test.direction = bindings.get(test.direction, test.direction)
   elif instruction.has("output"):
    for value: Dictionary in instruction.output:
     if value.has("direction"):
      value.direction = bindings.get(value.direction, value.direction)
   expanded.append(instruction)
  return expanded
+
+static func _is_numeric_operand(word: String) -> bool:
+ return word in NUMERIC_SENSORS or (word.length() <= 11 and word.is_valid_int() and int(word) >= -2147483648 and int(word) <= 2147483647)
 
 static func _parse_condition(words: PackedStringArray, parameters: PackedStringArray) -> Dictionary:
  # Each clause is a group of AND tests. Any matching clause satisfies the expression.
@@ -359,22 +365,28 @@ static func _parse_condition(words: PackedStringArray, parameters: PackedStringA
    break
   var condition := words[index]
   index += 1
-  var direction := ""
-  if condition == "clear":
-   if index == words.size() or not _is_direction(words[index], parameters):
-    return {"error":"Use clear with north, south, east, west, or a routine parameter."}
-   direction = words[index]
-   index += 1
-  elif condition not in CONDITIONS:
-   return {"error":"Expected a condition. Try spring, has_water, empty_bed, lily north, thirsty, growing, ripe, or clear east."}
-  elif index < words.size() and _is_direction(words[index], parameters):
-   if condition == "has_water":
-    return {"error":"Use has_water without a direction. It checks Pondbot's tank."}
-   if condition == "always":
-    return {"error":"Use always without a direction."}
-   direction = words[index]
-   index += 1
-  clause.append({"condition":condition, "direction":direction, "negated":negated})
+  if condition in NUMERIC_SENSORS or condition.is_valid_int():
+   if not _is_numeric_operand(condition) or index + 1 >= words.size() or words[index] not in COMPARISONS or not _is_numeric_operand(words[index + 1]):
+    return {"error":"Compare whole numbers or numeric readings. Try water_level >= 2."}
+   clause.append({"left":condition, "comparison":words[index], "right":words[index + 1], "negated":negated})
+   index += 2
+  else:
+   var direction := ""
+   if condition == "clear":
+    if index == words.size() or not _is_direction(words[index], parameters):
+     return {"error":"Use clear with north, south, east, west, or a routine parameter."}
+    direction = words[index]
+    index += 1
+   elif condition not in CONDITIONS:
+    return {"error":"Expected a condition. Try spring, has_water, empty_bed, lily north, thirsty, growing, ripe, or clear east."}
+   elif index < words.size() and _is_direction(words[index], parameters):
+    if condition == "has_water":
+     return {"error":"Use has_water without a direction. It checks Pondbot's tank."}
+    if condition == "always":
+     return {"error":"Use always without a direction."}
+    direction = words[index]
+    index += 1
+   clause.append({"condition":condition, "direction":direction, "negated":negated})
   if index == words.size():
    clauses.append(clause)
    return {"clauses":clauses}
@@ -492,7 +504,9 @@ func next_action_index(instructions: Array, first: int) -> int:
 func _append_output(instruction: Dictionary) -> void:
  var fields := PackedStringArray()
  for value: Dictionary in instruction.output:
-  if value.has("sensor"):
+  if value.get("sensor", "") in NUMERIC_SENSORS:
+   fields.append(str(_read_number(value.sensor)))
+  elif value.has("sensor"):
    fields.append("True" if _meets_condition(value.sensor, value.direction) else "False")
   elif value.has("direction"):
    fields.append(value.direction)
@@ -509,12 +523,43 @@ func _meets_any_clause(clauses: Array) -> bool:
  for clause: Array in clauses:
   var matches := true
   for test: Dictionary in clause:
-   if _meets_condition(test.condition, test.direction) == test.negated:
+   var passes := _compare_numbers(test) if test.has("comparison") else _meets_condition(test.condition, test.direction)
+   if passes == test.negated:
     matches = false
     break
   if matches:
    return true
  return false
+
+func _read_number(operand: String) -> int:
+ match operand:
+  "water_level":
+   return tank
+  "row":
+   return cell.y
+  "column":
+   return cell.x
+  _:
+   return int(operand)
+
+func _compare_numbers(test: Dictionary) -> bool:
+ var left := _read_number(test.left)
+ var right := _read_number(test.right)
+ match test.comparison:
+  "<":
+   return left < right
+  "<=":
+   return left <= right
+  "==":
+   return left == right
+  "!=":
+   return left != right
+  ">=":
+   return left >= right
+  ">":
+   return left > right
+  _:
+   return false
 
 func _meets_condition(condition: String, direction: String) -> bool:
  var location := cell

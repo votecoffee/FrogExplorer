@@ -55,6 +55,21 @@ print()
         source = "def print():\n    wait()\nprint()\n"
         self.assertEqual(LOWER(source)["source"], "routine print\nwait\nend\ncall print")
 
+    def test_numeric_sensors_lower_chained_and_negated_comparisons(self):
+        source = "while 0 < water_level() <= +3 and not (row() < column() <= 2):\n    wait()\n"
+        self.assertEqual(LOWER(source)["source"],
+                         "while 0 < water_level and water_level <= 3 and not row < column or "
+                         "0 < water_level and water_level <= 3 and not column <= 2\nwait\nend")
+        self.assertEqual(LOWER("if row():\n    wait()\n")["source"], "if row != 0\nwait\nend")
+
+    def test_print_reads_numbers_and_preserves_existing_numeric_sensor_routine_names(self):
+        result = LOWER("print(row(), column(), water_level())\n")
+        self.assertEqual(result["diagnostics"]["0"], [
+            {"sensor": sensor, "direction": ""} for sensor in ("row", "column", "water_level")
+        ])
+        source = "def row():\n    wait()\nrow()\n"
+        self.assertEqual(LOWER(source)["source"], "routine row\nwait\nend\ncall row")
+
     def test_unsupported_syntax_is_rejected_at_its_source_line(self):
         for source, line in [
             ("fill()\nimport math\n", 1),
@@ -64,6 +79,11 @@ print()
             ("fill()\nprint(plant())\n", 1),
             ("print(has_water(east))\n", 0),
             ("print(1 + 2)\n", 0),
+            ("fill()\nif row(east) > 0:\n    wait()\n", 1),
+            ("if water_level() is 3:\n    wait()\n", 0),
+            ("if water_level() >= 1.5:\n    wait()\n", 0),
+            ("if column() > True:\n    wait()\n", 0),
+            ("if row() < 2147483648:\n    wait()\n", 0),
         ]:
             with self.subTest(source=source):
                 result = LOWER(source)

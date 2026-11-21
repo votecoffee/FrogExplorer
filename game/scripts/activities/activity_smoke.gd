@@ -840,6 +840,35 @@ func run(game) -> void:
   check(preview_output.size() == Program.MAX_OUTPUT_MESSAGES and preview_output.back().turn == 4 + Program.MAX_STEPS and popup.garden.output.size() == 1, "Check keeps recent messages without replacing the live output buffer")
   popup._reset()
   check(not popup.output_panel.visible and popup.garden.output.is_empty(), "Reset clears program output")
+  var measurement_draft := """def tend(heading):
+    hop(heading)
+    plant()
+    if water_level() >= 2:
+        water()
+    print("Bed", column(), row(), water_level())
+print("Spring", column(), row(), water_level())
+if column() == 0 and row() == 1 and water_level() != 3:
+    fill()
+hop(north)
+while column() < 2 and 0 < water_level() <= 3:
+    tend(east)
+wait()
+gather()
+if not (3 <= water_level() <= 7) and column() > row():
+    print("End", column(), row(), water_level())
+"""
+  var measurement_log := "Line 7 · Spring 0 1 0\nLine 6 · Bed 1 0 2\nLine 6 · Bed 2 0 1\nLine 16 · End 2 0 1"
+  popup.source.text = measurement_draft
+  popup.check_button.pressed.emit()
+  check(popup.garden.turn == 0 and popup.garden.tank == 0 and popup.garden.cell == Vector2i(0, 1) and popup.checked_route.actions.size() == 10 and popup.output_text.text == measurement_log, "Check predicts numeric sensor readings and branches without changing the nursery")
+  popup.review_button.pressed.emit()
+  popup.review_slider.value = 5
+  check(popup.output_text.text == "Line 7 · Spring 0 1 0\nLine 6 · Bed 1 0 2" and "Water 2 / 3" in popup.info.text, "Review aligns numeric readings with water and movement on the board")
+  await finish_by_steps(popup, measurement_draft)
+  check(popup.garden.turn == 10 and popup.garden.cell == Vector2i(2, 0) and popup.garden.tank == 1 and popup.garden.harvested == 1 and popup.output_text.text == measurement_log, "Numeric guards steer and water both beds in the live nursery")
+  var classic_measurement := Program.compile("if column == 2 and water_level >= 1\n wait\nend")
+  var bad_measurement := Program.compile_python("if row(north) == 1:\n    wait()")
+  check(classic_measurement.has("steps") and popup.garden.next_action_index(classic_measurement.get("steps", []), 0) == 1 and bad_measurement.get("line", -1) == 0, "Classic comparisons share the simulator and invalid Python sensor calls report their line")
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
