@@ -191,6 +191,13 @@ func run(game) -> void:
  check(Program.compile("repeat 2\nroutine nested\nwait\nend\nend").get("line", -1) == 1, "Routine definitions stay outside repeat blocks")
  var full_routine := "routine full\nrepeat 16\nrepeat 16\nwait\nend\nend\nend\ncall full"
  check(Program.compile(full_routine).get("steps", []).size() == Program.MAX_STEPS and Program.compile(full_routine + "\ncall full").get("line", -1) == 8, "Routine expansion allows exactly 256 actions and rejects a call that exceeds the limit")
+ var direction_routine := "routine stride heading\nhop heading\nend\n"
+ check(Program.compile(direction_routine + "call stride").get("line", -1) == 3 and Program.compile(direction_routine + "call stride north east").get("line", -1) == 3, "A call requires one direction for each declared parameter")
+ check(Program.compile(direction_routine + "call stride upward").get("line", -1) == 3 and Program.compile(direction_routine + "hop heading").get("line", -1) == 3, "A direction must be a compass point or a parameter in scope")
+ check(Program.compile("routine stride heading heading\nhop heading\nend").get("line", -1) == 0, "A routine rejects duplicate parameter names")
+ var reversals := Program.compile("routine pair first second\nrepeat 2\nhop first\nhop second\nend\nend\nroutine reversed first second\ncall pair second first\nend\ncall reversed east north\ncall reversed west south")
+ var reversed_steps: Array = reversals.get("steps", [])
+ check(reversed_steps.map(func(action): return action.direction) == ["north", "east", "north", "east", "south", "west", "south", "west"], "Forwarded arguments can swap positions across repeated instructions and independent calls")
  check(Program.compile("fill\nif muddy\nwait\nend").get("line", -1) == 1, "An unknown condition marks the if line")
  check(Program.compile("else\nwait\nend").get("line", -1) == 0, "An else requires an enclosing if")
  check(Program.compile("if ripe\nwait\nelse\nfill\nelse\nwait\nend").get("line", -1) == 4, "A second else points to the duplicate line")
@@ -216,6 +223,7 @@ func run(game) -> void:
  var lantern_solution := "routine tend_plot\n  repeat 2\n    if thirsty\n      water\n    end\n  end\n  if growing\n    wait\n  end\n  if ripe\n    gather\n  end\nend\nroutine sweep_east\n  while clear east\n    hop east\n    call tend_plot\n  end\nend\nfill\ncall sweep_east\nwhile clear west\n  hop west\nend\nrepeat 2\n  hop north\nend\nfill\ncall sweep_east\n"
  var relay_solution: String = Program.PUZZLES[9].draft + "while not spring and clear west\n  hop west\nend\nrepeat 2\n  hop north\nend\nfill\ncall sweep_east\nwhile not spring and clear west\n  hop west\nend\nfill\ncall sweep_east\n"
  var channels_solution: String = Program.PUZZLES[10].draft + "while not spring\n  hop west\nend\nfill\ncall sweep_east\n"
+ var compass_solution: String = Program.PUZZLES[11].draft + "while not spring\n  hop east\nend\ncall sweep east south north\n"
  var solutions := [
   "fill\nrepeat 2\nhop east\nwater\nwait\ngather\nend",
   "fill\nhop east\nhop east\nwater\nwait\ngather\nhop south\nhop east\nwater\nwait\ngather\nhop west\nhop south\nwater\nwait\ngather",
@@ -228,6 +236,7 @@ func run(game) -> void:
   lantern_solution,
   relay_solution,
   channels_solution,
+  compass_solution,
  ]
  check(solutions.size() == Program.PUZZLES.size(), "Every garden has a smoke-test solution")
  for index in solutions.size():
@@ -617,6 +626,35 @@ func run(game) -> void:
   popup.best_button.pressed.emit()
   popup.review_slider.value = popup.review_slider.max_value
   check("Best run · 31 / 31 actions" == popup.review_position.text and "Lilies 4 / 4" in popup.info.text, "Best program replays the completed route with neighboring-tile checks")
+
+  popup.chooser.item_selected.emit(11)
+  var compass: Dictionary = Program.PUZZLES[popup.puzzle]
+  check(compass.id == "compass_banks" and popup.garden.cell == Vector2i(2, 1) and "routine sweep along branch return_path" in popup.source.text, "Compass banks opens with a mirrored route and direction parameters")
+  popup.check_button.pressed.emit()
+  check("1 of 2 lilies harvested in 8 actions" in popup.status.text, "The starter forwards directions to reach the west lily and return to the bank")
+  popup.source.text = compass_solution
+  popup.check_button.pressed.emit()
+  check("17 actions to harvest all 2 lilies · meets target" in popup.status.text and not popup.progress.solved.has(compass.id), "Different arguments reuse the same sweep on both banks")
+  popup.review_button.pressed.emit()
+  popup.review_slider.value = 2
+  var west_shown: bool = popup.source.get_executing_lines() == PackedInt32Array([12]) and "●" in popup.board.get_child(6).get_child(0).text
+  popup.review_slider.value = 11
+  check(west_shown and popup.source.get_executing_lines() == PackedInt32Array([12]) and "●" in popup.board.get_child(8).get_child(0).text, "Review marks the same source line for a west hop and an east hop")
+  popup.review_button.pressed.emit()
+  popup.source.set_caret_line(2)
+  press_key(KEY_F9)
+  press_key(KEY_ENTER, true)
+  await wait_for_garden_pause(popup)
+  var paused_west: bool = popup.garden.turn == 3 and popup.garden.cell == Vector2i(0, 1) and "Breakpoint · line 3" in popup.status.text
+  press_key(KEY_ENTER, true)
+  await wait_for_garden_pause(popup)
+  check(paused_west and popup.garden.turn == 12 and popup.garden.cell == Vector2i(4, 1) and "Breakpoint · line 3" in popup.status.text, "A breakpoint stops in the called routine with either direction")
+  press_key(KEY_F9)
+  await finish_by_steps(popup, compass_solution)
+  check(popup.garden.harvested == 2 and popup.progress.garden_best.get(compass.id, 0) == 17, "Live execution records the Compass banks target")
+  popup.best_button.pressed.emit()
+  popup.review_slider.value = popup.review_slider.max_value
+  check("Best run · 17 / 17 actions" == popup.review_position.text and "Lilies 2 / 2" in popup.info.text, "Best program replays the saved calls with both sets of directions")
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

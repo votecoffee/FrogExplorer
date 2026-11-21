@@ -13,6 +13,7 @@ const PUZZLES = [
  {"id":"lantern_rows", "name":"Lantern rows", "rows":["~.L.L",".####","~.H##"], "target":22, "hint":"Start at the short bed. Sweep east until the path closes. Walk west to the spring column, hop north twice, then refill and sweep the long bed.", "draft":"# Sweep the short bed, then reuse sweep_east on the long bed\nroutine tend_plot\n  repeat 2\n    if thirsty\n      water\n    end\n  end\n  if growing\n    wait\n  end\n  if ripe\n    gather\n  end\nend\nroutine sweep_east\n  while clear east\n    hop east\n    call tend_plot\n  end\nend\n\nfill\ncall sweep_east\n"},
  {"id":"spring_relay", "name":"Spring relay", "rows":["~LHL.",".####","~.HL."], "target":35, "hint":"Sweep the lower bed. Go back west to the spring column and hop north twice. The upper bed takes two tankfuls. Already gathered plots can be crossed again.", "draft":"# Sweep the lower bed, then plan two trips along the upper bed\nroutine tend_plot\n  while thirsty and has_water\n    water\n  end\n  if growing or ripe\n    if growing\n      wait\n    end\n    gather\n  end\nend\nroutine sweep_east\n  while clear east and has_water\n    hop east\n    call tend_plot\n  end\nend\n\nfill\ncall sweep_east\n"},
  {"id":"side_channels", "name":"Side channels", "rows":["##L#L","~....","#L#L#"], "target":31, "hint":"Follow the center path and look for lilies to the north or south. Return west to refill after the third lily. A second sweep can skip the lilies you already gathered.", "draft":"# Look for lilies off the center path before hopping\nroutine tend_plot\n  water\n  wait\n  gather\nend\nroutine sweep_east\n  while clear east and has_water\n    hop east\n    if lily north\n      hop north\n      call tend_plot\n      hop south\n    end\n    if lily south and has_water\n      hop south\n      call tend_plot\n      hop north\n    end\n  end\nend\n\nfill\ncall sweep_east\n"},
+ {"id":"compass_banks", "name":"Compass banks", "rows":["L####","..~..","####H"], "target":17, "hint":"The spring is between two mirrored paths. After the west sweep, return east to the spring. Call sweep again with east along the bank, south toward the lily, and north back to the path.", "draft":"# Sweep west, then reuse the routine with different directions\nroutine tend_bed toward back\n  hop toward\n  while thirsty and has_water\n    water\n  end\n  wait\n  gather\n  hop back\nend\nroutine sweep along branch return_path\n  while clear along and has_water\n    hop along\n    if lily branch\n      call tend_bed branch return_path\n    end\n  end\nend\n\nfill\ncall sweep west north south\n"},
 ]
 const DIRECTIONS = {"north":Vector2i(0,-1), "east":Vector2i(1,0), "south":Vector2i(0,1), "west":Vector2i(-1,0)}
 const CONDITIONS := ["spring", "has_water", "lily", "thirsty", "growing", "ripe"]
@@ -34,6 +35,7 @@ static func compile(source: String) -> Dictionary:
   return {"error":"Programs can contain up to 8,192 characters.", "line":0}
  var blocks: Array[Dictionary] = [{"steps":[], "times":1, "line":0}]
  var routines: Dictionary = {}
+ var parameters := PackedStringArray()
  var lines := source.split("\n")
  for index in lines.size():
   var text := lines[index].get_slice("#", 0).strip_edges().replace("\t", " ").to_lower()
@@ -44,10 +46,16 @@ static func compile(source: String) -> Dictionary:
   if command == "routine":
    if blocks.size() != 1:
     return _error(index, "Define routines at the top level of the program.")
-   if words.size() != 2 or not words[1].is_valid_ascii_identifier():
+   if words.size() < 2 or not words[1].is_valid_ascii_identifier():
     return _error(index, "Use routine NAME with letters, digits, or underscores. Start the name with a letter or underscore.")
    if routines.has(words[1]):
     return _error(index, "Routine %s is already defined." % words[1])
+   for parameter in words.slice(2):
+    if not parameter.is_valid_ascii_identifier() or DIRECTIONS.has(parameter) or parameter in ["not", "and", "or"]:
+     return _error(index, "Use a parameter name like heading or return_path.")
+    if parameter in parameters:
+     return _error(index, "Parameter %s is already listed." % parameter)
+    parameters.append(parameter)
    blocks.append({"steps":[], "routine":words[1], "line":index})
    continue
   if command in ["repeat", "if", "while"]:
@@ -59,7 +67,7 @@ static func compile(source: String) -> Dictionary:
      return _error(index, "Use repeat 1–16.")
     blocks.append({"steps":[], "times":int(words[1]), "line":index})
    else:
-    var expression := _parse_condition(words.slice(1))
+    var expression := _parse_condition(words.slice(1), parameters)
     if expression.has("error"):
      return _error(index, expression.error)
     blocks.append({"steps":[], "clauses":expression.clauses, "line":index, "loop":command == "while"})
@@ -83,7 +91,8 @@ static func compile(source: String) -> Dictionary:
    if inner.has("routine"):
     if inner.steps.is_empty():
      return _error(inner.line, "Add at least one action to this routine.")
-    routines[inner.routine] = inner.steps
+    routines[inner.routine] = {"steps":inner.steps, "parameters":parameters}
+    parameters = PackedStringArray()
     continue
    var outer: Array = blocks.back().steps
    if inner.has("clauses"):
@@ -115,19 +124,29 @@ static func compile(source: String) -> Dictionary:
    continue
   var steps: Array = blocks.back().steps
   if command == "call":
-   if words.size() != 2 or not words[1].is_valid_ascii_identifier():
+   if words.size() < 2 or not words[1].is_valid_ascii_identifier():
     return _error(index, "Use call NAME with a routine name.")
    if not routines.has(words[1]):
     return _error(index, "Define routine %s before calling it." % words[1])
-   var routine_steps: Array = routines[words[1]]
-   if steps.size() + routine_steps.size() > MAX_STEPS:
+   var routine: Dictionary = routines[words[1]]
+   var targets: PackedStringArray = routine.parameters
+   var arguments := words.slice(2)
+   if arguments.size() != targets.size():
+    var unit := "argument" if targets.size() == 1 else "arguments"
+    return _error(index, "Routine %s expects %d direction %s." % [words[1], targets.size(), unit])
+   if steps.size() + routine.steps.size() > MAX_STEPS:
     return _error(index, "This call expands the program beyond 256 instructions.")
-   # Expanded commands retain their original lines inside the routine.
-   steps.append_array(routine_steps)
+   var bindings: Dictionary = {}
+   for argument_index in arguments.size():
+    var argument := arguments[argument_index]
+    if not _is_direction(argument, parameters):
+     return _error(index, "Argument %s needs a compass direction or a routine parameter." % targets[argument_index])
+    bindings[targets[argument_index]] = argument
+   steps.append_array(_bind_directions(routine.steps, bindings))
    continue
   if command == "hop":
-   if words.size() != 2 or not DIRECTIONS.has(words[1]):
-    return _error(index, "Use hop north, east, south, or west.")
+   if words.size() != 2 or not _is_direction(words[1], parameters):
+    return _error(index, "Use hop with north, east, south, west, or a routine parameter.")
   elif words.size() != 1 or command not in ["fill", "water", "wait", "gather"]:
    return _error(index, "Use hop, fill, water, wait, gather, repeat, routine, call, if, or while.")
   if steps.size() >= MAX_STEPS:
@@ -143,7 +162,26 @@ static func compile(source: String) -> Dictionary:
   return _error(0, "Add at least one action.")
  return {"steps":blocks[0].steps}
 
-static func _parse_condition(words: PackedStringArray) -> Dictionary:
+static func _is_direction(word: String, parameters: PackedStringArray) -> bool:
+ return DIRECTIONS.has(word) or word in parameters
+
+static func _bind_directions(instructions: Array, bindings: Dictionary) -> Array:
+ if bindings.is_empty():
+  return instructions
+ # Each call gets independent directions while retaining source lines and relative jumps.
+ var expanded: Array[Dictionary] = []
+ for original: Dictionary in instructions:
+  var instruction := original.duplicate(true)
+  if instruction.has("direction"):
+   instruction.direction = bindings.get(instruction.direction, instruction.direction)
+  elif instruction.has("clauses"):
+   for clause: Array in instruction.clauses:
+    for test: Dictionary in clause:
+     test.direction = bindings.get(test.direction, test.direction)
+  expanded.append(instruction)
+ return expanded
+
+static func _parse_condition(words: PackedStringArray, parameters: PackedStringArray) -> Dictionary:
  # Each clause is a group of AND tests. Any matching clause satisfies the expression.
  var clauses: Array[Array] = []
  var clause: Array[Dictionary] = []
@@ -157,13 +195,13 @@ static func _parse_condition(words: PackedStringArray) -> Dictionary:
   index += 1
   var direction := ""
   if condition == "clear":
-   if index == words.size() or not DIRECTIONS.has(words[index]):
-    return {"error":"Use clear north, south, east, or west."}
+   if index == words.size() or not _is_direction(words[index], parameters):
+    return {"error":"Use clear with north, south, east, west, or a routine parameter."}
    direction = words[index]
    index += 1
   elif condition not in CONDITIONS:
    return {"error":"Expected a condition. Try spring, has_water, lily north, thirsty, growing, ripe, or clear east."}
-  elif index < words.size() and DIRECTIONS.has(words[index]):
+  elif index < words.size() and _is_direction(words[index], parameters):
    if condition == "has_water":
     return {"error":"Use has_water without a direction. It checks Pondbot's tank."}
    direction = words[index]

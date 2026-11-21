@@ -194,7 +194,7 @@ Open Places with **N / R3** to select these single-player destinations. Random t
 | --- | --- |
 | Kingfisher Circuit | Board the convertible and drive two timed laps. The first start-line crossing starts the clock. Drive through each gate in order. |
 | Cloudring Course | Launch a helium balloon and fly through eight rings in order. The next ring glows gold. Use the right stick or I/K and J/L for altitude and strafe. |
-| Lily Code Garden | Open a popup editor and program Pondbot to water and gather lilies across eleven grid puzzles. |
+| Lily Code Garden | Open a popup editor and program Pondbot to water and gather lilies across twelve grid puzzles. |
 
 Press **F5 / A** again to restart a race. The course shows your current time and saved personal best. After your first timed finish, the HUD compares each gate or ring to your fastest run with recorded splits. Existing personal best times carry over. Use **H** or Places to return to the pond.
 
@@ -210,7 +210,7 @@ repeat 2
 end
 ```
 
-Use **routine NAME** and **end** to define a reusable sequence, then use **call NAME** to run it. Define each routine before calling it. Routines can contain repeats, conditions, and calls to earlier routines.
+Use **routine NAME** and **end** to define a reusable sequence, then use **call NAME** to run it. Define each routine before calling it. Routines can contain repeats, conditions, and calls to earlier routines. Add parameter names after the routine name to reuse it with different directions. For example, **routine seek heading** can use **hop heading** or **if lily heading**, and **call seek north** supplies **north** for that call. Supply multiple directions in declaration order. A routine can also pass its own direction parameters to another routine. Compass banks uses one sweep routine for both sides of the spring.
 
 Use **if CONDITION** and **end** to run a block when the condition is true. Add **else** for a different action when the condition is false. Use **has_water** to check the tank or **clear east** to check whether a neighboring tile can be reached with a hop. Tile tests **spring**, **lily**, **thirsty**, **growing**, and **ripe** inspect the current tile by default. Add **north**, **east**, **south**, or **west** to inspect the adjacent tile in that direction. In Side channels, **if lily north** detects an unharvested lily north of the path before Pondbot hops there. Only commands that execute count toward your score.
 

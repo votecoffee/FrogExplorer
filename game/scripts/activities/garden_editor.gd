@@ -126,7 +126,7 @@ func _ready() -> void:
  hint = hud.label("", 15)
  hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  right.add_child(hint)
- var guide: Label = hud.label("hop north / east / south / west\nfill     water     wait     gather\nrepeat N … end     # comment\nroutine NAME … end / call NAME\nif / while CONDITION … end\nelse     not     and     or\nLook ahead with clear east or lily north\nF9 toggles a breakpoint", 15, Color("#b9dccc"))
+ var guide: Label = hud.label("hop north / east / south / west\nfill     water     wait     gather\nrepeat N … end     # comment\nroutine NAME heading · call NAME east\nif / while CONDITION … end\nelse     not     and     or\nLook ahead with clear east or lily north\nF9 toggles a breakpoint", 15, Color("#b9dccc"))
  right.add_child(guide)
  var legend: Label = hud.label("● Pondbot     ~ Spring     # Stone\nA watered lily ripens on the next turn.", 14)
  right.add_child(legend)
