@@ -14,6 +14,7 @@ var source: CodeEdit
 var status: Label
 var board: GridContainer
 var info: Label
+var score: Label
 var hint: Label
 var chooser: OptionButton
 var run_button: Button
@@ -82,6 +83,9 @@ func _ready() -> void:
  right.add_child(chooser)
  info = hud.label("", 17, Color("#b9dccc"))
  right.add_child(info)
+ score = hud.label("", 15, Color("#b9dccc"))
+ score.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+ right.add_child(score)
  board = GridContainer.new()
  board.add_theme_constant_override("h_separation", 3)
  board.add_theme_constant_override("v_separation", 3)
@@ -230,10 +234,14 @@ func _advance() -> void:
   offset += 1
   if garden.harvested == garden.plants.size():
    _clear_program()
-   if progress.complete_puzzle(Programs.PUZZLES[puzzle].id) != OK:
+   var item: Dictionary = Programs.PUZZLES[puzzle]
+   var previous: int = progress.garden_best.get(item.id, 0)
+   if progress.complete_puzzle(item.id, garden.turn) != OK:
     hud.toast("Could not save activity progress.")
    status.text = "Puzzle complete · %d lilies in %d actions" % [garden.harvested, garden.turn]
-   chooser.set_item_text(puzzle, Programs.PUZZLES[puzzle].name + " ✓")
+   if previous > garden.turn:
+    status.text += " · New personal best"
+   chooser.set_item_text(puzzle, item.name + " ✓")
   elif offset == steps.size():
    _clear_program()
    status.text = "Program ended · %d lilies remain." % (garden.plants.size() - garden.harvested)
@@ -243,6 +251,11 @@ func _advance() -> void:
 
 func _draw() -> void:
  info.text = "Water %d / %d    Lilies %d / %d" % [garden.tank, Programs.CAPACITY, garden.harvested, garden.plants.size()]
+ var item: Dictionary = Programs.PUZZLES[puzzle]
+ var best_actions: int = progress.garden_best.get(item.id, 0)
+ var target_status := "Target met" if best_actions > 0 and best_actions <= item.target else "Target"
+ var best_text := "%d actions" % best_actions if best_actions > 0 else "—"
+ score.text = "%s · %d actions\nPersonal best · %s" % [target_status, item.target, best_text]
  var active := not steps.is_empty()
  run_button.text = ("Pause" if running else "Resume" if active else "Run") + " · Ctrl+Enter"
  step_button.disabled = running

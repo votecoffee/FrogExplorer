@@ -26,6 +26,8 @@ func press_key(key: Key, ctrl := false) -> void:
  var release := event.duplicate() as InputEventKey
  release.pressed = false
  Input.parse_input_event(release)
+ # Deliver the shortcut before checking the editor state.
+ Input.flush_buffered_events()
 
 func cross_next(game, tick: float) -> void:
  var course = game.activities.course
@@ -35,6 +37,15 @@ func cross_next(game, tick: float) -> void:
  course.previous = center - direction * 2
  game.rides.body.position = center + direction * 2
  game.activities._physics_process(tick)
+
+func finish_by_steps(popup, program: String) -> void:
+ popup.source.text = program
+ popup.step_button.pressed.emit()
+ for action in Program.MAX_STEPS:
+  if popup.steps.is_empty():
+   return
+  popup.step_button.pressed.emit()
+  await frames(1)
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)
@@ -166,13 +177,13 @@ func run(game) -> void:
  check(Program.compile("repeat 3\nwater").has("error"), "Missing end produces a line error")
 
  # Each garden has a complete solution using the normal commands.
+ var terrace_patrol := "repeat 2\nfill\nrepeat 2\nhop east\nwater\nwait\ngather\nend\nrepeat 2\nhop west\nend\nhop north\nend"
  var solutions := [
   "fill\nrepeat 2\nhop east\nwater\nwait\ngather\nend",
   "fill\nhop east\nhop east\nwater\nwait\ngather\nhop south\nhop east\nwater\nwait\ngather\nhop west\nhop south\nwater\nwait\ngather",
-  "fill\nhop east\nhop east\nwater\nwater\nwait\ngather\nhop south\nhop south\nwater\nwait\ngather\nhop north\nhop north\nhop west\nhop west\nfill\nhop east\nhop east\nhop south\nhop south\nhop west\nwater\nwater\nwait\ngather",
-
-  "repeat 2\nfill\nrepeat 2\nhop east\nwater\nwait\ngather\nend\nrepeat 2\nhop west\nend\nhop north\nend",
-  "fill\nrepeat 2\nhop east\nend\nrepeat 2\nwater\nend\nwait\ngather\nhop south\nhop south\nhop east\nwater\nwait\ngather\nhop west\nhop north\nhop north\nrepeat 2\nhop west\nend\nfill\nrepeat 2\nhop south\nend\nwater\nwait\ngather\nhop south\nhop east\nrepeat 2\nwater\nend\nwait\ngather",
+  "fill\nhop east\nhop east\nwater\nwater\nhop west\nhop west\nfill\nhop east\nhop east\ngather\nhop south\nhop south\nwater\nwait\ngather\nhop west\nwater\nwater\nwait\ngather",
+  "fill\nhop east\nwater\nwait\ngather\nhop north\nwater\nhop west\nfill\nhop east\ngather\nhop east\nwater\nwait\ngather\nhop south\nwater\nwait\ngather",
+  "fill\nhop south\nhop south\nwater\nhop south\nhop east\nwater\nwater\nwait\ngather\nhop west\nhop north\ngather\nhop north\nhop north\nfill\nhop east\nhop east\nwater\nwater\nwait\ngather\nhop south\nhop east\nhop south\nwater\nwait\ngather",
  ]
  check(solutions.size() == Program.PUZZLES.size(), "Every garden has a smoke-test solution")
  for index in solutions.size():
@@ -183,13 +194,14 @@ func run(game) -> void:
   for action in compiled.get("steps", []):
    if error.is_empty():
     error = program.step(action)
-  check(error.is_empty() and program.harvested == program.plants.size(), "Garden puzzle %d can be solved with commands and loops" % (index + 1))
+  check(error.is_empty() and program.harvested == program.plants.size() and program.turn == Program.PUZZLES[index].target, "Garden puzzle %d can be solved at its action target" % (index + 1))
 
  if has_garden:
   press_key(KEY_F5)
   await frames(4)
   var popup = game.activities.garden
   check(popup.visible and game.pilot.paused and popup.source.has_focus(), "The garden popup owns keyboard focus and pauses movement")
+  check("Target · 9 actions" in popup.score.text and "Personal best · —" in popup.score.text, "A fresh board displays its target and an empty personal best")
   game.controls.pending.append("travel_home")
   await frames(4)
   check(t.current_id == IDS[2] and not t.busy, "Game shortcuts are suspended while editing")
@@ -200,15 +212,12 @@ func run(game) -> void:
   popup.step_button.pressed.emit()
   check(popup.garden.turn == 2 and popup.garden.cell == Vector2i(1, 0) and not popup.source.editable, "The Step button advances the same board and protects the active program")
   press_key(KEY_ENTER, true)
-  await frames(3)
   check(popup.running and popup.step_button.disabled and popup.run_button.text.begins_with("Pause"), "Ctrl+Enter resumes the stepped program")
-  press_key(KEY_ENTER, true)
-  await frames(3)
   var paused_turn: int = popup.garden.turn
+  press_key(KEY_ENTER, true)
   await frames(18)
   check(not popup.running and popup.garden.turn == paused_turn and popup.run_button.text.begins_with("Resume"), "Ctrl+Enter pauses without advancing the board")
   press_key(KEY_F10)
-  await frames(3)
   check(popup.garden.turn == paused_turn + 1 and not popup.running, "F10 steps the paused program at its current position")
   press_key(KEY_ENTER, true)
   await frames(3)
@@ -217,6 +226,7 @@ func run(game) -> void:
    await get_tree().process_frame
   check(popup.progress.solved.get(Program.PUZZLES[0].id, false) and popup.garden.harvested == 2, "The popup animates and completes the starter program")
   check(popup.source.get_executing_lines() == PackedInt32Array([6]) and popup.source.editable, "The completed loop marks its gather command and unlocks the editor")
+  check(popup.progress.garden_best.get("first_bloom", 0) == 9 and "Target met" in popup.score.text, "A finished program saves the action count and marks the target")
   var starter: String = popup.source.text
   popup.step_button.pressed.emit()
   popup.stop_button.pressed.emit()
@@ -246,16 +256,17 @@ func run(game) -> void:
    check(popup.visible and popup.chooser.selected == index and popup.board.get_child_count() == plot_count and popup.world.garden_root.get_child_count() > plot_count, item.name + " loads on the popup board and in the 3D garden")
    var start := Vector2i(0, 2) if index == 3 else Vector2i.ZERO
    check(popup.garden.cell == start and popup.garden.plants.size() == 4, item.name + " starts at its spring with four unharvested lilies")
-   popup.source.text = solutions[index]
-   popup.step_button.pressed.emit()
-   for action in Program.MAX_STEPS:
-    if popup.steps.is_empty():
-     break
-    popup.step_button.pressed.emit()
-    await frames(1)
+   await finish_by_steps(popup, terrace_patrol if index == 3 else solutions[index])
    check(popup.garden.harvested == 4 and popup.progress.solved.get(item.id, false) and "✓" in popup.chooser.get_item_text(index), item.name + " completes when stepped and receives its own check mark")
   popup.chooser.item_selected.emit(3)
-  check(popup.source.text == solutions[3] and popup.garden.harvested == 0, "Returning to Twin terraces restores its draft on a fresh board")
+  check(popup.source.text == terrace_patrol and popup.garden.harvested == 0, "Returning to Twin terraces restores its draft on a fresh board")
+  check(popup.progress.garden_best.get("twin_terraces", 0) == 21 and "Target · 19 actions" in popup.score.text, "An above-target completion still records a personal best")
+  await finish_by_steps(popup, solutions[3])
+  check(popup.progress.garden_best.get("twin_terraces", 0) == 19 and "Target met" in popup.score.text and "New personal best" in popup.status.text, "A more efficient program updates the record and marks the target")
+  await finish_by_steps(popup, terrace_patrol)
+  check(popup.garden.turn == 21 and popup.progress.garden_best.get("twin_terraces", 0) == 19 and "19 actions" in popup.score.text, "A slower clear retains the target and the lowest action count")
+  await finish_by_steps(popup, "wait")
+  check(popup.garden.harvested == 0 and popup.progress.garden_best.get("twin_terraces", 0) == 19, "A program that ends early does not replace a completed score")
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

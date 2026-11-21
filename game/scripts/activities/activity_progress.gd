@@ -10,6 +10,7 @@ var best: Dictionary = {}
 var split_records: Dictionary = {}
 var drafts: Dictionary = {}
 var solved: Dictionary = {}
+var garden_best: Dictionary = {}
 var folder := ""
 var pending: Dictionary = {}
 
@@ -37,8 +38,17 @@ func load_from(path: String) -> void:
   var draft := folder.path_join("draft-" + id + ".txt")
   if FileAccess.file_exists(draft):
    drafts[id] = FileAccess.get_file_as_string(draft)
-  if FileAccess.file_exists(folder.path_join("solved-" + id)):
+  var marker := "solved-" + id
+  if marker in names:
    solved[id] = true
+  var prefix := marker + "-"
+  for name in names:
+   if not name.begins_with(prefix):
+    continue
+   var count := name.trim_prefix(prefix)
+   if count.is_valid_int() and int(count) in range(1, Programs.MAX_STEPS + 1):
+    solved[id] = true
+    garden_best[id] = mini(int(garden_best.get(id, Programs.MAX_STEPS + 1)), int(count))
 
 func comparison(course: String, layout: String, checkpoints: int) -> Array:
  return split_records.get(_split_key(course, layout, checkpoints), [])
@@ -83,9 +93,15 @@ func edit_draft(id: String, text: String) -> Error:
  drafts[id] = text
  return _save("draft-" + id + ".txt", text)
 
-func complete_puzzle(id: String) -> Error:
+func complete_puzzle(id: String, actions: int) -> Error:
+ if actions <= 0 or actions > Programs.MAX_STEPS:
+  return ERR_INVALID_PARAMETER
  solved[id] = true
- return _save("solved-" + id, "")
+ if actions >= int(garden_best.get(id, Programs.MAX_STEPS + 1)):
+  return OK
+ garden_best[id] = actions
+ # A count records completion by itself. Concurrent saves keep the smallest count.
+ return _save("solved-%s-%d" % [id, actions], "")
 
 func _save(name: String, text: String) -> Error:
  if folder.is_empty():

@@ -210,7 +210,7 @@ repeat 2
 end
 ```
 
-Use **hop north**, **hop east**, **hop south**, or **hop west** to move one square. **repeat N** accepts a count from 1 to 16 and ends with **end**. **#** starts a comment. The editor reports the line of a syntax error or blocked action. Drafts save while you type and when you close the editor. Personal bests, drafts and completed puzzles are saved locally across restarts.
+Use **hop north**, **hop east**, **hop south**, or **hop west** to move one square. **repeat N** accepts a count from 1 to 16 and ends with **end**. **#** starts a comment. The editor reports the line of a syntax error or blocked action. Each board has an optional action target. The editor saves your fewest actions for a completed run and marks the target when you reach it. The count includes each executed Pondbot command, including every iteration of a loop. Drafts save while you type and when you close the editor. Personal bests, drafts and completed puzzles are saved locally across restarts.
 
 ### Real-world maps
 
