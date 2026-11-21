@@ -79,7 +79,7 @@ func _ready() -> void:
  source.text_changed.connect(_queue_save)
  source.add_theme_font_size_override("font_size", 18)
  var ink := CodeHighlighter.new()
- for word in ["hop", "fill", "water", "wait", "gather", "repeat", "routine", "call", "end"]:
+ for word in ["hop", "fill", "water", "wait", "gather", "repeat", "routine", "call", "if", "not", "end"]:
   ink.add_keyword_color(word, Color("#8bd5bc"))
  ink.add_color_region("#", "", Color("#a5ad99"), true)
  source.syntax_highlighter = ink
@@ -118,7 +118,7 @@ func _ready() -> void:
  hint = hud.label("", 15)
  hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  right.add_child(hint)
- var guide: Label = hud.label("hop north / east / south / west\nfill     water     wait     gather\nrepeat N … end     # comment\nroutine NAME … end / call NAME\nF9 toggles a breakpoint", 15, Color("#b9dccc"))
+ var guide: Label = hud.label("hop north / east / south / west\nfill     water     wait     gather\nrepeat N … end     # comment\nroutine NAME … end / call NAME\nif CONDITION … end\nF9 toggles a breakpoint", 15, Color("#b9dccc"))
  right.add_child(guide)
  var legend: Label = hud.label("● Pondbot     ~ Spring     # Stone\nA watered lily ripens on the next turn.", 14)
  right.add_child(legend)
@@ -222,21 +222,25 @@ func _check_code() -> void:
  source.clear_executing_lines()
  var preview := Programs.new()
  preview.load_puzzle(puzzle)
- for action: Dictionary in commands:
+ var index := preview.next_action_index(commands, 0)
+ while index < commands.size():
+  var action: Dictionary = commands[index]
   var error := preview.step(action)
   if not error.is_empty():
    blocked_line = action.line
    _line_error("Check · Line %d · %s" % [action.line + 1, error], action.line)
    break
+  checked_actions.append(action)
   if preview.is_complete():
    var over: int = preview.turn - Programs.PUZZLES[puzzle].target
    var target := "meets target" if over <= 0 else "%d over target" % over
    status.text = "Check · %d actions to harvest all %d lilies · %s" % [preview.turn, preview.harvested, target]
    break
+  index = preview.next_action_index(commands, index + 1)
  if blocked_line < 0 and not preview.is_complete():
   status.text = "Check · %d of %d lilies harvested in %d actions" % [preview.harvested, preview.plants.size(), preview.turn]
- checked_actions = commands.slice(0, preview.turn)
- review_button.show()
+ if not checked_actions.is_empty() or blocked_line >= 0:
+  review_button.show()
 
 func _toggle_review() -> void:
  if review_controls.visible:
@@ -298,6 +302,11 @@ func _prepare_program() -> bool:
   return false
  garden.load_puzzle(puzzle)
  source.clear_executing_lines()
+ offset = garden.next_action_index(steps, 0)
+ if offset == steps.size():
+  _finish_incomplete()
+  _draw()
+  return false
  return true
 
 func _run() -> void:
@@ -317,8 +326,8 @@ func _step() -> void:
 
 func _show_progress() -> void:
  var next: Dictionary = steps[offset]
- status.text = "%s · %d / %d actions · next line %d" % [
-  "Running" if running else "Paused", offset, steps.size(), next.line + 1,
+ status.text = "%s · %d actions · next line %d" % [
+  "Running" if running else "Paused", garden.turn, next.line + 1,
  ]
 
 func _mark_line(line: int) -> void:
@@ -343,7 +352,7 @@ func _process(delta: float) -> void:
  if breakpoint_offset != offset and source.is_line_breakpointed(action.line):
   running = false
   breakpoint_offset = offset
-  status.text = "Breakpoint · line %d · %d / %d actions" % [action.line + 1, offset, steps.size()]
+  status.text = "Breakpoint · line %d · %d actions" % [action.line + 1, garden.turn]
   _mark_line(action.line)
   _draw()
   return
@@ -358,7 +367,7 @@ func _advance() -> void:
   _line_error("Line %d · %s" % [action.line + 1, error], action.line)
  else:
   _mark_line(action.line)
-  offset += 1
+  offset = garden.next_action_index(steps, offset + 1)
   if garden.is_complete():
    _clear_program()
    var item: Dictionary = Programs.PUZZLES[puzzle]
@@ -370,11 +379,14 @@ func _advance() -> void:
     status.text += " · New personal best"
    chooser.set_item_text(puzzle, item.name + " ✓")
   elif offset == steps.size():
-   _clear_program()
-   status.text = "Program ended · %d lilies remain." % (garden.plants.size() - garden.harvested)
+   _finish_incomplete()
   else:
    _show_progress()
  _draw()
+
+func _finish_incomplete() -> void:
+ _clear_program()
+ status.text = "Program ended · %d lilies remain." % (garden.plants.size() - garden.harvested)
 
 func _draw() -> void:
  var item: Dictionary = Programs.PUZZLES[puzzle]

@@ -191,10 +191,15 @@ func run(game) -> void:
  check(Program.compile("repeat 2\nroutine nested\nwait\nend\nend").get("line", -1) == 1, "Routine definitions stay outside repeat blocks")
  var full_routine := "routine full\nrepeat 16\nrepeat 16\nwait\nend\nend\nend\ncall full"
  check(Program.compile(full_routine).get("steps", []).size() == Program.MAX_STEPS and Program.compile(full_routine + "\ncall full").get("line", -1) == 8, "Routine expansion allows exactly 256 actions and rejects a call that exceeds the limit")
+ check(Program.compile("fill\nif muddy\nwait\nend").get("line", -1) == 1, "An unknown condition marks the if line")
+ check(Program.compile("if not\nwait\nend").get("line", -1) == 0, "A negated condition requires a test")
+ check(Program.compile("if ripe\ngather").get("line", -1) == 0, "An unclosed conditional marks its opening line")
+ check(Program.compile("repeat 2\nif spring\nrepeat 2\nif thirsty\nif ripe\nwait\nend\nend\nend\nend\nend").get("line", -1) == 4, "Repeats and conditions share a bounded nesting depth")
 
  # Each garden has a complete solution using the normal commands.
  var terrace_patrol := "repeat 2\nfill\nrepeat 2\nhop east\nwater\nwait\ngather\nend\nrepeat 2\nhop west\nend\nhop north\nend"
  var spillway_solution := "routine finish_lily\n  wait\n  gather\nend\nfill\nhop east\nhop east\nwater\nwater\nhop east\nwater\ncall finish_lily\nhop west\ngather\nhop west\nhop west\nfill\nhop east\nwater\ncall finish_lily\nhop west\nhop north\nhop north\nhop east\nwater\nhop west\nfill\nhop east\ngather\nhop east\nwater\nwater\ncall finish_lily\nhop east\nwater\ncall finish_lily"
+ var patchwork_solution := "routine water_plot\n  repeat 2\n    if thirsty\n      if has_water\n        water\n      end\n    end\n  end\nend\nroutine finish_plot\n  if growing\n    wait\n  end\n  if ripe\n    gather\n  end\nend\nfill\nhop east\nhop east\ncall water_plot\nhop east\ncall water_plot\ncall finish_plot\nhop west\ncall finish_plot\nhop west\nhop west\nhop north\nhop north\nfill\nhop east\ncall water_plot\ncall finish_plot\nhop east\nhop east\ncall water_plot\ncall finish_plot"
  var solutions := [
   "fill\nrepeat 2\nhop east\nwater\nwait\ngather\nend",
   "fill\nhop east\nhop east\nwater\nwait\ngather\nhop south\nhop east\nwater\nwait\ngather\nhop west\nhop south\nwater\nwait\ngather",
@@ -202,6 +207,7 @@ func run(game) -> void:
   "fill\nhop east\nwater\nwait\ngather\nhop north\nwater\nhop west\nfill\nhop east\ngather\nhop east\nwater\nwait\ngather\nhop south\nwater\nwait\ngather",
   "fill\nhop south\nhop south\nwater\nhop south\nhop east\nwater\nwater\nwait\ngather\nhop west\nhop north\ngather\nhop north\nhop north\nfill\nhop east\nhop east\nwater\nwater\nwait\ngather\nhop south\nhop east\nhop south\nwater\nwait\ngather",
   spillway_solution,
+  patchwork_solution,
  ]
  check(solutions.size() == Program.PUZZLES.size(), "Every garden has a smoke-test solution")
  for index in solutions.size():
@@ -209,9 +215,11 @@ func run(game) -> void:
   program.load_puzzle(index)
   var compiled := Program.compile(solutions[index])
   var error := str(compiled.get("error",""))
-  for action in compiled.get("steps", []):
-   if error.is_empty():
-    error = program.step(action)
+  var instructions: Array = compiled.get("steps", [])
+  var cursor := program.next_action_index(instructions, 0)
+  while error.is_empty() and cursor < instructions.size():
+   error = program.step(instructions[cursor])
+   cursor = program.next_action_index(instructions, cursor + 1)
   check(error.is_empty() and program.harvested == program.plants.size() and program.turn == Program.PUZZLES[index].target, "Garden puzzle %d can be solved at its action target" % (index + 1))
 
  if has_garden:
@@ -372,7 +380,7 @@ func run(game) -> void:
   check(popup.garden.turn == 21 and popup.progress.garden_best.get("twin_terraces", 0) == 19 and "19 actions" in popup.score.text, "A slower clear retains the target and the lowest action count")
   await finish_by_steps(popup, "wait")
   check(popup.garden.harvested == 0 and popup.progress.garden_best.get("twin_terraces", 0) == 19, "A program that ends early does not replace a completed score")
-  popup.chooser.item_selected.emit(solutions.size() - 1)
+  popup.chooser.item_selected.emit(solutions.size() - 2)
   var spillway: Dictionary = Program.PUZZLES[popup.puzzle]
   check(spillway.id == "stone_spillway" and popup.board.get_child_count() == 16 and popup.garden.cell == Vector2i(0, 3) and "routine finish_lily" in popup.source.text, "Stone spillway opens at its lower spring with a reusable routine in the draft")
   popup.check_button.pressed.emit()
@@ -394,6 +402,39 @@ func run(game) -> void:
   popup.stop_button.pressed.emit()
   await finish_by_steps(popup, spillway_solution)
   check(popup.garden.harvested == 6 and popup.progress.garden_best.get(spillway.id, 0) == 36, "Stepping through routine calls completes Stone spillway at the target")
+  popup.chooser.item_selected.emit(solutions.size() - 1)
+  var patchwork: Dictionary = Program.PUZZLES[popup.puzzle]
+  check(patchwork.id == "patchwork_beds" and popup.board.get_child_count() == 12 and popup.garden.cell == Vector2i(0, 2) and "if thirsty" in popup.source.text, "Patchwork beds opens with empty plots and a conditional starter program")
+  popup.check_button.pressed.emit()
+  check("2 of 4 lilies harvested in 11 actions" in popup.status.text, "The starter handles an empty plot, a double lily, and a single lily")
+  popup.source.text = "if ripe\nhop north\nend"
+  popup.check_button.pressed.emit()
+  check("0 of 4 lilies harvested in 0 actions" in popup.status.text and not popup.review_button.visible, "Check handles a program whose guards skip every command")
+  press_key(KEY_F10)
+  check(popup.steps.is_empty() and popup.garden.turn == 0 and "Program ended" in popup.status.text, "Step ends a program with no eligible command")
+  popup.source.text = "if not has_water\nfill\nend\nif has_water\nhop east\nend\nif ripe\nhop north\nend"
+  popup.check_button.pressed.emit()
+  popup.review_button.pressed.emit()
+  popup.review_slider.value = 2
+  check(popup.review_slider.max_value == 2 and "Water 3 / 3" in popup.info.text and popup.source.get_executing_lines() == PackedInt32Array([4]), "Review includes both matching conditions and omits the blocked hop behind a false guard")
+  press_key(KEY_F10)
+  press_key(KEY_F10)
+  check(popup.steps.is_empty() and popup.garden.turn == 2 and popup.garden.cell == Vector2i(1, 2), "Step evaluates the following guard with the new tank state")
+  popup.source.text = patchwork_solution
+  popup.check_button.pressed.emit()
+  check("26 actions to harvest all 4 lilies · meets target" in popup.status.text and not popup.progress.solved.has(patchwork.id), "Check predicts the exact score without counting conditions")
+  popup.review_button.pressed.emit()
+  popup.review_slider.value = 4
+  check(popup.source.get_executing_lines() == PackedInt32Array([4]), "Review highlights the first water command inside nested conditions")
+  popup.review_button.pressed.emit()
+  popup.source.set_caret_line(4)
+  press_key(KEY_F9)
+  press_key(KEY_ENTER, true)
+  await wait_for_garden_pause(popup)
+  check("Breakpoint · line 5 · 3 actions" in popup.status.text and popup.garden.turn == 3, "Run reaches the breakpoint inside the matching condition")
+  popup.stop_button.pressed.emit()
+  await finish_by_steps(popup, patchwork_solution)
+  check(popup.garden.harvested == 4 and popup.progress.garden_best.get(patchwork.id, 0) == 26, "Stepping through conditions saves the verified Patchwork beds score")
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

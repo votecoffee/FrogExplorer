@@ -8,8 +8,10 @@ const PUZZLES = [
  {"id":"twin_terraces", "name":"Twin terraces", "rows":[".##", "~LL", "~LL"], "target":19, "hint":"Start at the lower spring. The two terraces have the same route. After each bed, return to the spring column and hop north.", "draft":"# Repeat a trip along each terrace\nrepeat 2\n  fill\n  # Tend the row and return west\n  hop north\nend\n"},
  {"id":"reedbank_loop", "name":"Reedbank loop", "rows":["~.H#", ".#..", "L#.L", ".H.."], "target":28, "hint":"The tank holds three doses. Pair a double lily with a single lily on each trip, then use the lanes around the stones to refill.", "draft":"# Plan two trips from the spring\nfill\n"},
  {"id":"stone_spillway", "name":"Stone spillway", "rows":[".###","~LHL",".###","~LHL"], "target":36, "hint":"Start at the lower spring. Each bed has a double lily between two single lilies. Reuse finish_lily after the last dose and refill in the west column.", "draft":"# Reuse this routine after a lily's final dose\nroutine finish_lily\n  wait\n  gather\nend\n\nfill\nhop east\nwater\ncall finish_lily\n"},
+ {"id":"patchwork_beds", "name":"Patchwork beds", "rows":["~L.H",".###","~.HL"], "target":26, "hint":"The beds mix empty spaces, single lilies, and double lilies. The starter tends the lower bed. Refill on the west bank to tend the upper bed.", "draft":"# Tend the lower bed, then reuse tend_plot in the upper bed\nroutine tend_plot\n  repeat 2\n    if thirsty\n      water\n    end\n  end\n  if growing\n    wait\n  end\n  if ripe\n    gather\n  end\nend\n\nfill\nrepeat 3\n  hop east\n  call tend_plot\nend\n"},
 ]
 const DIRECTIONS = {"north":Vector2i(0,-1), "east":Vector2i(1,0), "south":Vector2i(0,1), "west":Vector2i(-1,0)}
+const CONDITIONS := ["spring", "has_water", "thirsty", "growing", "ripe"]
 const CAPACITY = 3
 const MAX_STEPS = 256
 var rows: Array = []
@@ -33,22 +35,31 @@ static func compile(source: String) -> Dictionary:
   var command := words[0]
   if command == "routine":
    if blocks.size() != 1:
-    return _error(index, "Define routines outside repeat blocks and other routines.")
+    return _error(index, "Define routines at the top level of the program.")
    if words.size() != 2 or not words[1].is_valid_ascii_identifier():
     return _error(index, "Use routine NAME with letters, digits, or underscores. Start the name with a letter or underscore.")
    if routines.has(words[1]):
     return _error(index, "Routine %s is already defined." % words[1])
    blocks.append({"steps":[], "routine":words[1], "line":index})
    continue
-  if command == "repeat":
+  if command in ["repeat", "if"]:
    var block_limit := 6 if blocks.size() > 1 and blocks[1].has("routine") else 5
-   if words.size() != 2 or not words[1].is_valid_int() or int(words[1]) not in range(1, 17) or blocks.size() >= block_limit:
-    return _error(index, "Use repeat 1–16, with at most four levels of loops.")
-   blocks.append({"steps":[], "times":int(words[1]), "line":index})
+   if blocks.size() >= block_limit:
+    return _error(index, "Nest up to four repeat and if blocks.")
+   if command == "repeat":
+    if words.size() != 2 or not words[1].is_valid_int() or int(words[1]) not in range(1, 17):
+     return _error(index, "Use repeat 1–16.")
+    blocks.append({"steps":[], "times":int(words[1]), "line":index})
+   else:
+    var negated := words.size() == 3 and words[1] == "not"
+    var condition := words[-1]
+    if (words.size() != 2 and not negated) or condition not in CONDITIONS:
+     return _error(index, "Use if CONDITION or if not CONDITION. Try spring, has_water, thirsty, growing, or ripe.")
+    blocks.append({"steps":[], "condition":condition, "negated":negated, "line":index})
    continue
   if command == "end" and words.size() == 1:
    if blocks.size() == 1:
-    return _error(index, "There is no repeat or routine block to close.")
+    return _error(index, "There is no block to close.")
    var inner: Dictionary = blocks.pop_back()
    if inner.has("routine"):
     if inner.steps.is_empty():
@@ -56,8 +67,17 @@ static func compile(source: String) -> Dictionary:
     routines[inner.routine] = inner.steps
     continue
    var outer: Array = blocks.back().steps
+   if inner.has("condition"):
+    if inner.steps.is_empty():
+     return _error(inner.line, "Add at least one command inside this if block.")
+    if outer.size() + inner.steps.size() + 1 > MAX_STEPS:
+     return _error(index, "This if block exceeds the 256-instruction limit.")
+    # Relative skips remain valid when a repeat or routine copies this block.
+    outer.append({"condition":inner.condition, "negated":inner.negated, "skip":inner.steps.size(), "line":inner.line})
+    outer.append_array(inner.steps)
+    continue
    if outer.size() + inner.steps.size() * inner.times > MAX_STEPS:
-    return _error(index, "This loop expands beyond 256 actions.")
+    return _error(index, "This loop expands beyond 256 instructions.")
    for count in inner.times:
     outer.append_array(inner.steps)
    continue
@@ -69,7 +89,7 @@ static func compile(source: String) -> Dictionary:
     return _error(index, "Define routine %s before calling it." % words[1])
    var routine_steps: Array = routines[words[1]]
    if steps.size() + routine_steps.size() > MAX_STEPS:
-    return _error(index, "This call expands the program beyond 256 actions.")
+    return _error(index, "This call expands the program beyond 256 instructions.")
    # Expanded commands retain their original lines inside the routine.
    steps.append_array(routine_steps)
    continue
@@ -77,13 +97,13 @@ static func compile(source: String) -> Dictionary:
    if words.size() != 2 or not DIRECTIONS.has(words[1]):
     return _error(index, "Use hop north, east, south, or west.")
   elif words.size() != 1 or command not in ["fill", "water", "wait", "gather"]:
-   return _error(index, "Use hop, fill, water, wait, gather, repeat, routine, or call.")
+   return _error(index, "Use hop, fill, water, wait, gather, repeat, routine, call, or if.")
   if steps.size() >= MAX_STEPS:
-   return _error(index, "Programs can run up to 256 actions.")
+   return _error(index, "Programs can contain up to 256 instructions after expansion.")
   steps.append({"command":command, "direction":words[1] if command == "hop" else "", "line":index})
  if blocks.size() > 1:
   var unclosed: Dictionary = blocks.back()
-  var kind := "routine" if unclosed.has("routine") else "repeat block"
+  var kind := "routine" if unclosed.has("routine") else "if block" if unclosed.has("condition") else "repeat block"
   return _error(unclosed.line, "Close this %s with end." % kind)
  if blocks[0].steps.is_empty():
   return _error(0, "Add at least one action.")
@@ -123,6 +143,32 @@ func plant_status(location: Vector2i) -> String:
 
 func is_complete() -> bool:
  return harvested == plants.size()
+
+func next_action_index(instructions: Array, first: int) -> int:
+ var index := first
+ while index < instructions.size():
+  var instruction: Dictionary = instructions[index]
+  if not instruction.has("condition"):
+   break
+  var passes: bool = _meets_condition(instruction.condition) != instruction.negated
+  index += 1 if passes else 1 + int(instruction.skip)
+ return index
+
+func _meets_condition(condition: String) -> bool:
+ match condition:
+  "spring":
+   return tile(cell) == "~"
+  "has_water":
+   return tank > 0
+  "thirsty":
+   var plant: Dictionary = plants.get(cell, {})
+   return int(plant.get("need", 0)) > 0
+  "growing":
+   return plant_status(cell) == "Growing"
+  "ripe":
+   return plant_status(cell) == "Ripe"
+  _:
+   return false
 
 func step(action: Dictionary) -> String:
  var plant: Dictionary = plants.get(cell, {})
