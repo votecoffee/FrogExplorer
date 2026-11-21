@@ -10,6 +10,7 @@ var travel_menu:ExplorerTravelMenu
 var hud:ExplorerHUD
 var ros:ExplorerRosLink
 var ambience:AudioStreamPlayer
+var pond_ambience_active := true
 var marker:Label3D
 var party:ExplorerParty
 var activities:CanvasLayer
@@ -30,7 +31,8 @@ func _ready():
  hud=ExplorerHUD.new();add_child(hud);hud.toast("Welcome. Head for the pond — or climb the nearest tree.")
  marker=Label3D.new();marker.text="F / Y";marker.font_size=42;marker.pixel_size=.003;marker.billboard=BaseMaterial3D.BILLBOARD_ENABLED;marker.modulate=Color(1,.88,.28);marker.outline_size=10;add_child(marker)
  ambience=AudioStreamPlayer.new();ambience.volume_db=-17;add_child(ambience)
- if ResourceLoader.exists("res://assets/audio/woodland.wav"):
+ # The headless audio driver has no output and can retain this looping stream at exit.
+ if DisplayServer.get_name() != "headless" and ResourceLoader.exists("res://assets/audio/woodland.wav"):
   ambience.stream=load("res://assets/audio/woodland.wav");ambience.stream.loop_mode=AudioStreamWAV.LOOP_FORWARD;ambience.stream.loop_end=int(ambience.stream.get_length()*ambience.stream.mix_rate);ambience.play()
  travel=WorldTravel.new();travel.game=self;add_child(travel)
  travel_menu=ExplorerTravelMenu.new();travel_menu.game=self;add_child(travel_menu)
@@ -111,6 +113,11 @@ func _process(delta):
 
 func _notification(what):
  if what==NOTIFICATION_WM_CLOSE_REQUEST:shutdown.call_deferred(0)
+
+func set_pond_ambience(active: bool) -> void:
+ pond_ambience_active = active
+ if ambience.stream != null:
+  ambience.stream_paused = not active
 
 func shutdown(code=0):
  if quitting:return

@@ -51,7 +51,7 @@ func run(game):
  check(p.species==4 and p.flies_caught==7 and game.camera_rig.view_mode==1,"Species, score and camera survive travel")
  check(game.clock>started and t.map_epoch==epoch+1,"Clock continues and map epoch changes exactly once")
  check(game.woodland.trees.is_empty() and not game.woodland.in_water(Vector3.ZERO),"City scan does not invent climbable trunks or water volumes")
- check(game.ambience.stream_paused,"Pond ambience pauses at the city")
+ check(not game.pond_ambience_active and (game.ambience.stream == null or game.ambience.stream_paused),"City travel pauses pond ambience")
  check(game.woodland.collision_count>0,"Loaded world geometry has registered collision")
  var source=t.state().geographic_anchor
  check(source.horizontal_crs=="EPSG:3879" and source.source_srs=="EPSG:3879+5773","Geographic anchor retains the archive's declared CRS and vertical datum")
@@ -102,7 +102,7 @@ func run(game):
  check(p.metrics.factor>1.04,"Releasing and pressing LT after travel resumes normal growing")
  held.axis_value=0;Input.parse_input_event(held);game.controls._find_device()
  check(t.current_id=="home_woodland_pond" and p.is_on_floor() and game.woodland.trees.size()>=20,"Return home rebuilds the pond, collision and tree semantics")
- check(not game.ambience.stream_paused and p.species==4 and p.flies_caught==7,"Returning home restores ambience and preserves the chosen frog and score")
+ check(game.pond_ambience_active and (game.ambience.stream == null or not game.ambience.stream_paused) and p.species==4 and p.flies_caught==7,"Returning home restores ambience and preserves the chosen frog and score")
  check(t.history.back()=="home_woodland_pond" and t.history.has("helsinki_senate_square"),"Travel history records successful arrivals")
  game.controls.accept_remote({"kind":"travel","place_id":"helsinki_senate_square"});await wait(.1);await finish_trip(t)
  check(t.current_id=="helsinki_senate_square","Named protocol travel reaches the requested place")

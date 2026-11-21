@@ -29,6 +29,10 @@ class GardenPythonTests(unittest.TestCase):
                 source = f"def {routine}():\n    wait()\n{routine}()\n"
                 self.assertEqual(LOWER(source)["source"], f"routine {routine}\nwait\nend\ncall {routine}")
 
+    def test_boolean_literals_support_continuous_programs_and_negation(self):
+        source = "while True:\n    if not False and empty_bed():\n        plant()\n"
+        self.assertEqual(LOWER(source)["source"], "while always\nif always and empty_bed\nplant\nend\nend")
+
     def test_unsupported_syntax_is_rejected_at_its_source_line(self):
         for source, line in [
             ("fill()\nimport math\n", 1),

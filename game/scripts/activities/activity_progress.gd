@@ -36,7 +36,7 @@ func load_from(path: String) -> void:
     var data := JSON.new()
     if data.parse(FileAccess.get_file_as_string(folder.path_join(name))) == OK and data.data is Array:
      _remember_splits(course, record[1], data.data, milliseconds)
- for puzzle in Programs.PUZZLES:
+ for puzzle in Programs.GARDENS:
   var id: String = puzzle.id
   var draft := folder.path_join("draft-" + id + ".txt")
   if FileAccess.file_exists(draft):
@@ -44,6 +44,8 @@ func load_from(path: String) -> void:
   var python_draft := folder.path_join("draft-" + id + ".py")
   if FileAccess.file_exists(python_draft):
    python_drafts[id] = FileAccess.get_file_as_string(python_draft)
+  if puzzle.get("practice", false):
+   continue
   var marker := "solved-" + id
   if marker in names:
    solved[id] = true

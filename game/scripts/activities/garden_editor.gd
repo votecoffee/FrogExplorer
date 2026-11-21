@@ -111,7 +111,7 @@ func _ready() -> void:
  right.add_theme_constant_override("separation", 9)
  pair.add_child(right)
  chooser = OptionButton.new()
- for item in Programs.PUZZLES:
+ for item in Programs.GARDENS:
   chooser.add_item(item.name)
  chooser.item_selected.connect(_choose)
  right.add_child(chooser)
@@ -207,7 +207,7 @@ func flush_draft() -> void:
  draft_timer.stop()
  if puzzle >= 0 and source.text != loaded_draft:
   loaded_draft = source.text
-  if progress.edit_draft(Programs.PUZZLES[puzzle].id, loaded_draft, python_mode) != OK:
+  if progress.edit_draft(Programs.GARDENS[puzzle].id, loaded_draft, python_mode) != OK:
    hud.toast("Could not save activity progress.")
  elif progress.flush() != OK:
   hud.toast("Could not save activity progress.")
@@ -216,9 +216,9 @@ func _toggle_best_program() -> void:
  if best_panel.visible:
   _close_best_program()
   return
- if not steps.is_empty():
+ if garden.practice or not steps.is_empty():
   return
- var item: Dictionary = Programs.PUZZLES[puzzle]
+ var item: Dictionary = Programs.GARDENS[puzzle]
  var recorded: String = progress.garden_best_programs.get(item.id, "")
  if recorded.is_empty():
   return
@@ -264,7 +264,7 @@ func _close_best_program() -> void:
  source.grab_focus()
 
 func _choose(index: int) -> void:
- if not steps.is_empty() or not progress.lesson_available(Programs.PUZZLES[index], progress.earned_lilies()):
+ if not steps.is_empty() or not progress.lesson_available(Programs.GARDENS[index], progress.earned_lilies()):
   chooser.select(puzzle)
   return
  flush_draft()
@@ -288,11 +288,11 @@ func _select_language(index: int) -> void:
  _close_best_program()
  python_mode = index == 0
  language.select(index)
- _load_draft()
+ _load_draft(not garden.practice)
  source.grab_focus()
 
-func _load_draft() -> void:
- var item: Dictionary = Programs.PUZZLES[puzzle]
+func _load_draft(reset_board := true) -> void:
+ var item: Dictionary = Programs.GARDENS[puzzle]
  var saved := progress.python_drafts if python_mode else progress.drafts
  loaded_draft = str(saved.get(item.id, item.python_draft if python_mode else item.draft))
  _color_code(source, python_mode)
@@ -301,7 +301,11 @@ func _load_draft() -> void:
  guide.text = PYTHON_GUIDE if python_mode else CLASSIC_GUIDE
  source.clear_breakpointed_lines()
  source.text = loaded_draft
- _reset()
+ if reset_board:
+  _reset()
+ else:
+  _discard_check()
+  _stop()
  hint.text = item.hint
 
 func _clear_program() -> void:
@@ -316,13 +320,13 @@ func _reset() -> void:
  _clear_program()
  source.clear_executing_lines()
  garden.load_puzzle(puzzle)
- status.text = "Harvest every lily. Run or Step starts from a fresh board."
+ status.text = "Run or Step tends the current nursery." if garden.practice else "Harvest every lily. Run or Step starts from a fresh board."
  _draw()
 
 func _stop() -> void:
  _clear_program()
  source.clear_executing_lines()
- status.text = "Stopped. Run or Step starts from a fresh board."
+ status.text = "Stopped. Run or Step continues from the current garden." if garden.practice else "Stopped. Run or Step starts from a fresh board."
  _draw()
 
 func _compile(text: String, python: bool) -> Dictionary:
@@ -350,8 +354,14 @@ func _check_code() -> void:
  var line: int = checked_route.line
  if line >= 0:
   _line_error("Check · Line %d · %s" % [line + 1, checked_route.error], line)
+ elif preview.practice:
+  var initial: Programs = checked_route.initial
+  var actions_count: int = checked_route.actions.size()
+  var unit := "action" if actions_count == 1 else "actions"
+  var harvest := "Check · Harvested %d in %d %s" % [preview.harvested - initial.harvested, actions_count, unit]
+  status.text = harvest + (" · Preview limit" if checked_route.limited else "")
  elif preview.is_complete():
-  var over: int = preview.turn - Programs.PUZZLES[puzzle].target
+  var over: int = preview.turn - Programs.GARDENS[puzzle].target
   var target := "meets target" if over <= 0 else "%d over target" % over
   status.text = "Check · %d actions to harvest all %d lilies · %s" % [preview.turn, preview.harvested, target]
  else:
@@ -361,20 +371,25 @@ func _check_code() -> void:
   review_button.show()
 
 func _trace(commands: Array) -> Dictionary:
- var preview := Programs.new()
- preview.load_puzzle(puzzle)
+ var initial := Programs.new()
+ if garden.practice:
+  initial = garden.copy_board() as Programs
+ else:
+  initial.load_puzzle(puzzle)
+ var preview := initial.copy_board() as Programs
  var traced: Array[Dictionary] = []
  var index := preview.next_action_index(commands, 0)
- while index < commands.size():
+ while index < commands.size() and (not preview.practice or traced.size() < Programs.MAX_STEPS):
   var action: Dictionary = commands[index]
   var error := preview.step(action)
   if not error.is_empty():
-   return {"actions":traced, "preview":preview, "line":action.line, "error":error}
+   return {"actions":traced, "initial":initial, "preview":preview, "line":action.line, "error":error}
   traced.append(action)
   if preview.is_complete():
    break
   index = preview.next_action_index(commands, index + 1)
- return {"actions":traced, "preview":preview, "line":preview.runtime_error_line, "error":preview.runtime_error}
+ return {"actions":traced, "initial":initial, "preview":preview, "line":preview.runtime_error_line,
+         "error":preview.runtime_error, "limited":preview.practice and index < commands.size()}
 
 func _toggle_review() -> void:
  if best_panel.visible:
@@ -422,8 +437,8 @@ func _draw_review(value: float) -> void:
  var line: int = route.line
  var editor := best_source if replaying_best else source
  var count := clampi(roundi(value), 0, traced.size())
- var preview := Programs.new()
- preview.load_puzzle(puzzle)
+ var initial: Programs = route.initial
+ var preview := initial.copy_board() as Programs
  for index in count:
   preview.step(traced[index])
  var blocked := line >= 0 and count == traced.size()
@@ -447,7 +462,10 @@ func _prepare_program() -> bool:
  if steps.is_empty():
   return false
  submitted_program = source.text
- garden.load_puzzle(puzzle)
+ if garden.practice:
+  garden.reset_program()
+ else:
+  garden.load_puzzle(puzzle)
  source.clear_executing_lines()
  offset = garden.next_action_index(steps, 0)
  if offset == steps.size():
@@ -518,7 +536,7 @@ func _advance() -> void:
   if garden.is_complete():
    var completed_program := submitted_program
    _clear_program()
-   var item: Dictionary = Programs.PUZZLES[puzzle]
+   var item: Dictionary = Programs.GARDENS[puzzle]
    var previous: int = progress.garden_best.get(item.id, 0)
    if progress.complete_puzzle(item.id, garden.turn, completed_program, python_mode) != OK:
     hud.toast("Could not save activity progress.")
@@ -538,17 +556,21 @@ func _finish_incomplete() -> void:
  if not garden.runtime_error.is_empty():
   var line: int = garden.runtime_error_line
   _line_error("Line %d · %s" % [line + 1, garden.runtime_error], line)
+ elif garden.practice:
+  status.text = "Program ended · Harvested %d" % garden.harvested
  else:
   status.text = "Program ended · %d lilies remain." % (garden.plants.size() - garden.harvested)
 
 func _draw() -> void:
- var item: Dictionary = Programs.PUZZLES[puzzle]
- var best_actions: int = progress.garden_best.get(item.id, 0)
- var target_status := "Target met" if best_actions > 0 and best_actions <= item.target else "Target"
- var best_text := "%d actions" % best_actions if best_actions > 0 else "—"
- score.text = "%s · %d actions\nPersonal best · %s" % [target_status, item.target, best_text]
+ var item: Dictionary = Programs.GARDENS[puzzle]
+ score.visible = not garden.practice
+ if score.visible:
+  var best_actions: int = progress.garden_best.get(item.id, 0)
+  var target_status := "Target met" if best_actions > 0 and best_actions <= item.target else "Target"
+  var best_text := "%d actions" % best_actions if best_actions > 0 else "—"
+  score.text = "%s · %d actions\nPersonal best · %s" % [target_status, item.target, best_text]
  var active := not steps.is_empty()
- best_button.visible = progress.garden_best_programs.has(item.id)
+ best_button.visible = score.visible and progress.garden_best_programs.has(item.id)
  best_button.disabled = active
  check_button.disabled = active
  run_button.text = ("Pause" if running else "Resume" if active else "Run") + " · Ctrl+Enter"
@@ -566,8 +588,8 @@ func _draw() -> void:
 func _draw_lessons(active: bool) -> void:
  var lilies := progress.earned_lilies()
  var next_unlock := 0
- for index in Programs.PUZZLES.size():
-  var item: Dictionary = Programs.PUZZLES[index]
+ for index in Programs.GARDENS.size():
+  var item: Dictionary = Programs.GARDENS[index]
   var available := progress.lesson_available(item, lilies)
   var label: String = item.name
   if not available:
@@ -581,11 +603,12 @@ func _draw_lessons(active: bool) -> void:
  lesson_status.text = "Lilies earned · %d" % lilies
  if next_unlock > 0:
   lesson_status.text += "   Next unlock · %d" % next_unlock
- next_lesson_button.visible = progress.solved.has(Programs.PUZZLES[puzzle].id) and progress.next_lesson(lilies) >= 0
+ next_lesson_button.visible = progress.solved.has(Programs.GARDENS[puzzle].id) and progress.next_lesson(lilies) >= 0
  next_lesson_button.disabled = active
 
 func _draw_board(view: Programs, blocked := false) -> void:
- info.text = "Water %d / %d    Lilies %d / %d" % [view.tank, Programs.CAPACITY, view.harvested, view.plants.size()]
+ var harvest := "Harvested %d" % view.harvested if view.practice else "Lilies %d / %d" % [view.harvested, view.plants.size()]
+ info.text = "Water %d / %d    %s" % [view.tank, Programs.CAPACITY, harvest]
  for child in board.get_children():
   board.remove_child(child)
   child.queue_free()

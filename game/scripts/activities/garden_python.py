@@ -41,6 +41,8 @@ def direction(node):
 
 
 def clauses(node, routines, inverted=False):
+    if isinstance(node, ast.Constant) and type(node.value) is bool:
+        return [["always" if node.value != inverted else "not always"]]
     if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
         return clauses(node.operand, routines, not inverted)
     if isinstance(node, ast.BoolOp):

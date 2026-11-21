@@ -259,13 +259,25 @@ func run(game) -> void:
    cursor = program.next_action_index(instructions, cursor + 1)
   check(error.is_empty() and program.runtime_error.is_empty() and program.is_complete() and program.turn == Program.PUZZLES[index].target, "Garden puzzle %d can be solved at its action target" % (index + 1))
 
+ var open_nursery := Program.PUZZLES.size()
+ var nursery_loop := Program.new()
+ nursery_loop.load_puzzle(open_nursery)
+ var ongoing: Array = Program.compile("while always\n  wait\nend").steps
+ var next := nursery_loop.next_action_index(ongoing, 0)
+ for action in Program.MAX_STEPS + 17:
+  if next >= ongoing.size():
+   break
+  nursery_loop.step(ongoing[next])
+  next = nursery_loop.next_action_index(ongoing, next + 1)
+ check(nursery_loop.turn == Program.MAX_STEPS + 17 and next < ongoing.size() and nursery_loop.runtime_error.is_empty(), "Nursery practice loops keep running past the scored action and iteration limits")
+
  if has_garden:
   press_key(KEY_F5)
   await frames(4)
   var popup = game.activities.garden
   check(popup.visible and game.pilot.paused and popup.source.has_focus(), "The garden popup owns keyboard focus and pauses movement")
   check("Target · 9 actions" in popup.score.text and "Personal best · —" in popup.score.text and not popup.best_button.visible, "A fresh board displays its target and an empty personal best")
-  check(popup.puzzle == 0 and popup.lesson_status.text == "Lilies earned · 0   Next unlock · 2" and not popup.chooser.is_item_disabled(2) and popup.chooser.is_item_disabled(3) and popup.chooser.is_item_disabled(10), "A new garden opens the first lesson and shows the next lily milestone")
+  check(popup.puzzle == 0 and popup.lesson_status.text == "Lilies earned · 0   Next unlock · 2" and not popup.chooser.is_item_disabled(2) and popup.chooser.is_item_disabled(3) and popup.chooser.is_item_disabled(10) and popup.chooser.is_item_disabled(open_nursery), "A new garden opens the first lesson and shows the next lily milestone")
   popup.chooser.item_selected.emit(3)
   check(popup.puzzle == 0 and popup.chooser.selected == 0, "A locked lesson cannot replace the current draft")
   popup.progress.drafts["compass_banks"] = "fill\n"
@@ -763,6 +775,50 @@ func run(game) -> void:
   popup.best_button.pressed.emit()
   popup.review_slider.value = popup.review_slider.max_value
   check("Best run · 16 / 16 actions" == popup.review_position.text and "Lilies 3 / 3" in popup.info.text, "Best program replays planting and harvesting")
+
+  var earned_for_practice: int = popup.progress.earned_lilies()
+  popup.chooser.item_selected.emit(open_nursery)
+  var practice_start: String = popup.source.text
+  check(popup.puzzle == open_nursery and popup.garden.practice and not popup.score.visible and "while True:" in practice_start, "Open nursery offers continuous Python practice without an action target")
+  popup.source.text = "while True:\n    continue\n"
+  popup.check_button.pressed.emit()
+  check("Line 1" in popup.status.text and "without doing an action" in popup.status.text, "The nursery stops a loop that cannot advance")
+  popup.source.text = practice_start
+  popup.check_button.pressed.emit()
+  check(popup.checked_route.actions.size() == Program.MAX_STEPS and "Preview limit" in popup.status.text and popup.garden.turn == 0, "Check previews the first 256 nursery actions on a copy")
+  press_key(KEY_ENTER, true)
+  for action in 30:
+   popup._process(.25)
+  check(popup.running and popup.garden.harvested == 4 and popup.garden.cell == Vector2i(0, 1) and popup.garden.plant_status(Vector2i(1, 0)) == Program.EMPTY_BED, "The nursery replants after harvest and keeps running after the first circuit")
+  press_key(KEY_ENTER, true)
+  await frames(4)
+  check(not popup.running and popup.garden.turn == 30 and "Harvested 4" in popup.info.text, "Ctrl+Enter pauses the nursery without advancing the board")
+  press_key(KEY_F10)
+  popup.stop_button.pressed.emit()
+  check(popup.garden.turn == 31 and popup.garden.harvested == 4 and popup.source.editable, "Step and Stop work on the paused nursery")
+  await finish_by_steps(popup, "hop(north)\nhop(east)\nplant()\n")
+  check(popup.garden.turn == 34 and popup.garden.harvested == 4 and popup.garden.plant_status(Vector2i(1, 0)) == "Thirsty ×1", "A new program starts at the current nursery position")
+  popup.language.item_selected.emit(1)
+  check(popup.garden.turn == 34 and "while always" in popup.source.text, "Changing source format keeps the nursery state")
+  popup.language.item_selected.emit(0)
+  popup.source.text = "water()\nwait()\ngather()\n"
+  popup.check_button.pressed.emit()
+  check("Harvested 1 in 3 actions" in popup.status.text and popup.garden.turn == 34, "Check projects harvest from the current nursery state")
+  popup.review_button.pressed.emit()
+  var captured_nursery: bool = "Thirsty" in popup.board.get_child(1).get_child(0).text and "Harvested 4" in popup.info.text
+  popup.review_slider.value = 3
+  check(captured_nursery and "Empty bed" in popup.board.get_child(1).get_child(0).text and "Harvested 5" in popup.info.text and popup.garden.harvested == 4, "Review replays the captured nursery without changing the live bed")
+  await finish_by_steps(popup, "water()\nwait()\ngather()\n")
+  check(popup.garden.harvested == 5 and popup.progress.earned_lilies() == earned_for_practice and not popup.best_button.visible, "Nursery harvest counts stay separate from lesson records")
+  await finish_by_steps(popup, "plant()\n")
+  popup.source.text = practice_start
+  press_key(KEY_ENTER, true)
+  for action in 8:
+   popup._process(.25)
+  press_key(KEY_ENTER, true)
+  check(popup.garden.turn == 46 and popup.garden.harvested == 6, "The starter returns to the spring and tends a partially planted row on restart")
+  popup._reset()
+  check(popup.garden.turn == 0 and popup.garden.harvested == 0 and popup.garden.cell == Vector2i(0, 1), "Reset restores the starting nursery")
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

@@ -220,7 +220,7 @@ func _commit(item:Dictionary,spawn:Dictionary):
  game.controls.remote_until=0;game.controls.velocity_until=0;game.controls.size_until=0
  game.controls.remote_move=Vector2.ZERO;game.controls.remote_aux=Vector2.ZERO
  game.controls.size_axis=0;game.controls.resize_wait_for_release=true
- game.ambience.stream_paused=item.provider!="pond"
+ game.set_pond_ambience(item.provider=="pond")
  staged=null;current_id=item.id;map_epoch+=1;busy=false;status="idle";progress=1.0
  if game.party:game.party.after_travel()
  history.append(current_id)

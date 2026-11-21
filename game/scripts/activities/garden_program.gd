@@ -17,8 +17,87 @@ const PUZZLES = [
  {"id":"low_water_row", "name":"Low water row", "unlock_lilies":18, "rows":["~LLHL"], "target":25, "hint":"The first sweep runs out of water at the double lily. Return to the spring, refill, and sweep again. The routine skips plots you already gathered.", "draft":"# Leave the row to refill when a plot still needs water\nroutine sweep\n  while clear east\n    hop east\n    if not lily\n      continue\n    end\n    while thirsty and has_water\n      water\n    end\n    if thirsty\n      break\n    end\n    wait\n    gather\n  end\nend\n\nfill\ncall sweep\n", "python_draft":"# Leave the row to refill when a plot still needs water\ndef sweep():\n    while clear(east):\n        hop(east)\n        if not lily():\n            continue\n        while thirsty() and has_water():\n            water()\n        if thirsty():\n            break\n        wait()\n        gather()\n\nfill()\nsweep()\n"},
  {"id":"nursery_beds", "name":"Nursery beds", "unlock_lilies":26, "rows":["~B.BL"], "target":16, "hint":"Plant the brown seedbeds, then water and gather their lilies. The starter tends the first bed. Keep moving east and reuse tend to handle a blank path, another seedbed, and a lily already planted.", "draft":"# Tend the first bed, then reuse the routine along the row\nroutine tend\n  if empty_bed\n    plant\n  end\n  if lily\n    water\n    wait\n    gather\n  end\nend\n\nfill\nhop east\ncall tend\n", "python_draft":"# Tend the first bed, then reuse the function along the row\ndef tend():\n    if empty_bed():\n        plant()\n    if lily():\n        water()\n        wait()\n        gather()\n\nfill()\nhop(east)\ntend()\n"},
 ]
+const OPEN_NURSERY := {
+ "id":"open_nursery", "name":"Open nursery", "unlock_lilies":26, "practice":true,
+ "rows":[".BB","~..",".BB"],
+ "hint":"Harvested beds are ready to plant again. Stop keeps the current garden. Reset board clears it and returns Pondbot to the spring.",
+ "draft":"""# Keep both nursery rows growing
+routine tend_row toward back
+  fill
+  hop toward
+  repeat 2
+    hop east
+    if empty_bed
+      plant
+    end
+    if thirsty
+      water
+    end
+    if growing
+      wait
+    end
+    if ripe
+      gather
+    end
+  end
+  repeat 2
+    hop west
+  end
+  hop back
+end
+
+# Find the spring even if the previous run stopped between beds
+while clear west
+  hop west
+end
+if not spring
+  if spring north
+    hop north
+  else
+    hop south
+  end
+end
+
+while always
+  call tend_row north south
+  call tend_row south north
+end
+""",
+ "python_draft":"""# Keep both nursery rows growing
+def tend_row(toward, back):
+    fill()
+    hop(toward)
+    for _ in range(2):
+        hop(east)
+        if empty_bed():
+            plant()
+        if thirsty():
+            water()
+        if growing():
+            wait()
+        if ripe():
+            gather()
+    for _ in range(2):
+        hop(west)
+    hop(back)
+
+# Find the spring even if the previous run stopped between beds
+while clear(west):
+    hop(west)
+if not spring():
+    if spring(north):
+        hop(north)
+    else:
+        hop(south)
+
+while True:
+    tend_row(north, south)
+    tend_row(south, north)
+""",
+}
+const GARDENS := PUZZLES + [OPEN_NURSERY]
 const DIRECTIONS = {"north":Vector2i(0,-1), "east":Vector2i(1,0), "south":Vector2i(0,1), "west":Vector2i(-1,0)}
-const CONDITIONS := ["spring", "has_water", "empty_bed", "lily", "thirsty", "growing", "ripe"]
+const CONDITIONS := ["always", "spring", "has_water", "empty_bed", "lily", "thirsty", "growing", "ripe"]
 const PLOT_DOSES := {"B":0, "L":1, "H":2}
 const EMPTY_BED := "Empty bed"
 const CAPACITY = 3
@@ -27,6 +106,7 @@ const MAX_WHILE_ITERATIONS := 16
 const PYTHON_COMPILER := "res://scripts/activities/garden_python.py"
 var rows: Array = []
 var plants: Dictionary = {}
+var practice := false
 var cell := Vector2i.ZERO
 var tank := 0
 var turn := 0
@@ -276,6 +356,8 @@ static func _parse_condition(words: PackedStringArray, parameters: PackedStringA
   elif index < words.size() and _is_direction(words[index], parameters):
    if condition == "has_water":
     return {"error":"Use has_water without a direction. It checks Pondbot's tank."}
+   if condition == "always":
+    return {"error":"Use always without a direction."}
    direction = words[index]
    index += 1
   clause.append({"condition":condition, "direction":direction, "negated":negated})
@@ -304,14 +386,14 @@ static func puzzle_lilies(puzzle: Dictionary) -> int:
  return total
 
 func load_puzzle(index: int) -> void:
- rows = PUZZLES[index].rows
+ var item: Dictionary = GARDENS[index]
+ rows = item.rows
+ practice = item.get("practice", false)
  plants.clear()
  tank = 0
  turn = 0
  harvested = 0
- runtime_error = ""
- runtime_error_line = -1
- while_entries.clear()
+ reset_program()
  for y in rows.size():
   for x in rows[y].length():
    var location := Vector2i(x, y)
@@ -320,6 +402,22 @@ func load_puzzle(index: int) -> void:
     cell = location
    elif PLOT_DOSES.has(plot):
     plants[location] = {"need":PLOT_DOSES[plot], "ready":-1, "harvested":false, "planted":plot != "B"}
+
+func reset_program() -> void:
+ runtime_error = ""
+ runtime_error_line = -1
+ while_entries.clear()
+
+func copy_board() -> RefCounted:
+ var copy = get_script().new()
+ copy.rows = rows
+ copy.plants = plants.duplicate(true)
+ copy.practice = practice
+ copy.cell = cell
+ copy.tank = tank
+ copy.turn = turn
+ copy.harvested = harvested
+ return copy
 
 func tile(location: Vector2i) -> String:
  if location.y < 0 or location.y >= rows.size() or location.x < 0 or location.x >= rows[location.y].length():
@@ -339,7 +437,7 @@ func plant_status(location: Vector2i) -> String:
  return "Ripe" if turn >= plant.ready else "Growing"
 
 func is_complete() -> bool:
- return harvested == plants.size()
+ return not practice and harvested == plants.size()
 
 func next_action_index(instructions: Array, first: int) -> int:
  var index := first
@@ -349,7 +447,7 @@ func next_action_index(instructions: Array, first: int) -> int:
    index -= int(instruction.back)
    continue
   if not instruction.has("skip"):
-   if turn >= MAX_STEPS:
+   if not practice and turn >= MAX_STEPS:
     runtime_error = "The program reached its %d-action limit." % MAX_STEPS
     runtime_error_line = instruction.line
    break
@@ -361,7 +459,7 @@ func next_action_index(instructions: Array, first: int) -> int:
     var entry: Dictionary = while_entries.get(index, {"turn":-1, "iterations":0})
     if entry.turn == turn:
      runtime_error = "This while loop came back without doing an action."
-    elif entry.iterations >= MAX_WHILE_ITERATIONS:
+    elif not practice and entry.iterations >= MAX_WHILE_ITERATIONS:
      runtime_error = "This while loop reached its %d-iteration limit." % MAX_WHILE_ITERATIONS
     if not runtime_error.is_empty():
      runtime_error_line = instruction.line
@@ -388,6 +486,8 @@ func _meets_condition(condition: String, direction: String) -> bool:
  if not direction.is_empty():
   location += DIRECTIONS[direction]
  match condition:
+  "always":
+   return true
   "clear":
    return tile(location) != "#"
   "spring":
@@ -439,7 +539,11 @@ func step(action: Dictionary) -> String:
   "gather":
    if plant_status(cell) != "Ripe":
     return "Gather a ripe lily. A freshly watered lily needs one more turn."
-   plant.harvested = true
+   if practice and tile(cell) == "B":
+    plant.planted = false
+    plant.ready = -1
+   else:
+    plant.harvested = true
    harvested += 1
  turn += 1
  return ""
