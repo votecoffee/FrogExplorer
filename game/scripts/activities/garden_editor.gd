@@ -11,6 +11,11 @@ var progress: Progress
 var draft_timer: Timer
 var loaded_draft := ""
 var source: CodeEdit
+var actions: HBoxContainer
+var best_button: Button
+var best_panel: VBoxContainer
+var best_title: Label
+var best_source: CodeEdit
 var status: Label
 var board: GridContainer
 var info: Label
@@ -26,6 +31,7 @@ var run_button: Button
 var step_button: Button
 var stop_button: Button
 var steps: Array = []
+var submitted_program := ""
 var offset := 0
 var breakpoint_offset := -1
 var interval := 0.0
@@ -56,7 +62,7 @@ func _ready() -> void:
  var left := VBoxContainer.new()
  left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  pair.add_child(left)
- var actions := HBoxContainer.new()
+ actions = HBoxContainer.new()
  left.add_child(actions)
  check_button = _button(actions, "Check", _check_code)
  check_button.tooltip_text = "Check the draft on a fresh board"
@@ -64,9 +70,7 @@ func _ready() -> void:
  step_button = _button(actions, "Step · F10", _step)
  stop_button = _button(actions, "Stop", _stop)
  _button(actions, "Reset board", _reset)
- source = CodeEdit.new()
- source.size_flags_vertical = Control.SIZE_EXPAND_FILL
- source.gutters_draw_line_numbers = true
+ source = _code_edit()
  source.gutters_draw_breakpoints_gutter = true
  source.gutters_draw_executing_lines = true
  source.highlight_current_line = true
@@ -77,13 +81,16 @@ func _ready() -> void:
  draft_timer.timeout.connect(flush_draft)
  add_child(draft_timer)
  source.text_changed.connect(_queue_save)
- source.add_theme_font_size_override("font_size", 18)
- var ink := CodeHighlighter.new()
- for word in ["hop", "fill", "water", "wait", "gather", "repeat", "routine", "call", "if", "else", "while", "not", "end"]:
-  ink.add_keyword_color(word, Color("#8bd5bc"))
- ink.add_color_region("#", "", Color("#a5ad99"), true)
- source.syntax_highlighter = ink
  left.add_child(source)
+ best_panel = VBoxContainer.new()
+ best_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+ left.add_child(best_panel)
+ best_title = hud.label("", 17, Color("#f3ebb4"))
+ best_panel.add_child(best_title)
+ best_source = _code_edit()
+ best_source.editable = false
+ best_panel.add_child(best_source)
+ best_panel.hide()
  var right := VBoxContainer.new()
  right.custom_minimum_size.x = 285
  right.add_theme_constant_override("separation", 9)
@@ -98,6 +105,7 @@ func _ready() -> void:
  score = hud.label("", 15, Color("#b9dccc"))
  score.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  right.add_child(score)
+ best_button = _button(right, "Best program", _toggle_best_program)
  review_button = _button(right, "Review", _toggle_review)
  review_button.hide()
  review_controls = VBoxContainer.new()
@@ -128,6 +136,18 @@ func _ready() -> void:
  _choose(0)
  hide()
 
+func _code_edit() -> CodeEdit:
+ var editor := CodeEdit.new()
+ editor.size_flags_vertical = Control.SIZE_EXPAND_FILL
+ editor.gutters_draw_line_numbers = true
+ editor.add_theme_font_size_override("font_size", 18)
+ var ink := CodeHighlighter.new()
+ for word in ["hop", "fill", "water", "wait", "gather", "repeat", "routine", "call", "if", "else", "while", "not", "end"]:
+  ink.add_keyword_color(word, Color("#8bd5bc"))
+ ink.add_color_region("#", "", Color("#a5ad99"), true)
+ editor.syntax_highlighter = ink
+ return editor
+
 func _button(parent: Container, label: String, action: Callable) -> Button:
  var button := Button.new()
  button.text = label
@@ -150,6 +170,7 @@ func _close() -> void:
  if not steps.is_empty():
   _stop()
  _close_review()
+ _close_best_program()
  hide()
  dismissed.emit()
 
@@ -172,8 +193,41 @@ func flush_draft() -> void:
  elif progress.flush() != OK:
   hud.toast("Could not save activity progress.")
 
+func _toggle_best_program() -> void:
+ if best_panel.visible:
+  _close_best_program()
+  return
+ if not steps.is_empty():
+  return
+ var item: Dictionary = Programs.PUZZLES[puzzle]
+ var recorded: String = progress.garden_best_programs.get(item.id, "")
+ if recorded.is_empty():
+  return
+ _close_review()
+ best_title.text = "%s · %d actions" % [item.name, progress.garden_best[item.id]]
+ best_source.text = recorded
+ best_source.set_caret_line(0)
+ best_source.set_caret_column(0)
+ actions.hide()
+ source.hide()
+ best_panel.show()
+ best_button.text = "Back to draft"
+ review_button.disabled = true
+ best_source.grab_focus()
+
+func _close_best_program() -> void:
+ if not best_panel.visible:
+  return
+ best_panel.hide()
+ actions.show()
+ source.show()
+ best_button.text = "Best program"
+ review_button.disabled = false
+ source.grab_focus()
+
 func _choose(index: int) -> void:
  flush_draft()
+ _close_best_program()
  puzzle = index
  chooser.select(index)
  var item: Dictionary = Programs.PUZZLES[index]
@@ -186,6 +240,7 @@ func _choose(index: int) -> void:
 func _clear_program() -> void:
  running = false
  steps.clear()
+ submitted_program = ""
  offset = 0
  breakpoint_offset = -1
 
@@ -211,7 +266,7 @@ func _compile_draft() -> Array:
  return result.steps
 
 func _check_code() -> void:
- if not steps.is_empty():
+ if best_panel.visible or not steps.is_empty():
   return
  _discard_check()
  checked_source = source.text
@@ -247,6 +302,8 @@ func _check_code() -> void:
   review_button.show()
 
 func _toggle_review() -> void:
+ if best_panel.visible:
+  return
  if review_controls.visible:
   _close_review()
   return
@@ -298,12 +355,15 @@ func _draw_review(value: float) -> void:
  _draw_board(preview, blocked)
 
 func _prepare_program() -> bool:
+ if best_panel.visible:
+  return false
  if not steps.is_empty():
   return true
  _discard_check()
  steps = _compile_draft()
  if steps.is_empty():
   return false
+ submitted_program = source.text
  garden.load_puzzle(puzzle)
  source.clear_executing_lines()
  offset = garden.next_action_index(steps, 0)
@@ -373,10 +433,11 @@ func _advance() -> void:
  else:
   _mark_line(action.line)
   if garden.is_complete():
+   var completed_program := submitted_program
    _clear_program()
    var item: Dictionary = Programs.PUZZLES[puzzle]
    var previous: int = progress.garden_best.get(item.id, 0)
-   if progress.complete_puzzle(item.id, garden.turn) != OK:
+   if progress.complete_puzzle(item.id, garden.turn, completed_program) != OK:
     hud.toast("Could not save activity progress.")
    status.text = "Puzzle complete · %d lilies in %d actions" % [garden.harvested, garden.turn]
    if previous > garden.turn:
@@ -405,6 +466,8 @@ func _draw() -> void:
  var best_text := "%d actions" % best_actions if best_actions > 0 else "—"
  score.text = "%s · %d actions\nPersonal best · %s" % [target_status, item.target, best_text]
  var active := not steps.is_empty()
+ best_button.visible = progress.garden_best_programs.has(item.id)
+ best_button.disabled = active
  check_button.disabled = active
  run_button.text = ("Pause" if running else "Resume" if active else "Run") + " · Ctrl+Enter"
  step_button.disabled = running
@@ -448,8 +511,13 @@ func _input(event: InputEvent) -> void:
   return
  if event is InputEventKey and event.pressed and not event.echo:
   if event.keycode == KEY_ESCAPE:
-   _close()
+   if best_panel.visible:
+    _close_best_program()
+   else:
+    _close()
    get_viewport().set_input_as_handled()
+  elif best_panel.visible:
+   return
   elif event.ctrl_pressed and event.keycode in [KEY_ENTER, KEY_KP_ENTER]:
    _run()
    get_viewport().set_input_as_handled()

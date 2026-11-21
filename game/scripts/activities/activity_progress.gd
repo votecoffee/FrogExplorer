@@ -11,6 +11,7 @@ var split_records: Dictionary = {}
 var drafts: Dictionary = {}
 var solved: Dictionary = {}
 var garden_best: Dictionary = {}
+var garden_best_programs: Dictionary = {}
 var folder := ""
 var pending: Dictionary = {}
 
@@ -42,13 +43,23 @@ func load_from(path: String) -> void:
   if marker in names:
    solved[id] = true
   var prefix := marker + "-"
+  var best_actions := Programs.MAX_STEPS + 1
+  var best_file := ""
   for name in names:
    if not name.begins_with(prefix):
     continue
    var count := name.trim_prefix(prefix)
-   if count.is_valid_int() and int(count) in range(1, Programs.MAX_STEPS + 1):
-    solved[id] = true
-    garden_best[id] = mini(int(garden_best.get(id, Programs.MAX_STEPS + 1)), int(count))
+   if count.is_valid_int() and int(count) in range(1, best_actions):
+    best_actions = int(count)
+    best_file = name
+  if not best_file.is_empty():
+   solved[id] = true
+   garden_best[id] = best_actions
+   var program := FileAccess.get_file_as_string(folder.path_join(best_file))
+   if program.is_empty():
+    garden_best_programs.erase(id)
+   else:
+    garden_best_programs[id] = program
 
 func comparison(course: String, layout: String, checkpoints: int) -> Array:
  return split_records.get(_split_key(course, layout, checkpoints), [])
@@ -93,15 +104,17 @@ func edit_draft(id: String, text: String) -> Error:
  drafts[id] = text
  return _save("draft-" + id + ".txt", text)
 
-func complete_puzzle(id: String, actions: int) -> Error:
- if actions <= 0 or actions > Programs.MAX_STEPS:
+func complete_puzzle(id: String, actions: int, program: String) -> Error:
+ if actions <= 0 or actions > Programs.MAX_STEPS or program.is_empty():
   return ERR_INVALID_PARAMETER
  solved[id] = true
- if actions >= int(garden_best.get(id, Programs.MAX_STEPS + 1)):
+ var previous: int = garden_best.get(id, Programs.MAX_STEPS + 1)
+ if actions > previous or (actions == previous and garden_best_programs.has(id)):
   return OK
  garden_best[id] = actions
- # A count records completion by itself. Concurrent saves keep the smallest count.
- return _save("solved-%s-%d" % [id, actions], "")
+ garden_best_programs[id] = program
+ # Store the source with its score so a different record cannot supply the code.
+ return _save("solved-%s-%d" % [id, actions], program)
 
 func _save(name: String, text: String) -> Error:
  if folder.is_empty():
