@@ -79,7 +79,7 @@ func _ready() -> void:
  source.text_changed.connect(_queue_save)
  source.add_theme_font_size_override("font_size", 18)
  var ink := CodeHighlighter.new()
- for word in ["hop", "fill", "water", "wait", "gather", "repeat", "routine", "call", "if", "else", "not", "end"]:
+ for word in ["hop", "fill", "water", "wait", "gather", "repeat", "routine", "call", "if", "else", "while", "not", "end"]:
   ink.add_keyword_color(word, Color("#8bd5bc"))
  ink.add_color_region("#", "", Color("#a5ad99"), true)
  source.syntax_highlighter = ink
@@ -118,7 +118,7 @@ func _ready() -> void:
  hint = hud.label("", 15)
  hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  right.add_child(hint)
- var guide: Label = hud.label("hop north / east / south / west\nfill     water     wait     gather\nrepeat N … end     # comment\nroutine NAME … end / call NAME\nif CONDITION … else … end\nclear north / east / south / west\nF9 toggles a breakpoint", 15, Color("#b9dccc"))
+ var guide: Label = hud.label("hop north / east / south / west\nfill     water     wait     gather\nrepeat N … end     # comment\nroutine NAME … end / call NAME\nif CONDITION … else … end\nwhile CONDITION … end\nclear north / east / south / west\nF9 toggles a breakpoint", 15, Color("#b9dccc"))
  right.add_child(guide)
  var legend: Label = hud.label("● Pondbot     ~ Spring     # Stone\nA watered lily ripens on the next turn.", 14)
  right.add_child(legend)
@@ -237,7 +237,10 @@ func _check_code() -> void:
    status.text = "Check · %d actions to harvest all %d lilies · %s" % [preview.turn, preview.harvested, target]
    break
   index = preview.next_action_index(commands, index + 1)
- if blocked_line < 0 and not preview.is_complete():
+ if not preview.runtime_error.is_empty():
+  blocked_line = preview.runtime_error_line
+  _line_error("Check · Line %d · %s" % [blocked_line + 1, preview.runtime_error], blocked_line)
+ elif blocked_line < 0 and not preview.is_complete():
   var unit := "action" if preview.turn == 1 else "actions"
   status.text = "Check · %d of %d lilies harvested in %d %s" % [preview.harvested, preview.plants.size(), preview.turn, unit]
  if not checked_actions.is_empty() or blocked_line >= 0:
@@ -353,7 +356,8 @@ func _process(delta: float) -> void:
  if breakpoint_offset != offset and source.is_line_breakpointed(action.line):
   running = false
   breakpoint_offset = offset
-  status.text = "Breakpoint · line %d · %d actions" % [action.line + 1, garden.turn]
+  var unit := "action" if garden.turn == 1 else "actions"
+  status.text = "Breakpoint · line %d · %d %s" % [action.line + 1, garden.turn, unit]
   _mark_line(action.line)
   _draw()
   return
@@ -368,7 +372,6 @@ func _advance() -> void:
   _line_error("Line %d · %s" % [action.line + 1, error], action.line)
  else:
   _mark_line(action.line)
-  offset = garden.next_action_index(steps, offset + 1)
   if garden.is_complete():
    _clear_program()
    var item: Dictionary = Programs.PUZZLES[puzzle]
@@ -379,15 +382,21 @@ func _advance() -> void:
    if previous > garden.turn:
     status.text += " · New personal best"
    chooser.set_item_text(puzzle, item.name + " ✓")
-  elif offset == steps.size():
-   _finish_incomplete()
   else:
-   _show_progress()
+   offset = garden.next_action_index(steps, offset + 1)
+   if offset == steps.size():
+    _finish_incomplete()
+   else:
+    _show_progress()
  _draw()
 
 func _finish_incomplete() -> void:
  _clear_program()
- status.text = "Program ended · %d lilies remain." % (garden.plants.size() - garden.harvested)
+ if not garden.runtime_error.is_empty():
+  var line: int = garden.runtime_error_line
+  _line_error("Line %d · %s" % [line + 1, garden.runtime_error], line)
+ else:
+  status.text = "Program ended · %d lilies remain." % (garden.plants.size() - garden.harvested)
 
 func _draw() -> void:
  var item: Dictionary = Programs.PUZZLES[puzzle]

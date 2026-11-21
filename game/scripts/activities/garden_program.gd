@@ -10,17 +10,22 @@ const PUZZLES = [
  {"id":"stone_spillway", "name":"Stone spillway", "rows":[".###","~LHL",".###","~LHL"], "target":36, "hint":"Start at the lower spring. Each bed has a double lily between two single lilies. Reuse finish_lily after the last dose and refill in the west column.", "draft":"# Reuse this routine after a lily's final dose\nroutine finish_lily\n  wait\n  gather\nend\n\nfill\nhop east\nwater\ncall finish_lily\n"},
  {"id":"patchwork_beds", "name":"Patchwork beds", "rows":["~L.H",".###","~.HL"], "target":26, "hint":"The beds mix empty spaces, single lilies, and double lilies. The starter tends the lower bed. Refill on the west bank to tend the upper bed.", "draft":"# Tend the lower bed, then reuse tend_plot in the upper bed\nroutine tend_plot\n  repeat 2\n    if thirsty\n      water\n    end\n  end\n  if growing\n    wait\n  end\n  if ripe\n    gather\n  end\nend\n\nfill\nrepeat 3\n  hop east\n  call tend_plot\nend\n"},
  {"id":"forked_banks", "name":"Forked banks", "rows":["~.L#",".###","~#H#","...#"], "target":20, "hint":"Start at the lower spring. The stone blocks the direct east route here. Reuse the same route routine from the upper spring, where east is open.", "draft":"# Reach both beds by checking whether east is open\nroutine to_lily\n  if clear east\n    repeat 2\n      hop east\n    end\n  else\n    hop south\n    repeat 2\n      hop east\n    end\n    hop north\n  end\nend\n\nfill\ncall to_lily\nwater\n"},
+ {"id":"lantern_rows", "name":"Lantern rows", "rows":["~.L.L",".####","~.H##"], "target":22, "hint":"Start at the short bed. Sweep east until the path closes. Walk west to the spring column, hop north twice, then refill and sweep the long bed.", "draft":"# Sweep the short bed, then reuse sweep_east on the long bed\nroutine tend_plot\n  repeat 2\n    if thirsty\n      water\n    end\n  end\n  if growing\n    wait\n  end\n  if ripe\n    gather\n  end\nend\nroutine sweep_east\n  while clear east\n    hop east\n    call tend_plot\n  end\nend\n\nfill\ncall sweep_east\n"},
 ]
 const DIRECTIONS = {"north":Vector2i(0,-1), "east":Vector2i(1,0), "south":Vector2i(0,1), "west":Vector2i(-1,0)}
 const CONDITIONS := ["spring", "has_water", "thirsty", "growing", "ripe"]
 const CAPACITY = 3
 const MAX_STEPS = 256
+const MAX_WHILE_ITERATIONS := 16
 var rows: Array = []
 var plants: Dictionary = {}
 var cell := Vector2i.ZERO
 var tank := 0
 var turn := 0
 var harvested := 0
+var runtime_error := ""
+var runtime_error_line := -1
+var while_entries: Dictionary = {}
 
 static func compile(source: String) -> Dictionary:
  if source.length() > 8192:
@@ -43,10 +48,10 @@ static func compile(source: String) -> Dictionary:
     return _error(index, "Routine %s is already defined." % words[1])
    blocks.append({"steps":[], "routine":words[1], "line":index})
    continue
-  if command in ["repeat", "if"]:
+  if command in ["repeat", "if", "while"]:
    var block_limit := 6 if blocks.size() > 1 and blocks[1].has("routine") else 5
    if blocks.size() >= block_limit:
-    return _error(index, "Nest up to four repeat and if blocks.")
+    return _error(index, "Nest up to four repeat, if, and while blocks.")
    if command == "repeat":
     if words.size() != 2 or not words[1].is_valid_int() or int(words[1]) not in range(1, 17):
      return _error(index, "Use repeat 1–16.")
@@ -61,14 +66,14 @@ static func compile(source: String) -> Dictionary:
       return _error(index, "Use clear north, south, east, or west.")
      direction = terms[1]
     elif terms.size() != 1 or condition not in CONDITIONS:
-     return _error(index, "Use if CONDITION or if not CONDITION. Try spring, has_water, thirsty, growing, ripe, or clear east.")
-    blocks.append({"steps":[], "condition":condition, "negated":negated, "direction":direction, "line":index})
+     return _error(index, "Use %s CONDITION or %s not CONDITION. Try spring, has_water, thirsty, growing, ripe, or clear east." % [command, command])
+    blocks.append({"steps":[], "condition":condition, "negated":negated, "direction":direction, "line":index, "loop":command == "while"})
    continue
   if command == "else":
    if words.size() != 1:
     return _error(index, "Put else on its own line.")
    var branch: Dictionary = blocks.back()
-   if not branch.has("condition") or branch.has("then_steps"):
+   if not branch.has("condition") or branch.loop or branch.has("then_steps"):
     return _error(index, "Use one else inside an if block.")
    if branch.steps.is_empty():
     return _error(branch.line, "Add at least one command before else.")
@@ -88,20 +93,23 @@ static func compile(source: String) -> Dictionary:
    var outer: Array = blocks.back().steps
    if inner.has("condition"):
     var has_else := inner.has("then_steps")
+    var is_loop: bool = inner.loop
+    var kind := "while" if is_loop else "if"
     if inner.steps.is_empty():
      if has_else:
       return _error(inner.else_line, "Add at least one command after else.")
-     return _error(inner.line, "Add at least one command inside this if block.")
+     return _error(inner.line, "Add at least one command inside this %s block." % kind)
     var then_steps: Array = inner.get("then_steps", inner.steps)
     var else_steps: Array = inner.steps if has_else else []
-    var skip := then_steps.size() + int(has_else)
+    var skip := then_steps.size() + int(has_else or is_loop)
     if outer.size() + 1 + skip + else_steps.size() > MAX_STEPS:
-     return _error(index, "This if block exceeds the 256-instruction limit.")
-    # A false condition skips the first branch and its jump over the fallback.
-    # Relative skips still work when a repeat or routine copies these instructions.
-    outer.append({"condition":inner.condition, "negated":inner.negated, "direction":inner.direction, "skip":skip, "line":inner.line})
+     return _error(index, "This %s block exceeds the 256-instruction limit." % kind)
+    # Relative jumps still work when a repeat or routine copies these instructions.
+    outer.append({"condition":inner.condition, "negated":inner.negated, "direction":inner.direction, "skip":skip, "line":inner.line, "loop":is_loop})
     outer.append_array(then_steps)
-    if has_else:
+    if is_loop:
+     outer.append({"back":skip, "line":inner.line})
+    elif has_else:
      outer.append({"skip":else_steps.size(), "line":inner.else_line})
      outer.append_array(else_steps)
     continue
@@ -126,13 +134,15 @@ static func compile(source: String) -> Dictionary:
    if words.size() != 2 or not DIRECTIONS.has(words[1]):
     return _error(index, "Use hop north, east, south, or west.")
   elif words.size() != 1 or command not in ["fill", "water", "wait", "gather"]:
-   return _error(index, "Use hop, fill, water, wait, gather, repeat, routine, call, or if.")
+   return _error(index, "Use hop, fill, water, wait, gather, repeat, routine, call, if, or while.")
   if steps.size() >= MAX_STEPS:
    return _error(index, "Programs can contain up to 256 instructions after expansion.")
   steps.append({"command":command, "direction":words[1] if command == "hop" else "", "line":index})
  if blocks.size() > 1:
   var unclosed: Dictionary = blocks.back()
-  var kind := "routine" if unclosed.has("routine") else "if block" if unclosed.has("condition") else "repeat block"
+  var kind := "routine" if unclosed.has("routine") else "repeat block"
+  if unclosed.has("condition"):
+   kind = "while block" if unclosed.loop else "if block"
   return _error(unclosed.line, "Close this %s with end." % kind)
  if blocks[0].steps.is_empty():
   return _error(0, "Add at least one action.")
@@ -147,6 +157,9 @@ func load_puzzle(index: int) -> void:
  tank = 0
  turn = 0
  harvested = 0
+ runtime_error = ""
+ runtime_error_line = -1
+ while_entries.clear()
  for y in rows.size():
   for x in rows[y].length():
    var location := Vector2i(x, y)
@@ -175,13 +188,32 @@ func is_complete() -> bool:
 
 func next_action_index(instructions: Array, first: int) -> int:
  var index := first
- while index < instructions.size():
+ while index < instructions.size() and runtime_error.is_empty():
   var instruction: Dictionary = instructions[index]
+  if instruction.has("back"):
+   index -= int(instruction.back)
+   continue
   if not instruction.has("skip"):
+   if turn >= MAX_STEPS:
+    runtime_error = "The program reached its %d-action limit." % MAX_STEPS
+    runtime_error_line = instruction.line
    break
   var passes: bool = instruction.has("condition") and _meets_condition(instruction.condition, instruction.direction) != instruction.negated
+  if instruction.get("loop", false):
+   if passes:
+    var entry: Dictionary = while_entries.get(index, {"turn":-1, "iterations":0})
+    if entry.turn == turn:
+     runtime_error = "This while loop came back without doing an action."
+    elif entry.iterations >= MAX_WHILE_ITERATIONS:
+     runtime_error = "This while loop reached its %d-iteration limit." % MAX_WHILE_ITERATIONS
+    if not runtime_error.is_empty():
+     runtime_error_line = instruction.line
+     break
+    while_entries[index] = {"turn":turn, "iterations":int(entry.iterations) + 1}
+   else:
+    while_entries.erase(index)
   index += 1 if passes else 1 + int(instruction.skip)
- return index
+ return index if runtime_error.is_empty() else instructions.size()
 
 func _meets_condition(condition: String, direction: String) -> bool:
  match condition:
