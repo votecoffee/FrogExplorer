@@ -212,6 +212,8 @@ wait()
 gather()
 ```
 
+The first three lessons are available when you arrive. A completed puzzle adds its lilies to the garden total once. Later sets open at **2**, **8**, and **18** earned lilies. The lesson list shows the requirement beside each locked puzzle. After a clear, press **Ctrl+Page Down** or choose **Next lesson** to open the first available unfinished puzzle. Earlier drafts and completed boards stay accessible.
+
 Lily Code Garden uses Python 3.10 or newer to parse the garden language. The supported subset includes Pondbot calls, `def`, `if` / `elif` / `else`, `while`, `for _ in range(N)`, `break`, and `continue`. The game interprets these through Pondbot's board simulator. The Python executable is found on `PATH`. Set `FROG_GARDEN_PYTHON` to its full path if needed.
 
 Use `hop(east)` to move one tile. The game provides `north`, `east`, `south`, and `west` as direction values. Use `has_water()` to check the tank. The tile tests `spring()`, `lily()`, `thirsty()`, `growing()`, and `ripe()` inspect the current tile by default. Pass a direction to inspect the neighboring tile, as in `lily(north)`. Use `clear(east)` before hopping into an unfamiliar tile. Combine tests with `not`, `and`, `or`, and parentheses.

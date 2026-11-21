@@ -25,6 +25,8 @@ var score: Label
 var hint: Label
 var guide: Label
 var chooser: OptionButton
+var lesson_status: Label
+var next_lesson_button: Button
 var language: OptionButton
 var python_mode := true
 var check_button: Button
@@ -59,6 +61,9 @@ func _ready() -> void:
  var title: Label = hud.label("Lily Code Garden", 26, Color("#f3ebb4"))
  title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  top.add_child(title)
+ lesson_status = hud.label("", 15, Color("#b9dccc"))
+ top.add_child(lesson_status)
+ next_lesson_button = _button(top, "Next lesson · Ctrl+PgDn", _continue_lessons)
  language = OptionButton.new()
  language.add_item("Python")
  language.add_item("Classic Pondbot")
@@ -107,7 +112,7 @@ func _ready() -> void:
  pair.add_child(right)
  chooser = OptionButton.new()
  for item in Programs.PUZZLES:
-  chooser.add_item(item.name + (" ✓" if progress.solved.has(item.id) else ""))
+  chooser.add_item(item.name)
  chooser.item_selected.connect(_choose)
  right.add_child(chooser)
  info = hud.label("", 17, Color("#b9dccc"))
@@ -143,7 +148,7 @@ func _ready() -> void:
  status = hud.label("", 17, Color("#f3ebb4"))
  status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  outer.add_child(status)
- _choose(0)
+ _choose(maxi(0, progress.next_lesson(progress.earned_lilies())))
  hide()
 
 func _code_edit() -> CodeEdit:
@@ -259,11 +264,22 @@ func _close_best_program() -> void:
  source.grab_focus()
 
 func _choose(index: int) -> void:
+ if not steps.is_empty() or not progress.lesson_available(Programs.PUZZLES[index], progress.earned_lilies()):
+  chooser.select(puzzle)
+  return
  flush_draft()
  _close_best_program()
  puzzle = index
  chooser.select(index)
  _load_draft()
+
+func _continue_lessons() -> void:
+ if not next_lesson_button.visible or next_lesson_button.disabled:
+  return
+ var index := progress.next_lesson(progress.earned_lilies())
+ if index >= 0:
+  _choose(index)
+  source.grab_focus()
 
 func _select_language(index: int) -> void:
  if not steps.is_empty():
@@ -509,7 +525,6 @@ func _advance() -> void:
    status.text = "Puzzle complete · %d lilies in %d actions" % [garden.harvested, garden.turn]
    if previous > garden.turn:
     status.text += " · New personal best"
-   chooser.set_item_text(puzzle, item.name + " ✓")
   else:
    offset = garden.next_action_index(steps, offset + 1)
    if offset == steps.size():
@@ -542,10 +557,32 @@ func _draw() -> void:
  chooser.disabled = active
  language.disabled = active
  source.editable = not active
+ _draw_lessons(active)
  if not review_controls.visible:
   _draw_board(garden)
  if is_instance_valid(world):
   world.show_garden(garden)
+
+func _draw_lessons(active: bool) -> void:
+ var lilies := progress.earned_lilies()
+ var next_unlock := 0
+ for index in Programs.PUZZLES.size():
+  var item: Dictionary = Programs.PUZZLES[index]
+  var available := progress.lesson_available(item, lilies)
+  var label: String = item.name
+  if not available:
+   var threshold: int = item.unlock_lilies
+   next_unlock = threshold if next_unlock == 0 else mini(next_unlock, threshold)
+   label += " · %d lilies" % threshold
+  elif progress.solved.has(item.id):
+   label += " ✓"
+  chooser.set_item_disabled(index, not available)
+  chooser.set_item_text(index, label)
+ lesson_status.text = "Lilies earned · %d" % lilies
+ if next_unlock > 0:
+  lesson_status.text += "   Next unlock · %d" % next_unlock
+ next_lesson_button.visible = progress.solved.has(Programs.PUZZLES[puzzle].id) and progress.next_lesson(lilies) >= 0
+ next_lesson_button.disabled = active
 
 func _draw_board(view: Programs, blocked := false) -> void:
  info.text = "Water %d / %d    Lilies %d / %d" % [view.tank, Programs.CAPACITY, view.harvested, view.plants.size()]
@@ -583,6 +620,9 @@ func _input(event: InputEvent) -> void:
     _close_best_program()
    else:
     _close()
+   get_viewport().set_input_as_handled()
+  elif event.ctrl_pressed and event.keycode == KEY_PAGEDOWN and next_lesson_button.visible:
+   _continue_lessons()
    get_viewport().set_input_as_handled()
   elif best_panel.visible:
    return

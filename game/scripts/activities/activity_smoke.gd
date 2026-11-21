@@ -263,9 +263,19 @@ func run(game) -> void:
   var popup = game.activities.garden
   check(popup.visible and game.pilot.paused and popup.source.has_focus(), "The garden popup owns keyboard focus and pauses movement")
   check("Target · 9 actions" in popup.score.text and "Personal best · —" in popup.score.text and not popup.best_button.visible, "A fresh board displays its target and an empty personal best")
+  check(popup.puzzle == 0 and popup.lesson_status.text == "Lilies earned · 0   Next unlock · 2" and not popup.chooser.is_item_disabled(2) and popup.chooser.is_item_disabled(3) and popup.chooser.is_item_disabled(10), "A new garden opens the first lesson and shows the next lily milestone")
+  popup.chooser.item_selected.emit(3)
+  check(popup.puzzle == 0 and popup.chooser.selected == 0, "A locked lesson cannot replace the current draft")
+  popup.progress.drafts["compass_banks"] = "fill\n"
+  popup.progress.python_drafts["low_water_row"] = "fill()\n"
+  popup._draw()
+  check(not popup.chooser.is_item_disabled(11) and not popup.chooser.is_item_disabled(12) and popup.progress.earned_lilies() == 0, "Existing classic and Python drafts retain access without adding lilies")
+  popup.progress.drafts.erase("compass_banks")
+  popup.progress.python_drafts.erase("low_water_row")
+  popup._draw()
   check(popup.python_mode and popup.language.selected == 0 and popup.source.indent_use_spaces and "fill()" in popup.source.text, "The keyboard editor opens in Python")
   popup.check_button.pressed.emit()
-  check("9 actions to harvest all 2 lilies" in popup.status.text and popup.garden.turn == 0, "Check previews a Python starter without moving Pondbot")
+  check("9 actions to harvest all 2 lilies" in popup.status.text and popup.garden.turn == 0 and popup.progress.earned_lilies() == 0, "Check previews a Python starter without moving Pondbot or earning lilies")
   press_key(KEY_F10)
   check(popup.garden.turn == 1 and popup.source.get_executing_lines() == PackedInt32Array([1]) and popup.language.disabled, "F10 executes the Python fill call and marks its source line")
   popup.stop_button.pressed.emit()
@@ -360,6 +370,7 @@ func run(game) -> void:
   check(popup.progress.solved.get(Program.PUZZLES[0].id, false) and popup.garden.harvested == 2, "The popup animates and completes the starter program")
   check(popup.source.get_executing_lines() == PackedInt32Array([6]) and popup.source.editable, "The completed loop marks its gather command and unlocks the editor")
   check(popup.progress.garden_best.get("first_bloom", 0) == 9 and "Target met" in popup.score.text, "A finished program saves the action count and marks the target")
+  check(popup.progress.earned_lilies() == 2 and "Next unlock · 8" in popup.lesson_status.text and not popup.chooser.is_item_disabled(5) and popup.chooser.is_item_disabled(6), "Completing First bloom earns two lilies and opens the next set of boards")
   check(popup.best_button.visible and popup.progress.garden_best_programs.get(puzzle_id) == starter, "Completing a puzzle makes the recorded program available")
   var revision := "# Try a shorter route later\nwait\n"
   popup.source.text = revision
@@ -398,6 +409,10 @@ func run(game) -> void:
   popup.progress.garden_best_programs[puzzle_id] = starter
   await finish_by_steps(popup, "# Same route, different comment\n" + starter)
   check(popup.garden.turn == 9 and popup.progress.garden_best_programs.get(puzzle_id) == starter, "A tied run keeps the previously recorded code")
+  check(popup.progress.earned_lilies() == 2 and popup.next_lesson_button.visible, "Another clear leaves the lily total at two and keeps the next lesson available")
+  press_key(KEY_PAGEDOWN, true)
+  check(popup.puzzle == 1 and popup.source.has_focus() and popup.progress.drafts.get(puzzle_id) == "# Same route, different comment\n" + starter, "Ctrl+Page Down saves the draft and focuses the first unfinished lesson")
+  popup.chooser.item_selected.emit(0)
   popup.source.text = starter
   popup.source.set_caret_line(3)
   press_key(KEY_F9)
@@ -458,6 +473,7 @@ func run(game) -> void:
    check(popup.garden.cell == start and popup.garden.plants.size() == 4, item.name + " starts at its spring with four unharvested lilies")
    await finish_by_steps(popup, terrace_patrol if index == 3 else solutions[index])
    check(popup.garden.harvested == 4 and popup.progress.solved.get(item.id, false) and "✓" in popup.chooser.get_item_text(index), item.name + " completes when stepped and receives its own check mark")
+  check(popup.progress.earned_lilies() == 10 and not popup.chooser.is_item_disabled(6) and popup.chooser.is_item_disabled(10), "Eight lilies open the middle lessons even after an above-target clear")
   popup.chooser.item_selected.emit(3)
   check(popup.source.text == terrace_patrol and popup.garden.harvested == 0, "Returning to Twin terraces restores its draft on a fresh board")
   check(popup.progress.garden_best.get("twin_terraces", 0) == 21 and "Target · 19 actions" in popup.score.text, "An above-target completion still records a personal best")
@@ -529,6 +545,7 @@ func run(game) -> void:
   popup.stop_button.pressed.emit()
   await finish_by_steps(popup, patchwork_solution)
   check(popup.garden.harvested == 4 and popup.progress.garden_best.get(patchwork.id, 0) == 26, "Stepping through conditions saves the verified Patchwork beds score")
+  check(popup.progress.earned_lilies() == 20 and not popup.chooser.is_item_disabled(12) and "Next unlock" not in popup.lesson_status.text, "Eighteen earned lilies open the last set of lessons")
   popup.chooser.item_selected.emit(7)
   var banks: Dictionary = Program.PUZZLES[popup.puzzle]
   check(banks.id == "forked_banks" and popup.board.get_child_count() == 16 and popup.garden.cell == Vector2i(0, 2) and "if clear east" in popup.source.text, "Forked banks starts at the blocked bank with a route routine")

@@ -111,6 +111,25 @@ func _remember_splits(course: String, layout: String, times_ms: Array, milliseco
 func _split_key(course: String, layout: String, checkpoints: int) -> String:
  return "%s/%s/%d" % [course, layout, checkpoints]
 
+func earned_lilies() -> int:
+ var total := 0
+ for puzzle in Programs.PUZZLES:
+  if solved.has(puzzle.id):
+   for row: String in puzzle.rows:
+    total += row.count("L") + row.count("H")
+ return total
+
+func lesson_available(puzzle: Dictionary, lilies: int) -> bool:
+ var id: String = puzzle.id
+ return lilies >= int(puzzle.get("unlock_lilies", 0)) or solved.has(id) or drafts.has(id) or python_drafts.has(id)
+
+func next_lesson(lilies: int) -> int:
+ for index in Programs.PUZZLES.size():
+  var item: Dictionary = Programs.PUZZLES[index]
+  if not solved.has(item.id) and lesson_available(item, lilies):
+   return index
+ return -1
+
 func edit_draft(id: String, text: String, python := false) -> Error:
  var saved := python_drafts if python else drafts
  saved[id] = text
