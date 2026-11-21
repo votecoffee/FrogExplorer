@@ -13,7 +13,10 @@ COMPARISONS = {ast.Lt: "<", ast.LtE: "<=", ast.Eq: "==", ast.NotEq: "!=", ast.Gt
 DIRECTIONS = {"north", "east", "south", "west"}
 # Older Python drafts could define these two names as routines.
 RESERVED_NAMES = (ACTIONS | SENSORS | DIRECTIONS | {"range"}) - {"plant", "empty_bed"}
+VARIABLE_RESERVED_NAMES = ACTIONS | SENSORS | NUMERIC_SENSORS | DIRECTIONS | {"print", "range", "_"}
 MAX_SOURCE = 8192
+MIN_VALUE = -(2 ** 31)
+MAX_VALUE = 2 ** 31 - 1
 
 
 class GardenError(Exception):
@@ -53,96 +56,84 @@ def sensor_call(node, routines):
     return sensor, direction(args[0]) if args else ""
 
 
-def numeric_operand(node, routines):
-    if isinstance(node, ast.Call):
-        sensor, _ = sensor_call(node, routines)
-        if sensor in NUMERIC_SENSORS:
-            return sensor
-    sign = 1
-    if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
-        sign = -1 if isinstance(node.op, ast.USub) else 1
-        node = node.operand
-    if isinstance(node, ast.Constant) and type(node.value) is int:
-        value = sign * node.value
-        if -(2 ** 31) <= value < 2 ** 31:
-            return str(value)
-        raise GardenError(node, "Use a 32-bit integer in a comparison.")
-    raise GardenError(node, "Compare whole numbers and readings such as water_level(), row(), or column().")
+def expression(node, routines, parameters, depth=0):
+    if depth >= 64:
+        raise GardenError(node, "Split this expression into smaller expressions.")
 
+    def child(value):
+        return expression(value, routines, parameters, depth + 1)
 
-def print_value(node, routines):
+    if isinstance(node, ast.Name):
+        variable = name(node.id, node)
+        if variable in parameters or variable in VARIABLE_RESERVED_NAMES:
+            raise GardenError(node, "Use a variable or call a reading such as row().")
+        return {"op": "variable", "name": variable}
     if isinstance(node, ast.Call):
         sensor, target = sensor_call(node, routines)
-        return {"sensor": sensor, "direction": target}
-    if isinstance(node, ast.Name):
-        return {"direction": direction(node)}
+        if target and target not in DIRECTIONS and target not in parameters:
+            raise GardenError(node, "Use a compass direction or a direction parameter.")
+        return {"op": "sensor", "name": sensor, "direction": target}
+    if isinstance(node, ast.BoolOp):
+        op = "and" if isinstance(node.op, ast.And) else "or"
+        return {"op": op, "args": [child(value) for value in node.values]}
+    if isinstance(node, ast.Compare):
+        if any(type(op) not in COMPARISONS for op in node.ops):
+            raise GardenError(node, "Use <, <=, ==, !=, >=, or > to compare readings or whole numbers.")
+        return {"op": "compare", "operators": [COMPARISONS[type(op)] for op in node.ops],
+                "args": [child(node.left), *(child(value) for value in node.comparators)]}
+    if isinstance(node, ast.BinOp) and isinstance(node.op, (ast.Add, ast.Sub)):
+        op = "+" if isinstance(node.op, ast.Add) else "-"
+        return {"op": op, "args": [child(node.left), child(node.right)]}
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
+        return {"op": "not", "args": [child(node.operand)]}
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
+        if not isinstance(node.operand, ast.Constant) or type(node.operand.value) not in (bool, int):
+            op = "+" if isinstance(node.op, ast.UAdd) else "-"
+            return {"op": op, "args": [{"op": "literal", "value": 0}, child(node.operand)]}
+        value = int(node.operand.value) * (-1 if isinstance(node.op, ast.USub) else 1)
+    elif isinstance(node, ast.Constant) and type(node.value) in (bool, int):
+        value = node.value
+    else:
+        raise GardenError(node, "Use a whole number, True, False, a variable, or a garden reading.")
+    if not MIN_VALUE <= value <= MAX_VALUE:
+        raise GardenError(node, "Use a 32-bit integer in expressions.")
+    return {"op": "literal", "value": value}
+
+
+def print_value(node, routines, parameters):
+    if isinstance(node, ast.Name) and (node.id in DIRECTIONS or node.id in parameters):
+        return {"op": "direction", "direction": direction(node)}
     if isinstance(node, ast.Constant) and type(node.value) in (str, bool, int, float, type(None)):
         value = node.value
     elif (isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)) and
           isinstance(node.operand, ast.Constant) and type(node.operand.value) in (int, float)):
         value = -node.operand.value if isinstance(node.op, ast.USub) else node.operand.value
     else:
-        raise GardenError(node, "Use text, a number, a direction, or a garden test in print().")
+        return expression(node, routines, parameters)
     try:
-        return {"text": str(value).encode("utf-8", errors="replace").decode("utf-8").replace("\0", "\u2400")}
+        value = str(value).encode("utf-8", errors="replace").decode("utf-8").replace("\0", "\u2400")
+        return {"op": "text", "value": value}
     except ValueError:
         raise GardenError(node, "Use a smaller number in print().") from None
-
-
-def clauses(node, routines, inverted=False):
-    if isinstance(node, ast.Constant) and type(node.value) is bool:
-        return [["always" if node.value != inverted else "not always"]]
-    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
-        return clauses(node.operand, routines, not inverted)
-    if isinstance(node, ast.Compare):
-        if len(node.ops) > 64:
-            raise GardenError(node, "Split this test into smaller conditions.")
-        if any(type(op) not in COMPARISONS for op in node.ops):
-            raise GardenError(node, "Use <, <=, ==, !=, >=, or > to compare numbers.")
-        operands = [numeric_operand(value, routines) for value in [node.left, *node.comparators]]
-        tests = [f"{left} {COMPARISONS[type(op)]} {right}"
-                 for left, op, right in zip(operands, node.ops, operands[1:])]
-        return [[f"not {term}"] for term in tests] if inverted else [tests]
-    if isinstance(node, ast.BoolOp):
-        join = isinstance(node.op, ast.And) != inverted
-        result = [[]] if join else []
-        for value in node.values:
-            terms = clauses(value, routines, inverted)
-            if join:
-                if len(result) * len(terms) > 64:
-                    raise GardenError(node, "Split this test into smaller conditions.")
-                result = [left + right for left in result for right in terms]
-            else:
-                result.extend(terms)
-                if len(result) > 64:
-                    raise GardenError(node, "Split this test into smaller conditions.")
-            if sum(map(len, result)) > 256:
-                raise GardenError(node, "Split this test into smaller conditions.")
-        return result
-    sensor, target = sensor_call(node, routines)
-    if sensor in NUMERIC_SENSORS:
-        term = f"{sensor} != 0"
-    else:
-        term = f"{sensor} {target}" if target else sensor
-    return [[f"not {term}" if inverted else term]]
 
 
 def lower(source):
     lines = []
     locations = []
     routines = set()
-    diagnostics = {}
+    details = {}
 
     def emit(text, line):
         lines.append(text)
         locations.append(line - 1)
 
-    def block(statements):
+    def block(statements, routine_parameters=None):
+        parameters = routine_parameters or set()
         for node in statements:
             if isinstance(node, ast.Expr):
                 command, args = arguments(node.value)
                 if command == "print" and command not in routines:
-                    diagnostics[str(len(lines))] = [print_value(arg, routines) for arg in args]
+                    details[str(len(lines))] = {"output": [print_value(arg, routines, parameters) for arg in args]}
                     emit("diagnostic", node.lineno)
                     continue
                 if command in ACTIONS and command not in routines:
@@ -152,6 +143,20 @@ def lower(source):
                 else:
                     words = ["call", command]
                 emit(" ".join(words + [direction(arg) for arg in args]), node.lineno)
+            elif isinstance(node, (ast.Assign, ast.AugAssign)):
+                if routine_parameters is not None:
+                    raise GardenError(node, "Assign variables outside def. Functions can read them.")
+                targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                if len(targets) != 1 or not isinstance(targets[0], ast.Name):
+                    raise GardenError(node, "Assign one variable at a time, such as visits = 0.")
+                token = name(targets[0].id, targets[0])
+                if token in VARIABLE_RESERVED_NAMES or token in routine_names:
+                    raise GardenError(node, "Choose a variable name distinct from garden commands and functions.")
+                value = node.value
+                if isinstance(node, ast.AugAssign):
+                    value = ast.copy_location(ast.BinOp(targets[0], node.op, value), node)
+                details[str(len(lines))] = {"assign": token, "value": expression(value, routines, parameters)}
+                emit("assign", node.lineno)
             elif isinstance(node, ast.FunctionDef):
                 args = node.args
                 if (node.decorator_list or node.returns or getattr(node, "type_params", []) or
@@ -162,19 +167,20 @@ def lower(source):
                 if routine in RESERVED_NAMES:
                     raise GardenError(node, "Choose a different name for this garden function.")
                 routines.add(routine)
-                emit(" ".join(["routine", routine, *(name(arg.arg, arg) for arg in args.args)]), node.lineno)
-                block(node.body)
+                names = [name(arg.arg, arg) for arg in args.args]
+                emit(" ".join(["routine", routine, *names]), node.lineno)
+                block(node.body, set(names))
                 emit("end", node.end_lineno)
             elif isinstance(node, (ast.If, ast.While)):
                 keyword = "if" if isinstance(node, ast.If) else "while"
                 if keyword == "while" and node.orelse:
                     raise GardenError(node, "Use else with if in the garden.")
-                test = " or ".join(" and ".join(group) for group in clauses(node.test, routines))
-                emit(f"{keyword} {test}", node.lineno)
-                block(node.body)
+                details[str(len(lines))] = {"test": expression(node.test, routines, parameters)}
+                emit(keyword, node.lineno)
+                block(node.body, routine_parameters)
                 if node.orelse:
                     emit("else", node.orelse[0].lineno)
-                    block(node.orelse)
+                    block(node.orelse, routine_parameters)
                 emit("end", node.end_lineno)
             elif isinstance(node, ast.For):
                 iterator, args = arguments(node.iter)
@@ -183,17 +189,19 @@ def lower(source):
                     type(args[0].value) is not int or not 1 <= args[0].value <= 16):
                     raise GardenError(node, "Use for _ in range(N) with a count from 1 to 16.")
                 emit(f"repeat {args[0].value}", node.lineno)
-                block(node.body)
+                block(node.body, routine_parameters)
                 emit("end", node.end_lineno)
             elif isinstance(node, (ast.Break, ast.Continue)):
                 emit(type(node).__name__.lower(), node.lineno)
             else:
-                raise GardenError(node, "Use garden calls, def, if, while, for, break, or continue.")
+                raise GardenError(node, "Use garden calls, assignments, def, if, while, for, break, or continue.")
 
     if len(source) > MAX_SOURCE:
         return {"error": "Programs can contain up to 8,192 characters.", "line": 0}
     try:
-        block(ast.parse(source, feature_version=(3, 10)).body)
+        tree = ast.parse(source, feature_version=(3, 10))
+        routine_names = {node.name for node in tree.body if isinstance(node, ast.FunctionDef)}
+        block(tree.body)
     except SyntaxError as error:
         return {"error": error.msg, "line": max(0, (error.lineno or 1) - 1)}
     except GardenError as error:
@@ -201,8 +209,8 @@ def lower(source):
     except RecursionError:
         return {"error": "Split this program into smaller expressions.", "line": 0}
     result = {"source": "\n".join(lines), "lines": locations}
-    if diagnostics:
-        result["diagnostics"] = diagnostics
+    if details:
+        result["details"] = details
     return result
 
 

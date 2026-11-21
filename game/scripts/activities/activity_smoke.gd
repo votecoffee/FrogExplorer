@@ -52,6 +52,49 @@ func finish_by_steps(popup, program: String) -> void:
   popup.step_button.pressed.emit()
   await frames(1)
 
+func check_python_variables(popup) -> void:
+ popup._reset()
+ var draft := """def survey(heading):
+    if clear(heading) and visits < 2:
+        hop(heading)
+    print(column() - start, visits)
+start = column()
+start_row = row()
+visits = 0
+while visits < 2 and clear(east):
+    survey(east)
+    visits += 1
+print(start, start_row, visits, column())
+"""
+ var expected := "Line 4 · 1 0\nLine 4 · 2 1\nLine 11 · 0 1 2 2"
+ popup.source.text = draft
+ popup.check_button.pressed.emit()
+ check(popup.garden.variables.is_empty() and popup.garden.turn == 0 and popup.checked_route.actions.size() == 2 and popup.output_text.text == expected, "Check uses its own Python variables and predicts the whole route")
+ press_key(KEY_ENTER, true)
+ popup._process(.25)
+ press_key(KEY_ENTER, true)
+ check(not popup.running and popup.garden.turn == 1 and popup.garden.variables.get("visits") == 1, "Paused code retains its counter after the first action")
+ press_key(KEY_F10)
+ check(popup.steps.is_empty() and popup.garden.turn == 2 and popup.garden.variables.get("visits") == 2 and popup.output_text.text == expected, "The live counter and saved starting readings match Check")
+
+ popup.source.text = "visits = 0\nwhile visits < 3:\n    visits += 1\nprint(visits, False and missing, 7 or missing, 3 < 2 < missing)\n"
+ press_key(KEY_F10)
+ check(popup.garden.turn == 2 and not popup.garden.variables.has("start") and popup.output_text.text == "Line 4 · 3 False 7 False", "A fresh program clears earlier variables and short-circuits without board actions")
+
+ popup.source.text = "if False:\n    visits = 5\nwait()\nprint(visits)\n"
+ popup.check_button.pressed.emit()
+ check(popup.checked_route.get("line", -1) == 3 and "Variable 'visits' has no value yet" in popup.status.text and popup.garden.variables.get("visits") == 3 and popup.garden.turn == 2, "Check reports an unset variable on its source line and preserves live values")
+ press_key(KEY_F10)
+ check(popup.garden.turn == 3 and popup.steps.is_empty() and popup.source.is_line_executing(3) and "Variable 'visits' has no value yet" in popup.status.text, "Step reports an unset variable after the preceding action")
+
+ popup.source.text = "visits = 2147483647\nvisits += 1\n"
+ popup.check_button.pressed.emit()
+ check(popup.checked_route.get("line", -1) == 1 and "32-bit integer range" in popup.status.text and popup.garden.turn == 3, "Check reports overflow on the assignment line")
+ popup.source.text = "visits = 0\nwhile True:\n    visits += 1\n"
+ popup.check_button.pressed.emit()
+ check("computed too many steps" in popup.status.text and popup.garden.turn == 3, "A changing endless counter stops within the computation budget")
+ popup._reset()
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -869,6 +912,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   var classic_measurement := Program.compile("if column == 2 and water_level >= 1\n wait\nend")
   var bad_measurement := Program.compile_python("if row(north) == 1:\n    wait()")
   check(classic_measurement.has("steps") and popup.garden.next_action_index(classic_measurement.get("steps", []), 0) == 1 and bad_measurement.get("line", -1) == 0, "Classic comparisons share the simulator and invalid Python sensor calls report their line")
+  check_python_variables(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

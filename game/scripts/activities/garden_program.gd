@@ -105,6 +105,9 @@ const EMPTY_BED := "Empty bed"
 const CAPACITY = 3
 const MAX_STEPS = 256
 const MAX_WHILE_ITERATIONS := 16
+const MAX_COMPUTATION_STEPS := MAX_STEPS * MAX_WHILE_ITERATIONS
+const MIN_VALUE := -2147483648
+const MAX_VALUE := 2147483647
 const MAX_OUTPUT_MESSAGES := 32
 const MAX_OUTPUT_LENGTH := 1024
 const PYTHON_COMPILER := "res://scripts/activities/garden_python.py"
@@ -119,8 +122,10 @@ var runtime_error := ""
 var runtime_error_line := -1
 var while_entries: Dictionary = {}
 var output: Array[Dictionary] = []
+var variables: Dictionary = {}
+var variable_revision := 0
 
-static func compile(source: String, case_sensitive := false, diagnostics: Dictionary = {}) -> Dictionary:
+static func compile(source: String, case_sensitive := false, details: Dictionary = {}) -> Dictionary:
  if source.length() > 8192:
   return {"error":"Programs can contain up to 8,192 characters.", "line":0}
  var blocks: Array[Dictionary] = [{"steps":[]}]
@@ -135,6 +140,7 @@ static func compile(source: String, case_sensitive := false, diagnostics: Dictio
   if words.is_empty():
    continue
   var command := words[0]
+  var detail: Dictionary = details.get(str(index), {})
   if command == "routine":
    if blocks.size() != 1:
     return _error(index, "Define routines at the top level of the program.")
@@ -159,16 +165,19 @@ static func compile(source: String, case_sensitive := false, diagnostics: Dictio
      return _error(index, "Use repeat 1–16.")
     blocks.append({"steps":[], "times":int(words[1]), "line":index})
    else:
-    var expression := _parse_condition(words.slice(1), parameters)
-    if expression.has("error"):
-     return _error(index, expression.error)
-    blocks.append({"steps":[], "clauses":expression.clauses, "line":index, "loop":command == "while"})
+    var test: Variant = detail.get("test")
+    if test == null:
+     var expression := _parse_condition(words.slice(1), parameters)
+     if expression.has("error"):
+      return _error(index, expression.error)
+     test = expression.clauses
+    blocks.append({"steps":[], "test":test, "line":index, "loop":command == "while"})
    continue
   if command == "else":
    if words.size() != 1:
     return _error(index, "Put else on its own line.")
    var branch: Dictionary = blocks.back()
-   if not branch.has("clauses") or branch.loop or branch.has("then_steps"):
+   if not branch.has("test") or branch.loop or branch.has("then_steps"):
     return _error(index, "Use one else inside an if block.")
    if branch.steps.is_empty():
     return _error(branch.line, "Add at least one command before else.")
@@ -187,7 +196,7 @@ static func compile(source: String, case_sensitive := false, diagnostics: Dictio
     parameters = PackedStringArray()
     continue
    var outer: Array = blocks.back().steps
-   if inner.has("clauses"):
+   if inner.has("test"):
     var has_else := inner.has("then_steps")
     var is_loop: bool = inner.loop
     var kind := "while" if is_loop else "if"
@@ -201,7 +210,7 @@ static func compile(source: String, case_sensitive := false, diagnostics: Dictio
     if outer.size() + 1 + skip + else_steps.size() > MAX_STEPS:
      return _error(index, "This %s block exceeds the 256-instruction limit." % kind)
     # Relative jumps still work when a repeat or routine copies these instructions.
-    outer.append({"clauses":inner.clauses, "skip":skip, "line":inner.line, "loop":is_loop})
+    outer.append({"test":inner.test, "skip":skip, "line":inner.line, "loop":is_loop})
     if is_loop:
      _append_loop_body(outer, then_steps, outer.size() + skip, true)
      outer.append({"back":skip, "line":inner.line})
@@ -240,13 +249,8 @@ static func compile(source: String, case_sensitive := false, diagnostics: Dictio
    steps.append_array(_bind_directions(routine.steps, bindings))
    continue
   var instruction := {"command":command, "direction":"", "line":index}
-  if command == "diagnostic" and diagnostics.has(str(index)):
-   var values: Array = diagnostics[str(index)]
-   for value: Dictionary in values:
-    var target: String = value.get("direction", "")
-    if not target.is_empty() and not _is_direction(target, parameters):
-     return _error(index, "Use a compass direction or a routine parameter in print().")
-   instruction = {"output":values, "line":index}
+  if (command == "diagnostic" and detail.has("output")) or (command == "assign" and detail.has("assign")):
+   instruction = detail.merged({"line":index})
   elif command == "hop":
    if words.size() != 2 or not _is_direction(words[1], parameters):
     return _error(index, "Use hop with north, east, south, west, or a routine parameter.")
@@ -263,7 +267,7 @@ static func compile(source: String, case_sensitive := false, diagnostics: Dictio
  if blocks.size() > 1:
   var unclosed: Dictionary = blocks.back()
   var kind := "routine" if unclosed.has("routine") else "repeat block"
-  if unclosed.has("clauses"):
+  if unclosed.has("test"):
    kind = "while block" if unclosed.loop else "if block"
   return _error(unclosed.line, "Close this %s with end." % kind)
  if blocks[0].steps.is_empty():
@@ -300,7 +304,7 @@ static func compile_python(source: String) -> Dictionary:
  if lowered.has("error"):
   return _error(int(lowered.line), lowered.error)
  var locations: Array = lowered.lines
- var result := compile(lowered.source, true, lowered.get("diagnostics", {}))
+ var result := compile(lowered.source, true, lowered.get("details", {}))
  if result.has("error"):
   var index: int = result.line
   var message: String = result.error.trim_prefix("Line %d · " % (index + 1))
@@ -338,20 +342,27 @@ static func _bind_directions(instructions: Array, bindings: Dictionary) -> Array
   var instruction := original.duplicate(true)
   if instruction.has("direction"):
    instruction.direction = bindings.get(instruction.direction, instruction.direction)
-  elif instruction.has("clauses"):
-   for clause: Array in instruction.clauses:
-    for test: Dictionary in clause:
-     if test.has("direction"):
-      test.direction = bindings.get(test.direction, test.direction)
+  elif instruction.has("test"):
+   if instruction.test is Dictionary:
+    _bind_expression(instruction.test, bindings)
+   else:
+    for clause: Array in instruction.test:
+     for test: Dictionary in clause:
+      _bind_expression(test, bindings)
   elif instruction.has("output"):
    for value: Dictionary in instruction.output:
-    if value.has("direction"):
-     value.direction = bindings.get(value.direction, value.direction)
+    _bind_expression(value, bindings)
   expanded.append(instruction)
  return expanded
 
+static func _bind_expression(value: Dictionary, bindings: Dictionary) -> void:
+ if value.has("direction"):
+  value.direction = bindings.get(value.direction, value.direction)
+ for child: Dictionary in value.get("args", []):
+  _bind_expression(child, bindings)
+
 static func _is_numeric_operand(word: String) -> bool:
- return word in NUMERIC_SENSORS or (word.length() <= 11 and word.is_valid_int() and int(word) >= -2147483648 and int(word) <= 2147483647)
+ return word in NUMERIC_SENSORS or (word.length() <= 11 and word.is_valid_int() and int(word) >= MIN_VALUE and int(word) <= MAX_VALUE)
 
 static func _parse_condition(words: PackedStringArray, parameters: PackedStringArray) -> Dictionary:
  # Each clause is a group of AND tests. Any matching clause satisfies the expression.
@@ -434,6 +445,8 @@ func reset_program() -> void:
  runtime_error_line = -1
  while_entries.clear()
  output.clear()
+ variables.clear()
+ variable_revision = 0
 
 func copy_board() -> RefCounted:
  var copy = get_script().new()
@@ -468,13 +481,32 @@ func is_complete() -> bool:
 
 func next_action_index(instructions: Array, first: int) -> int:
  var index := first
+ var computed := 0
  while index < instructions.size() and runtime_error.is_empty():
   var instruction: Dictionary = instructions[index]
+  if computed >= MAX_COMPUTATION_STEPS:
+   runtime_error = "The program computed too many steps without doing an action."
+   runtime_error_line = instruction.line
+   break
+  computed += 1
   if instruction.has("back"):
    index -= int(instruction.back)
    continue
   if instruction.has("output"):
    _append_output(instruction)
+   if not runtime_error.is_empty():
+    runtime_error_line = instruction.line
+   index += 1
+   continue
+  if instruction.has("assign"):
+   var variable: String = instruction["assign"]
+   var value: Variant = _expression_value(instruction.value)
+   if value == null:
+    runtime_error_line = instruction.line
+    break
+   if not variables.has(variable) or not is_same(variables[variable], value):
+    variables[variable] = value
+    variable_revision += 1
    index += 1
    continue
   if not instruction.has("skip"):
@@ -484,18 +516,27 @@ func next_action_index(instructions: Array, first: int) -> int:
    break
   if instruction.has("leave_while"):
    while_entries.erase(index - int(instruction.leave_while))
-  var passes: bool = instruction.has("clauses") and _meets_any_clause(instruction.clauses)
+  var passes := false
+  if instruction.has("test"):
+   if instruction.test is Dictionary:
+    var value: Variant = _expression_value(instruction.test)
+    if value == null:
+     runtime_error_line = instruction.line
+     break
+    passes = bool(value)
+   else:
+    passes = _meets_any_clause(instruction.test)
   if instruction.get("loop", false):
    if passes:
-    var entry: Dictionary = while_entries.get(index, {"turn":-1, "iterations":0})
-    if entry.turn == turn:
+    var entry: Dictionary = while_entries.get(index, {"turn":-1, "revision":-1, "iterations":0})
+    if entry.turn == turn and entry.revision == variable_revision:
      runtime_error = "This while loop came back without doing an action."
     elif not practice and entry.iterations >= MAX_WHILE_ITERATIONS:
      runtime_error = "This while loop reached its %d-iteration limit." % MAX_WHILE_ITERATIONS
     if not runtime_error.is_empty():
      runtime_error_line = instruction.line
      break
-    while_entries[index] = {"turn":turn, "iterations":int(entry.iterations) + 1}
+    while_entries[index] = {"turn":turn, "revision":variable_revision, "iterations":int(entry.iterations) + 1}
    else:
     while_entries.erase(index)
   index += 1 if passes else 1 + int(instruction.skip)
@@ -503,15 +544,11 @@ func next_action_index(instructions: Array, first: int) -> int:
 
 func _append_output(instruction: Dictionary) -> void:
  var fields := PackedStringArray()
- for value: Dictionary in instruction.output:
-  if value.get("sensor", "") in NUMERIC_SENSORS:
-   fields.append(str(_read_number(value.sensor)))
-  elif value.has("sensor"):
-   fields.append("True" if _meets_condition(value.sensor, value.direction) else "False")
-  elif value.has("direction"):
-   fields.append(value.direction)
-  else:
-   fields.append(value.text)
+ for expression: Dictionary in instruction.output:
+  var value: Variant = _expression_value(expression)
+  if value == null:
+   return
+  fields.append(("True" if value else "False") if value is bool else str(value))
  var message := " ".join(fields)
  if message.length() > MAX_OUTPUT_LENGTH:
   message = message.left(MAX_OUTPUT_LENGTH - 1) + "…"
@@ -523,7 +560,7 @@ func _meets_any_clause(clauses: Array) -> bool:
  for clause: Array in clauses:
   var matches := true
   for test: Dictionary in clause:
-   var passes := _compare_numbers(test) if test.has("comparison") else _meets_condition(test.condition, test.direction)
+   var passes := _compare_numbers(_read_number(test.left), _read_number(test.right), test.comparison) if test.has("comparison") else _meets_condition(test.condition, test.direction)
    if passes == test.negated:
     matches = false
     break
@@ -542,10 +579,8 @@ func _read_number(operand: String) -> int:
   _:
    return int(operand)
 
-func _compare_numbers(test: Dictionary) -> bool:
- var left := _read_number(test.left)
- var right := _read_number(test.right)
- match test.comparison:
+static func _compare_numbers(left: int, right: int, comparison: String) -> bool:
+ match comparison:
   "<":
    return left < right
   "<=":
@@ -560,6 +595,61 @@ func _compare_numbers(test: Dictionary) -> bool:
    return left > right
   _:
    return false
+
+func _expression_value(expression: Dictionary) -> Variant:
+ var op: String = expression.op
+ match op:
+  "literal":
+   # JSON decodes a numeric literal as a float. Python literals here are bounded integers.
+   return expression.value if expression.value is bool else int(expression.value)
+  "text":
+   return expression.value
+  "direction":
+   return expression.direction
+  "variable":
+   if variables.has(expression.name):
+    return variables[expression.name]
+   runtime_error = "Variable '%s' has no value yet." % expression.name
+   return null
+  "sensor":
+   if expression.name in NUMERIC_SENSORS:
+    return _read_number(expression.name)
+   return _meets_condition(expression.name, expression.direction)
+
+ var args: Array = expression.args
+ var left: Variant = _expression_value(args[0])
+ if left == null:
+  return null
+ match op:
+  "not":
+   return not bool(left)
+  "and", "or":
+   for index in range(1, args.size()):
+    if bool(left) == (op == "or"):
+     return left
+    left = _expression_value(args[index])
+    if left == null:
+     return null
+   return left
+  "compare":
+   for index in expression.operators.size():
+    var right: Variant = _expression_value(args[index + 1])
+    if right == null:
+     return null
+    if not _compare_numbers(int(left), int(right), expression.operators[index]):
+     return false
+    left = right
+   return true
+  "+", "-":
+   var right: Variant = _expression_value(args[1])
+   if right == null:
+    return null
+   var result := int(left) + int(right) if op == "+" else int(left) - int(right)
+   if result >= MIN_VALUE and result <= MAX_VALUE:
+    return result
+   runtime_error = "The result is outside the 32-bit integer range."
+   return null
+ return null
 
 func _meets_condition(condition: String, direction: String) -> bool:
  var location := cell

@@ -4,7 +4,7 @@ signal dismissed
 const Programs = preload("res://scripts/activities/garden_program.gd")
 const Progress = preload("res://scripts/activities/activity_progress.gd")
 const CLASSIC_GUIDE := "hop north / east / south / west\nfill     plant     water     wait     gather\nrepeat N … end     # comment\nroutine NAME heading · call NAME east\nif / while CONDITION … end\nelse · not · and · or · break · continue\nLook ahead with clear east or lily north\nF9 toggles a breakpoint"
-const PYTHON_GUIDE := "hop(east)    fill()    water()\nplant()       wait()       gather()\nfor _ in range(2):\nif water_level() >= 2:\nwhile clear(east):\ndef tend(heading):    tend(east)\nprint(column(), row(), water_level())\nTab indents · Shift+Tab unindents\nF9 toggles a breakpoint"
+const PYTHON_GUIDE := "hop(east)    fill()    water()\nplant()       wait()       gather()\nfor _ in range(2):\nif water_level() >= 2:\nwhile clear(east):\ndef tend(heading):    tend(east)\nstart = column()    print(start)\nTab indents · Shift+Tab unindents\nF9 toggles a breakpoint"
 var hud: ExplorerHUD
 var garden := Programs.new()
 var world: ExplorerActivityWorld

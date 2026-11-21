@@ -226,7 +226,18 @@ Use Python `print("Tank ready", has_water())` to show messages and sensor readin
 
 `water_level()` returns the number of water doses left in Pondbot's tank, from 0 to 3. `column()` counts from the left edge and `row()` counts from the top, both starting at zero. Print the readings with `print(column(), row(), water_level())` or compare them in a route. For example, use `while column() < 2 and clear(east):` with an indented `hop(east)` to move toward column 2. Use `spring() and water_level() < 3` in an `if` before filling. Classic Pondbot uses comparisons such as `if water_level < 3`.
 
-Define reusable functions above their first call. Functions can accept direction parameters, as in `def seek(heading):` with `hop(heading)` inside. `seek(north)` then uses north for that call. For a counted loop, use a value from 1 to 16 in `range(N)`. `break` exits the innermost loop and `continue` advances it. A `while` loop stops with a line error if it repeats without doing an action or exceeds 16 iterations. One program can execute up to 256 actions.
+Save a numeric reading or a Boolean in a Python variable, such as `start = column()` or `had_water = has_water()`. Outside function bodies, assign values with `=` and update counters with `+=` or `-=`. A function can read a variable after it has been assigned. Run and Check each start with fresh variables, and Resume keeps the current values.
+
+```python
+start = column()
+hops = 0
+while hops < 2 and clear(east):
+    hop(east)
+    hops += 1
+print("Started at", start, "and hopped", hops, "times")
+```
+
+Define reusable functions above their first call. Functions can accept direction parameters, as in `def seek(heading):` with `hop(heading)` inside. `seek(north)` then uses north for that call. For a counted loop, use a value from 1 to 16 in `range(N)`. `break` exits the innermost loop and `continue` advances it. A `while` loop stops with a line error if it repeats without an action or a change to a variable. Scored puzzles allow up to 16 iterations of each `while` loop and 256 board actions. Programs that keep computing without an action also have an instruction limit.
 
 Each board has an action target and saves your fewest actions for a completed run. Open **Best program** to read and replay the source that earned the score. Use **Back to draft** or **Esc** to return to the editor. Select **Classic Pondbot** in the language menu to open an earlier draft written with commands such as `hop east` and `repeat 2`. The two formats have separate drafts and share each puzzle's score. Drafts, completed puzzles, and best programs save locally across restarts.
 
