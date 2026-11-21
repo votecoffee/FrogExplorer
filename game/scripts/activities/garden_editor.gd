@@ -3,6 +3,8 @@ extends PanelContainer
 signal dismissed
 const Programs = preload("res://scripts/activities/garden_program.gd")
 const Progress = preload("res://scripts/activities/activity_progress.gd")
+const CLASSIC_GUIDE := "hop north / east / south / west\nfill     water     wait     gather\nrepeat N … end     # comment\nroutine NAME heading · call NAME east\nif / while CONDITION … end\nelse · not · and · or · break · continue\nLook ahead with clear east or lily north\nF9 toggles a breakpoint"
+const PYTHON_GUIDE := "hop(east)    fill()    water()\nwait()       gather()\nfor _ in range(2):\nif lily(north):    while has_water():\ndef tend(heading):    tend(east)\nTab indents · Shift+Tab unindents\nF9 toggles a breakpoint"
 var hud: ExplorerHUD
 var garden := Programs.new()
 var world: ExplorerActivityWorld
@@ -21,7 +23,10 @@ var board: GridContainer
 var info: Label
 var score: Label
 var hint: Label
+var guide: Label
 var chooser: OptionButton
+var language: OptionButton
+var python_mode := true
 var check_button: Button
 var review_button: Button
 var review_controls: VBoxContainer
@@ -54,6 +59,11 @@ func _ready() -> void:
  var title: Label = hud.label("Lily Code Garden", 26, Color("#f3ebb4"))
  title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  top.add_child(title)
+ language = OptionButton.new()
+ language.add_item("Python")
+ language.add_item("Classic Pondbot")
+ language.item_selected.connect(_select_language)
+ top.add_child(language)
  _button(top, "Close · Esc", _close)
  var pair := HBoxContainer.new()
  pair.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -73,7 +83,7 @@ func _ready() -> void:
  source = _code_edit()
  source.gutters_draw_breakpoints_gutter = true
  source.highlight_current_line = true
- source.placeholder_text = "Type Pondbot commands here"
+ source.indent_use_spaces = true
  draft_timer = Timer.new()
  draft_timer.one_shot = true
  draft_timer.wait_time = .65
@@ -126,7 +136,7 @@ func _ready() -> void:
  hint = hud.label("", 15)
  hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  right.add_child(hint)
- var guide: Label = hud.label("hop north / east / south / west\nfill     water     wait     gather\nrepeat N … end     # comment\nroutine NAME heading · call NAME east\nif / while CONDITION … end\nelse · not · and · or · break · continue\nLook ahead with clear east or lily north\nF9 toggles a breakpoint", 15, Color("#b9dccc"))
+ guide = hud.label("", 15, Color("#b9dccc"))
  right.add_child(guide)
  var legend: Label = hud.label("● Pondbot     ~ Spring     # Stone\nA watered lily ripens on the next turn.", 14)
  right.add_child(legend)
@@ -142,12 +152,15 @@ func _code_edit() -> CodeEdit:
  editor.gutters_draw_line_numbers = true
  editor.gutters_draw_executing_lines = true
  editor.add_theme_font_size_override("font_size", 18)
+ return editor
+
+func _color_code(editor: CodeEdit, python: bool) -> void:
  var ink := CodeHighlighter.new()
- for word in ["hop", "fill", "water", "wait", "gather", "repeat", "routine", "call", "if", "else", "while", "not", "and", "or", "end", "clear", "break", "continue"] + Programs.CONDITIONS:
+ var structural := ["for", "in", "range", "def", "elif"] if python else ["repeat", "routine", "call", "end"]
+ for word in ["hop", "fill", "water", "wait", "gather", "if", "else", "while", "not", "and", "or", "clear", "break", "continue"] + structural + Programs.CONDITIONS:
   ink.add_keyword_color(word, Color("#8bd5bc"))
  ink.add_color_region("#", "", Color("#a5ad99"), true)
  editor.syntax_highlighter = ink
- return editor
 
 func _button(parent: Container, label: String, action: Callable) -> Button:
  var button := Button.new()
@@ -189,7 +202,7 @@ func flush_draft() -> void:
  draft_timer.stop()
  if puzzle >= 0 and source.text != loaded_draft:
   loaded_draft = source.text
-  if progress.edit_draft(Programs.PUZZLES[puzzle].id, loaded_draft) != OK:
+  if progress.edit_draft(Programs.PUZZLES[puzzle].id, loaded_draft, python_mode) != OK:
    hud.toast("Could not save activity progress.")
  elif progress.flush() != OK:
   hud.toast("Could not save activity progress.")
@@ -205,7 +218,9 @@ func _toggle_best_program() -> void:
  if recorded.is_empty():
   return
  _close_review()
- best_title.text = "%s · %d actions" % [item.name, progress.garden_best[item.id]]
+ var recorded_python: bool = progress.garden_best_python.get(item.id, false)
+ best_title.text = "%s · %d actions · %s" % [item.name, progress.garden_best[item.id], "Python" if recorded_python else "Classic Pondbot"]
+ _color_code(best_source, recorded_python)
  best_source.text = recorded
  best_source.set_caret_line(0)
  best_source.set_caret_column(0)
@@ -216,7 +231,7 @@ func _toggle_best_program() -> void:
  best_button.text = "Back to draft"
  review_button.disabled = true
  best_source.grab_focus()
- var result: Dictionary = Programs.compile(recorded)
+ var result := _compile(recorded, recorded_python)
  if result.has("error"):
   best_title.text += "\nReplay unavailable · " + result.error
   _mark_line(best_source, result.line)
@@ -248,8 +263,26 @@ func _choose(index: int) -> void:
  _close_best_program()
  puzzle = index
  chooser.select(index)
- var item: Dictionary = Programs.PUZZLES[index]
- loaded_draft = str(progress.drafts.get(item.id, item.draft))
+ _load_draft()
+
+func _select_language(index: int) -> void:
+ if not steps.is_empty():
+  return
+ flush_draft()
+ _close_best_program()
+ python_mode = index == 0
+ language.select(index)
+ _load_draft()
+ source.grab_focus()
+
+func _load_draft() -> void:
+ var item: Dictionary = Programs.PUZZLES[puzzle]
+ var saved := progress.python_drafts if python_mode else progress.drafts
+ loaded_draft = str(saved.get(item.id, item.python_draft if python_mode else item.draft))
+ _color_code(source, python_mode)
+ source.indent_automatic = python_mode
+ source.placeholder_text = "Type Python for Pondbot" if python_mode else "Type Pondbot commands"
+ guide.text = PYTHON_GUIDE if python_mode else CLASSIC_GUIDE
  source.clear_breakpointed_lines()
  source.text = loaded_draft
  _reset()
@@ -276,8 +309,11 @@ func _stop() -> void:
  status.text = "Stopped. Run or Step starts from a fresh board."
  _draw()
 
+func _compile(text: String, python: bool) -> Dictionary:
+ return Programs.compile_python(text) if python else Programs.compile(text)
+
 func _compile_draft() -> Array:
- var result: Dictionary = Programs.compile(source.text)
+ var result := _compile(source.text, python_mode)
  if result.has("error"):
   _line_error(result.error, result.line)
   return []
@@ -468,7 +504,7 @@ func _advance() -> void:
    _clear_program()
    var item: Dictionary = Programs.PUZZLES[puzzle]
    var previous: int = progress.garden_best.get(item.id, 0)
-   if progress.complete_puzzle(item.id, garden.turn, completed_program) != OK:
+   if progress.complete_puzzle(item.id, garden.turn, completed_program, python_mode) != OK:
     hud.toast("Could not save activity progress.")
    status.text = "Puzzle complete · %d lilies in %d actions" % [garden.harvested, garden.turn]
    if previous > garden.turn:
@@ -504,6 +540,7 @@ func _draw() -> void:
  step_button.disabled = running
  stop_button.disabled = not active
  chooser.disabled = active
+ language.disabled = active
  source.editable = not active
  if not review_controls.visible:
   _draw_board(garden)

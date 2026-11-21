@@ -2,25 +2,26 @@ extends RefCounted
 ## Bounded in-game commands. Programs never execute engine or system code.
 
 const PUZZLES = [
- {"id":"first_bloom", "name":"First bloom", "rows":["~LL"], "target":9, "hint":"Fill at the spring. For each lily: hop east, water, wait, gather.", "draft":"# Harvest two lilies\nfill\nrepeat 2\n  hop east\n  water\n  wait\n  gather\nend\n"},
- {"id":"around_the_stones", "name":"Around the stones", "rows":["~.L#", "##.L", "..L."], "target":16, "hint":"Stones block hops. Use the open corridor to reach all three lilies.", "draft":"# Start at the spring\nfill\nhop east\nhop east\n"},
- {"id":"a_second_drink", "name":"A second drink", "rows":["~.H.", "##.#", ".HL."], "target":21, "hint":"Double lilies need two doses. Return to the spring whenever your tank is empty.", "draft":"# Plan a refill for the double lilies\nfill\n"},
- {"id":"twin_terraces", "name":"Twin terraces", "rows":[".##", "~LL", "~LL"], "target":19, "hint":"Start at the lower spring. The two terraces have the same route. After each bed, return to the spring column and hop north.", "draft":"# Repeat a trip along each terrace\nrepeat 2\n  fill\n  # Tend the row and return west\n  hop north\nend\n"},
- {"id":"reedbank_loop", "name":"Reedbank loop", "rows":["~.H#", ".#..", "L#.L", ".H.."], "target":28, "hint":"The tank holds three doses. Pair a double lily with a single lily on each trip, then use the lanes around the stones to refill.", "draft":"# Plan two trips from the spring\nfill\n"},
- {"id":"stone_spillway", "name":"Stone spillway", "rows":[".###","~LHL",".###","~LHL"], "target":36, "hint":"Start at the lower spring. Each bed has a double lily between two single lilies. Reuse finish_lily after the last dose and refill in the west column.", "draft":"# Reuse this routine after a lily's final dose\nroutine finish_lily\n  wait\n  gather\nend\n\nfill\nhop east\nwater\ncall finish_lily\n"},
- {"id":"patchwork_beds", "name":"Patchwork beds", "rows":["~L.H",".###","~.HL"], "target":26, "hint":"The beds mix empty spaces, single lilies, and double lilies. The starter tends the lower bed. Refill on the west bank to tend the upper bed.", "draft":"# Tend the lower bed, then reuse tend_plot in the upper bed\nroutine tend_plot\n  repeat 2\n    if thirsty\n      water\n    end\n  end\n  if growing\n    wait\n  end\n  if ripe\n    gather\n  end\nend\n\nfill\nrepeat 3\n  hop east\n  call tend_plot\nend\n"},
- {"id":"forked_banks", "name":"Forked banks", "rows":["~.L#",".###","~#H#","...#"], "target":20, "hint":"Start at the lower spring. The stone blocks the direct east route here. Reuse the same route routine from the upper spring, where east is open.", "draft":"# Reach both beds by checking whether east is open\nroutine to_lily\n  if clear east\n    repeat 2\n      hop east\n    end\n  else\n    hop south\n    repeat 2\n      hop east\n    end\n    hop north\n  end\nend\n\nfill\ncall to_lily\nwater\n"},
- {"id":"lantern_rows", "name":"Lantern rows", "rows":["~.L.L",".####","~.H##"], "target":22, "hint":"Start at the short bed. Sweep east until the path closes. Walk west to the spring column, hop north twice, then refill and sweep the long bed.", "draft":"# Sweep the short bed, then reuse sweep_east on the long bed\nroutine tend_plot\n  repeat 2\n    if thirsty\n      water\n    end\n  end\n  if growing\n    wait\n  end\n  if ripe\n    gather\n  end\nend\nroutine sweep_east\n  while clear east\n    hop east\n    call tend_plot\n  end\nend\n\nfill\ncall sweep_east\n"},
- {"id":"spring_relay", "name":"Spring relay", "rows":["~LHL.",".####","~.HL."], "target":35, "hint":"Sweep the lower bed. Go back west to the spring column and hop north twice. The upper bed takes two tankfuls. Already gathered plots can be crossed again.", "draft":"# Sweep the lower bed, then plan two trips along the upper bed\nroutine tend_plot\n  while thirsty and has_water\n    water\n  end\n  if growing or ripe\n    if growing\n      wait\n    end\n    gather\n  end\nend\nroutine sweep_east\n  while clear east and has_water\n    hop east\n    call tend_plot\n  end\nend\n\nfill\ncall sweep_east\n"},
- {"id":"side_channels", "name":"Side channels", "rows":["##L#L","~....","#L#L#"], "target":31, "hint":"Follow the center path and look for lilies to the north or south. Return west to refill after the third lily. A second sweep can skip the lilies you already gathered.", "draft":"# Look for lilies off the center path before hopping\nroutine tend_plot\n  water\n  wait\n  gather\nend\nroutine sweep_east\n  while clear east and has_water\n    hop east\n    if lily north\n      hop north\n      call tend_plot\n      hop south\n    end\n    if lily south and has_water\n      hop south\n      call tend_plot\n      hop north\n    end\n  end\nend\n\nfill\ncall sweep_east\n"},
- {"id":"compass_banks", "name":"Compass banks", "rows":["L####","..~..","####H"], "target":17, "hint":"The spring is between two mirrored paths. After the west sweep, return east to the spring. Call sweep again with east along the bank, south toward the lily, and north back to the path.", "draft":"# Sweep west, then reuse the routine with different directions\nroutine tend_bed toward back\n  hop toward\n  while thirsty and has_water\n    water\n  end\n  wait\n  gather\n  hop back\nend\nroutine sweep along branch return_path\n  while clear along and has_water\n    hop along\n    if lily branch\n      call tend_bed branch return_path\n    end\n  end\nend\n\nfill\ncall sweep west north south\n"},
- {"id":"low_water_row", "name":"Low water row", "rows":["~LLHL"], "target":25, "hint":"The first sweep runs out of water at the double lily. Return to the spring, refill, and sweep again. The routine skips plots you already gathered.", "draft":"# Leave the row to refill when a plot still needs water\nroutine sweep\n  while clear east\n    hop east\n    if not lily\n      continue\n    end\n    while thirsty and has_water\n      water\n    end\n    if thirsty\n      break\n    end\n    wait\n    gather\n  end\nend\n\nfill\ncall sweep\n"},
+ {"id":"first_bloom", "name":"First bloom", "rows":["~LL"], "target":9, "hint":"Fill at the spring. For each lily: hop east, water, wait, gather.", "draft":"# Harvest two lilies\nfill\nrepeat 2\n  hop east\n  water\n  wait\n  gather\nend\n", "python_draft":"# Harvest two lilies one at a time\nfill()\nhop(east)\nwater()\nwait()\ngather()\nhop(east)\nwater()\nwait()\ngather()\n"},
+ {"id":"around_the_stones", "name":"Around the stones", "rows":["~.L#", "##.L", "..L."], "target":16, "hint":"Stones block hops. Use the open corridor to reach all three lilies.", "draft":"# Start at the spring\nfill\nhop east\nhop east\n", "python_draft":"# Start at the spring\nfill()\nhop(east)\nhop(east)\n"},
+ {"id":"a_second_drink", "name":"A second drink", "rows":["~.H.", "##.#", ".HL."], "target":21, "hint":"Double lilies need two doses. Return to the spring whenever your tank is empty.", "draft":"# Plan a refill for the double lilies\nfill\n", "python_draft":"# Plan a refill for the double lilies\nfill()\n"},
+ {"id":"twin_terraces", "name":"Twin terraces", "rows":[".##", "~LL", "~LL"], "target":19, "hint":"Start at the lower spring. The two terraces have the same route. After each bed, return to the spring column and hop north.", "draft":"# Repeat a trip along each terrace\nrepeat 2\n  fill\n  # Tend the row and return west\n  hop north\nend\n", "python_draft":"# Repeat a trip along each terrace\nfor _ in range(2):\n    fill()\n    # Tend the row and return west\n    hop(north)\n"},
+ {"id":"reedbank_loop", "name":"Reedbank loop", "rows":["~.H#", ".#..", "L#.L", ".H.."], "target":28, "hint":"The tank holds three doses. Pair a double lily with a single lily on each trip, then use the lanes around the stones to refill.", "draft":"# Plan two trips from the spring\nfill\n", "python_draft":"# Plan two trips from the spring\nfill()\n"},
+ {"id":"stone_spillway", "name":"Stone spillway", "rows":[".###","~LHL",".###","~LHL"], "target":36, "hint":"Start at the lower spring. Each bed has a double lily between two single lilies. Reuse finish_lily after the last dose and refill in the west column.", "draft":"# Reuse this routine after a lily's final dose\nroutine finish_lily\n  wait\n  gather\nend\n\nfill\nhop east\nwater\ncall finish_lily\n", "python_draft":"# Reuse this routine after a lily's final dose\ndef finish_lily():\n    wait()\n    gather()\n\nfill()\nhop(east)\nwater()\nfinish_lily()\n"},
+ {"id":"patchwork_beds", "name":"Patchwork beds", "rows":["~L.H",".###","~.HL"], "target":26, "hint":"The beds mix empty spaces, single lilies, and double lilies. The starter tends the lower bed. Refill on the west bank to tend the upper bed.", "draft":"# Tend the lower bed, then reuse tend_plot in the upper bed\nroutine tend_plot\n  repeat 2\n    if thirsty\n      water\n    end\n  end\n  if growing\n    wait\n  end\n  if ripe\n    gather\n  end\nend\n\nfill\nrepeat 3\n  hop east\n  call tend_plot\nend\n", "python_draft":"# Tend the lower bed, then reuse tend_plot in the upper bed\ndef tend_plot():\n    for _ in range(2):\n        if thirsty():\n            water()\n    if growing():\n        wait()\n    if ripe():\n        gather()\n\nfill()\nfor _ in range(3):\n    hop(east)\n    tend_plot()\n"},
+ {"id":"forked_banks", "name":"Forked banks", "rows":["~.L#",".###","~#H#","...#"], "target":20, "hint":"Start at the lower spring. The stone blocks the direct east route here. Reuse the same route routine from the upper spring, where east is open.", "draft":"# Reach both beds by checking whether east is open\nroutine to_lily\n  if clear east\n    repeat 2\n      hop east\n    end\n  else\n    hop south\n    repeat 2\n      hop east\n    end\n    hop north\n  end\nend\n\nfill\ncall to_lily\nwater\n", "python_draft":"# Reach both beds by checking whether east is open\ndef to_lily():\n    if clear(east):\n        for _ in range(2):\n            hop(east)\n    else:\n        hop(south)\n        for _ in range(2):\n            hop(east)\n        hop(north)\n\nfill()\nto_lily()\nwater()\n"},
+ {"id":"lantern_rows", "name":"Lantern rows", "rows":["~.L.L",".####","~.H##"], "target":22, "hint":"Start at the short bed. Sweep east until the path closes. Walk west to the spring column, hop north twice, then refill and sweep the long bed.", "draft":"# Sweep the short bed, then reuse sweep_east on the long bed\nroutine tend_plot\n  repeat 2\n    if thirsty\n      water\n    end\n  end\n  if growing\n    wait\n  end\n  if ripe\n    gather\n  end\nend\nroutine sweep_east\n  while clear east\n    hop east\n    call tend_plot\n  end\nend\n\nfill\ncall sweep_east\n", "python_draft":"# Sweep the short bed, then reuse sweep_east on the long bed\ndef tend_plot():\n    for _ in range(2):\n        if thirsty():\n            water()\n    if growing():\n        wait()\n    if ripe():\n        gather()\ndef sweep_east():\n    while clear(east):\n        hop(east)\n        tend_plot()\n\nfill()\nsweep_east()\n"},
+ {"id":"spring_relay", "name":"Spring relay", "rows":["~LHL.",".####","~.HL."], "target":35, "hint":"Sweep the lower bed. Go back west to the spring column and hop north twice. The upper bed takes two tankfuls. Already gathered plots can be crossed again.", "draft":"# Sweep the lower bed, then plan two trips along the upper bed\nroutine tend_plot\n  while thirsty and has_water\n    water\n  end\n  if growing or ripe\n    if growing\n      wait\n    end\n    gather\n  end\nend\nroutine sweep_east\n  while clear east and has_water\n    hop east\n    call tend_plot\n  end\nend\n\nfill\ncall sweep_east\n", "python_draft":"# Sweep the lower bed, then plan two trips along the upper bed\ndef tend_plot():\n    while thirsty() and has_water():\n        water()\n    if growing() or ripe():\n        if growing():\n            wait()\n        gather()\ndef sweep_east():\n    while clear(east) and has_water():\n        hop(east)\n        tend_plot()\n\nfill()\nsweep_east()\n"},
+ {"id":"side_channels", "name":"Side channels", "rows":["##L#L","~....","#L#L#"], "target":31, "hint":"Follow the center path and look for lilies to the north or south. Return west to refill after the third lily. A second sweep can skip the lilies you already gathered.", "draft":"# Look for lilies off the center path before hopping\nroutine tend_plot\n  water\n  wait\n  gather\nend\nroutine sweep_east\n  while clear east and has_water\n    hop east\n    if lily north\n      hop north\n      call tend_plot\n      hop south\n    end\n    if lily south and has_water\n      hop south\n      call tend_plot\n      hop north\n    end\n  end\nend\n\nfill\ncall sweep_east\n", "python_draft":"# Look for lilies off the center path before hopping\ndef tend_plot():\n    water()\n    wait()\n    gather()\ndef sweep_east():\n    while clear(east) and has_water():\n        hop(east)\n        if lily(north):\n            hop(north)\n            tend_plot()\n            hop(south)\n        if lily(south) and has_water():\n            hop(south)\n            tend_plot()\n            hop(north)\n\nfill()\nsweep_east()\n"},
+ {"id":"compass_banks", "name":"Compass banks", "rows":["L####","..~..","####H"], "target":17, "hint":"The spring is between two mirrored paths. After the west sweep, return east to the spring. Call sweep again with east along the bank, south toward the lily, and north back to the path.", "draft":"# Sweep west, then reuse the routine with different directions\nroutine tend_bed toward back\n  hop toward\n  while thirsty and has_water\n    water\n  end\n  wait\n  gather\n  hop back\nend\nroutine sweep along branch return_path\n  while clear along and has_water\n    hop along\n    if lily branch\n      call tend_bed branch return_path\n    end\n  end\nend\n\nfill\ncall sweep west north south\n", "python_draft":"# Sweep west, then reuse the routine with different directions\ndef tend_bed(toward, back):\n    hop(toward)\n    while thirsty() and has_water():\n        water()\n    wait()\n    gather()\n    hop(back)\ndef sweep(along, branch, return_path):\n    while clear(along) and has_water():\n        hop(along)\n        if lily(branch):\n            tend_bed(branch, return_path)\n\nfill()\nsweep(west, north, south)\n"},
+ {"id":"low_water_row", "name":"Low water row", "rows":["~LLHL"], "target":25, "hint":"The first sweep runs out of water at the double lily. Return to the spring, refill, and sweep again. The routine skips plots you already gathered.", "draft":"# Leave the row to refill when a plot still needs water\nroutine sweep\n  while clear east\n    hop east\n    if not lily\n      continue\n    end\n    while thirsty and has_water\n      water\n    end\n    if thirsty\n      break\n    end\n    wait\n    gather\n  end\nend\n\nfill\ncall sweep\n", "python_draft":"# Leave the row to refill when a plot still needs water\ndef sweep():\n    while clear(east):\n        hop(east)\n        if not lily():\n            continue\n        while thirsty() and has_water():\n            water()\n        if thirsty():\n            break\n        wait()\n        gather()\n\nfill()\nsweep()\n"},
 ]
 const DIRECTIONS = {"north":Vector2i(0,-1), "east":Vector2i(1,0), "south":Vector2i(0,1), "west":Vector2i(-1,0)}
 const CONDITIONS := ["spring", "has_water", "lily", "thirsty", "growing", "ripe"]
 const CAPACITY = 3
 const MAX_STEPS = 256
 const MAX_WHILE_ITERATIONS := 16
+const PYTHON_COMPILER := "res://scripts/activities/garden_python.py"
 var rows: Array = []
 var plants: Dictionary = {}
 var cell := Vector2i.ZERO
@@ -31,7 +32,7 @@ var runtime_error := ""
 var runtime_error_line := -1
 var while_entries: Dictionary = {}
 
-static func compile(source: String) -> Dictionary:
+static func compile(source: String, case_sensitive := false) -> Dictionary:
  if source.length() > 8192:
   return {"error":"Programs can contain up to 8,192 characters.", "line":0}
  var blocks: Array[Dictionary] = [{"steps":[]}]
@@ -39,7 +40,9 @@ static func compile(source: String) -> Dictionary:
  var parameters := PackedStringArray()
  var lines := source.split("\n")
  for index in lines.size():
-  var text := lines[index].get_slice("#", 0).strip_edges().replace("\t", " ").to_lower()
+  var text := lines[index].get_slice("#", 0).strip_edges().replace("\t", " ")
+  if not case_sensitive:
+   text = text.to_lower()
   var words := text.split(" ", false)
   if words.is_empty():
    continue
@@ -171,6 +174,48 @@ static func compile(source: String) -> Dictionary:
  if blocks[0].steps.is_empty():
   return _error(0, "Add at least one action.")
  return {"steps":blocks[0].steps}
+
+static func compile_python(source: String) -> Dictionary:
+ if source.length() > 8192:
+  return _error(0, "Programs can contain up to 8,192 characters.")
+ var compiler := ProjectSettings.globalize_path(PYTHON_COMPILER)
+ if not FileAccess.file_exists(compiler):
+  return _error(0, "The garden Python compiler is missing from this installation.")
+ var temporary := FileAccess.create_temp(FileAccess.WRITE, "frog-garden", "py", true)
+ if temporary == null:
+  return _error(0, "Could not prepare this draft for Python.")
+ var draft_path := temporary.get_path_absolute()
+ temporary.store_string(source)
+ var write_error := temporary.get_error()
+ temporary.close()
+ if write_error != OK:
+  DirAccess.remove_absolute(draft_path)
+  return _error(0, "Could not prepare this draft for Python.")
+ var python := OS.get_environment("FROG_GARDEN_PYTHON")
+ if python.is_empty():
+  python = "python.exe" if OS.get_name() == "Windows" else "python3"
+ var output: Array = []
+ var status := OS.execute(python, ["-I", "-S", compiler, draft_path], output)
+ DirAccess.remove_absolute(draft_path)
+ if status != 0 or output.is_empty():
+  return _error(0, "Could not start the garden compiler. Put Python 3.10 or newer on PATH.")
+ var lowered: Variant = JSON.parse_string(output[0])
+ if not lowered is Dictionary:
+  return _error(0, "The Python compiler returned an unreadable result.")
+ if lowered.has("error"):
+  return _error(int(lowered.line), lowered.error)
+ var locations: Array = lowered.lines
+ var result := compile(lowered.source, true)
+ if result.has("error"):
+  var index: int = result.line
+  var message: String = result.error.trim_prefix("Line %d · " % (index + 1))
+  return _error(int(locations[index]) if index < locations.size() else 0, message)
+ # Repeat copies can share an instruction. Remap its source line on a fresh copy.
+ for index in result.steps.size():
+  var instruction: Dictionary = result.steps[index].duplicate()
+  instruction.line = int(locations[instruction.line])
+  result.steps[index] = instruction
+ return result
 
 static func _append_loop_body(outer: Array, body: Array, loop_end: int, is_while := false) -> void:
  var start := outer.size()

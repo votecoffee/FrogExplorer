@@ -263,6 +263,22 @@ func run(game) -> void:
   var popup = game.activities.garden
   check(popup.visible and game.pilot.paused and popup.source.has_focus(), "The garden popup owns keyboard focus and pauses movement")
   check("Target · 9 actions" in popup.score.text and "Personal best · —" in popup.score.text and not popup.best_button.visible, "A fresh board displays its target and an empty personal best")
+  check(popup.python_mode and popup.language.selected == 0 and popup.source.indent_use_spaces and "fill()" in popup.source.text, "The keyboard editor opens in Python")
+  popup.check_button.pressed.emit()
+  check("9 actions to harvest all 2 lilies" in popup.status.text and popup.garden.turn == 0, "Check previews a Python starter without moving Pondbot")
+  press_key(KEY_F10)
+  check(popup.garden.turn == 1 and popup.source.get_executing_lines() == PackedInt32Array([1]) and popup.language.disabled, "F10 executes the Python fill call and marks its source line")
+  popup.stop_button.pressed.emit()
+  popup.source.text = "if spring():"
+  popup.source.set_caret_column(popup.source.text.length())
+  popup.source.grab_focus()
+  press_key(KEY_ENTER)
+  check(popup.source.text == "if spring():\n    ", "Enter indents a Python block for keyboard editing")
+  popup.source.text = "fill()\nif spring()\n    wait()"
+  popup.check_button.pressed.emit()
+  check("Line 2" in popup.status.text and popup.source.get_executing_lines() == PackedInt32Array([1]), "Python syntax errors mark the original editor line")
+  popup.language.item_selected.emit(1)
+  check(not popup.python_mode and popup.source.text == Program.PUZZLES[0].draft and popup.progress.python_drafts.get("first_bloom") == "fill()\nif spring()\n    wait()", "Switching language saves the Python draft and opens the classic starter")
   game.controls.pending.append("travel_home")
   await frames(4)
   check(t.current_id == IDS[2] and not t.busy, "Game shortcuts are suspended while editing")
@@ -686,6 +702,22 @@ func run(game) -> void:
   var skipped_again: bool = popup.best_source.get_executing_lines() == PackedInt32Array([3]) and "●" in popup.board.get_child(2).get_child(0).text
   popup.review_slider.value = popup.review_slider.max_value
   check(skipped_again and "Best run · 25 / 25 actions" == popup.review_position.text and "Lilies 4 / 4" in popup.info.text, "Replay skips gathered lilies on the second sweep and shows the final harvest")
+
+  popup.language.item_selected.emit(0)
+  popup.chooser.item_selected.emit(1)
+  var around_python := "# Route around the stones\nfill()\nfor _ in range(2):\n    hop(east)\nwater()\nwait()\ngather()\nhop(south)\nhop(east)\nwater()\nwait()\ngather()\nhop(west)\nhop(south)\nwater()\nwait()\ngather()\n"
+  await finish_by_steps(popup, around_python)
+  check(popup.garden.turn == 16 and popup.garden.harvested == 3 and popup.progress.garden_best_python.get("around_the_stones", false), "A completed Python run records its source language and score")
+  popup.language.item_selected.emit(1)
+  popup.best_button.pressed.emit()
+  popup.review_slider.value = 3
+  check(popup.best_source.text == around_python and popup.best_source.get_executing_lines() == PackedInt32Array([3]) and "Best run · 3 / 16 actions" == popup.review_position.text, "Best program replays Python with correct lines from the classic editor")
+  press_key(KEY_ESCAPE)
+  popup.language.item_selected.emit(0)
+  check(popup.source.text == around_python, "Switching back to Python restores its separate draft")
+  popup.source.text = "if not (lily() or thirsty()) and (spring() or ripe()):\n    fill()\nelse:\n    hop(west)"
+  popup.check_button.pressed.emit()
+  check("0 of 3 lilies harvested in 1 action" in popup.status.text, "Python grouping and negation determine the same action during Check")
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

@@ -9,9 +9,11 @@ const COURSES := ["car_circuit", "balloon_rings"]
 var best: Dictionary = {}
 var split_records: Dictionary = {}
 var drafts: Dictionary = {}
+var python_drafts: Dictionary = {}
 var solved: Dictionary = {}
 var garden_best: Dictionary = {}
 var garden_best_programs: Dictionary = {}
+var garden_best_python: Dictionary = {}
 var folder := ""
 var pending: Dictionary = {}
 
@@ -39,6 +41,9 @@ func load_from(path: String) -> void:
   var draft := folder.path_join("draft-" + id + ".txt")
   if FileAccess.file_exists(draft):
    drafts[id] = FileAccess.get_file_as_string(draft)
+  var python_draft := folder.path_join("draft-" + id + ".py")
+  if FileAccess.file_exists(python_draft):
+   python_drafts[id] = FileAccess.get_file_as_string(python_draft)
   var marker := "solved-" + id
   if marker in names:
    solved[id] = true
@@ -56,6 +61,12 @@ func load_from(path: String) -> void:
    solved[id] = true
    garden_best[id] = best_actions
    var program := FileAccess.get_file_as_string(folder.path_join(best_file))
+   garden_best_python.erase(id)
+   if program.begins_with("{"):
+    var record: Variant = JSON.parse_string(program)
+    if record is Dictionary and record.get("format") == "python" and record.get("source") is String:
+     program = record.source
+     garden_best_python[id] = true
    if program.is_empty():
     garden_best_programs.erase(id)
    else:
@@ -100,11 +111,12 @@ func _remember_splits(course: String, layout: String, times_ms: Array, milliseco
 func _split_key(course: String, layout: String, checkpoints: int) -> String:
  return "%s/%s/%d" % [course, layout, checkpoints]
 
-func edit_draft(id: String, text: String) -> Error:
- drafts[id] = text
- return _save("draft-" + id + ".txt", text)
+func edit_draft(id: String, text: String, python := false) -> Error:
+ var saved := python_drafts if python else drafts
+ saved[id] = text
+ return _save("draft-" + id + (".py" if python else ".txt"), text)
 
-func complete_puzzle(id: String, actions: int, program: String) -> Error:
+func complete_puzzle(id: String, actions: int, program: String, python := false) -> Error:
  if actions <= 0 or actions > Programs.MAX_STEPS or program.is_empty():
   return ERR_INVALID_PARAMETER
  solved[id] = true
@@ -113,8 +125,10 @@ func complete_puzzle(id: String, actions: int, program: String) -> Error:
   return OK
  garden_best[id] = actions
  garden_best_programs[id] = program
+ garden_best_python[id] = python
  # Store the source with its score so a different record cannot supply the code.
- return _save("solved-%s-%d" % [id, actions], program)
+ var stored := JSON.stringify({"format":"python", "source":program}) if python else program
+ return _save("solved-%s-%d" % [id, actions], stored)
 
 func _save(name: String, text: String) -> Error:
  if folder.is_empty():
