@@ -103,6 +103,8 @@ const EMPTY_BED := "Empty bed"
 const CAPACITY = 3
 const MAX_STEPS = 256
 const MAX_WHILE_ITERATIONS := 16
+const MAX_OUTPUT_MESSAGES := 32
+const MAX_OUTPUT_LENGTH := 1024
 const PYTHON_COMPILER := "res://scripts/activities/garden_python.py"
 var rows: Array = []
 var plants: Dictionary = {}
@@ -114,8 +116,9 @@ var harvested := 0
 var runtime_error := ""
 var runtime_error_line := -1
 var while_entries: Dictionary = {}
+var output: Array[Dictionary] = []
 
-static func compile(source: String, case_sensitive := false) -> Dictionary:
+static func compile(source: String, case_sensitive := false, diagnostics: Dictionary = {}) -> Dictionary:
  if source.length() > 8192:
   return {"error":"Programs can contain up to 8,192 characters.", "line":0}
  var blocks: Array[Dictionary] = [{"steps":[]}]
@@ -235,7 +238,14 @@ static func compile(source: String, case_sensitive := false) -> Dictionary:
    steps.append_array(_bind_directions(routine.steps, bindings))
    continue
   var instruction := {"command":command, "direction":"", "line":index}
-  if command == "hop":
+  if command == "diagnostic" and diagnostics.has(str(index)):
+   var values: Array = diagnostics[str(index)]
+   for value: Dictionary in values:
+    var target: String = value.get("direction", "")
+    if not target.is_empty() and not _is_direction(target, parameters):
+     return _error(index, "Use a compass direction or a routine parameter in print().")
+   instruction = {"output":values, "line":index}
+  elif command == "hop":
    if words.size() != 2 or not _is_direction(words[1], parameters):
     return _error(index, "Use hop with north, east, south, west, or a routine parameter.")
    instruction.direction = words[1]
@@ -288,7 +298,7 @@ static func compile_python(source: String) -> Dictionary:
  if lowered.has("error"):
   return _error(int(lowered.line), lowered.error)
  var locations: Array = lowered.lines
- var result := compile(lowered.source, true)
+ var result := compile(lowered.source, true, lowered.get("diagnostics", {}))
  if result.has("error"):
   var index: int = result.line
   var message: String = result.error.trim_prefix("Line %d · " % (index + 1))
@@ -330,6 +340,10 @@ static func _bind_directions(instructions: Array, bindings: Dictionary) -> Array
    for clause: Array in instruction.clauses:
     for test: Dictionary in clause:
      test.direction = bindings.get(test.direction, test.direction)
+  elif instruction.has("output"):
+   for value: Dictionary in instruction.output:
+    if value.has("direction"):
+     value.direction = bindings.get(value.direction, value.direction)
   expanded.append(instruction)
  return expanded
 
@@ -407,6 +421,7 @@ func reset_program() -> void:
  runtime_error = ""
  runtime_error_line = -1
  while_entries.clear()
+ output.clear()
 
 func copy_board() -> RefCounted:
  var copy = get_script().new()
@@ -446,6 +461,10 @@ func next_action_index(instructions: Array, first: int) -> int:
   if instruction.has("back"):
    index -= int(instruction.back)
    continue
+  if instruction.has("output"):
+   _append_output(instruction)
+   index += 1
+   continue
   if not instruction.has("skip"):
    if not practice and turn >= MAX_STEPS:
     runtime_error = "The program reached its %d-action limit." % MAX_STEPS
@@ -469,6 +488,22 @@ func next_action_index(instructions: Array, first: int) -> int:
     while_entries.erase(index)
   index += 1 if passes else 1 + int(instruction.skip)
  return index if runtime_error.is_empty() else instructions.size()
+
+func _append_output(instruction: Dictionary) -> void:
+ var fields := PackedStringArray()
+ for value: Dictionary in instruction.output:
+  if value.has("sensor"):
+   fields.append("True" if _meets_condition(value.sensor, value.direction) else "False")
+  elif value.has("direction"):
+   fields.append(value.direction)
+  else:
+   fields.append(value.text)
+ var message := " ".join(fields)
+ if message.length() > MAX_OUTPUT_LENGTH:
+  message = message.left(MAX_OUTPUT_LENGTH - 1) + "…"
+ if output.size() >= MAX_OUTPUT_MESSAGES:
+  output.pop_front()
+ output.append({"line":instruction.line, "turn":turn, "text":message})
 
 func _meets_any_clause(clauses: Array) -> bool:
  for clause: Array in clauses:

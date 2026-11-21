@@ -40,6 +40,34 @@ def direction(node):
     raise GardenError(node, "Use a compass direction such as east, or a direction parameter.")
 
 
+def sensor_call(node, routines):
+    sensor, args = arguments(node)
+    if sensor not in SENSORS or sensor in routines:
+        raise GardenError(node, "Use a garden test such as empty_bed(north) or has_water().")
+    if len(args) > 1 or (sensor == "clear" and not args) or (sensor == "has_water" and args):
+        raise GardenError(node, "Check the direction arguments for this garden test.")
+    return sensor, direction(args[0]) if args else ""
+
+
+def print_value(node, routines):
+    if isinstance(node, ast.Call):
+        sensor, target = sensor_call(node, routines)
+        return {"sensor": sensor, "direction": target}
+    if isinstance(node, ast.Name):
+        return {"direction": direction(node)}
+    if isinstance(node, ast.Constant) and type(node.value) in (str, bool, int, float, type(None)):
+        value = node.value
+    elif (isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)) and
+          isinstance(node.operand, ast.Constant) and type(node.operand.value) in (int, float)):
+        value = -node.operand.value if isinstance(node.op, ast.USub) else node.operand.value
+    else:
+        raise GardenError(node, "Use text, a number, a direction, or a garden test in print().")
+    try:
+        return {"text": str(value).encode("utf-8", errors="replace").decode("utf-8").replace("\0", "\u2400")}
+    except ValueError:
+        raise GardenError(node, "Use a smaller number in print().") from None
+
+
 def clauses(node, routines, inverted=False):
     if isinstance(node, ast.Constant) and type(node.value) is bool:
         return [["always" if node.value != inverted else "not always"]]
@@ -61,12 +89,8 @@ def clauses(node, routines, inverted=False):
             if sum(map(len, result)) > 256:
                 raise GardenError(node, "Split this test into smaller conditions.")
         return result
-    sensor, args = arguments(node)
-    if sensor not in SENSORS or sensor in routines:
-        raise GardenError(node, "Use a garden test such as empty_bed(north) or has_water().")
-    if len(args) > 1 or (sensor == "clear" and not args) or (sensor == "has_water" and args):
-        raise GardenError(node, "Check the direction arguments for this garden test.")
-    term = " ".join([sensor, *(direction(arg) for arg in args)])
+    sensor, target = sensor_call(node, routines)
+    term = f"{sensor} {target}" if target else sensor
     return [[f"not {term}" if inverted else term]]
 
 
@@ -74,6 +98,7 @@ def lower(source):
     lines = []
     locations = []
     routines = set()
+    diagnostics = {}
 
     def emit(text, line):
         lines.append(text)
@@ -83,6 +108,10 @@ def lower(source):
         for node in statements:
             if isinstance(node, ast.Expr):
                 command, args = arguments(node.value)
+                if command == "print" and command not in routines:
+                    diagnostics[str(len(lines))] = [print_value(arg, routines) for arg in args]
+                    emit("diagnostic", node.lineno)
+                    continue
                 if command in ACTIONS and command not in routines:
                     if len(args) != int(command == "hop"):
                         raise GardenError(node, f"Check the arguments for {command}().")
@@ -138,7 +167,10 @@ def lower(source):
         return {"error": str(error), "line": error.line}
     except RecursionError:
         return {"error": "Split this program into smaller expressions.", "line": 0}
-    return {"source": "\n".join(lines), "lines": locations}
+    result = {"source": "\n".join(lines), "lines": locations}
+    if diagnostics:
+        result["diagnostics"] = diagnostics
+    return result
 
 
 if __name__ == "__main__":

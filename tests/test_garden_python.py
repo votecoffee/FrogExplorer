@@ -33,12 +33,37 @@ class GardenPythonTests(unittest.TestCase):
         source = "while True:\n    if not False and empty_bed():\n        plant()\n"
         self.assertEqual(LOWER(source)["source"], "while always\nif always and empty_bed\nplant\nend\nend")
 
+    def test_print_preserves_literals_sensors_and_routine_parameters(self):
+        source = r'''def report(Heading):
+    print("water # tank\nplant", Heading, empty_bed(Heading), -2.5, True, None)
+report("east")
+print()
+'''
+        result = LOWER(source)
+        self.assertEqual(result["source"], "routine report Heading\ndiagnostic\nend\ncall report east\ndiagnostic")
+        self.assertEqual(result["lines"], [0, 1, 1, 2, 3])
+        self.assertEqual(result["diagnostics"], {
+            "1": [
+                {"text": "water # tank\nplant"}, {"direction": "Heading"},
+                {"sensor": "empty_bed", "direction": "Heading"},
+                {"text": "-2.5"}, {"text": "True"}, {"text": "None"},
+            ],
+            "4": [],
+        })
+
+    def test_existing_print_routine_remains_callable(self):
+        source = "def print():\n    wait()\nprint()\n"
+        self.assertEqual(LOWER(source)["source"], "routine print\nwait\nend\ncall print")
+
     def test_unsupported_syntax_is_rejected_at_its_source_line(self):
         for source, line in [
             ("fill()\nimport math\n", 1),
             ("garden.fill()\n", 0),
             ("for x in range(2):\n    wait()\n", 0),
             ("fill()\nif spring()\n    wait()\n", 1),
+            ("fill()\nprint(plant())\n", 1),
+            ("print(has_water(east))\n", 0),
+            ("print(1 + 2)\n", 0),
         ]:
             with self.subTest(source=source):
                 result = LOWER(source)

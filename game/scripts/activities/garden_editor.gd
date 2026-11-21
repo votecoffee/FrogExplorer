@@ -4,7 +4,7 @@ signal dismissed
 const Programs = preload("res://scripts/activities/garden_program.gd")
 const Progress = preload("res://scripts/activities/activity_progress.gd")
 const CLASSIC_GUIDE := "hop north / east / south / west\nfill     plant     water     wait     gather\nrepeat N … end     # comment\nroutine NAME heading · call NAME east\nif / while CONDITION … end\nelse · not · and · or · break · continue\nLook ahead with clear east or lily north\nF9 toggles a breakpoint"
-const PYTHON_GUIDE := "hop(east)    fill()    water()\nplant()       wait()       gather()\nfor _ in range(2):\nif lily(north):    while has_water():\ndef tend(heading):    tend(east)\nTab indents · Shift+Tab unindents\nF9 toggles a breakpoint"
+const PYTHON_GUIDE := "hop(east)    fill()    water()\nplant()       wait()       gather()\nfor _ in range(2):\nif lily(north):    while has_water():\ndef tend(heading):    tend(east)\nprint(ripe())\nTab indents · Shift+Tab unindents\nF9 toggles a breakpoint"
 var hud: ExplorerHUD
 var garden := Programs.new()
 var world: ExplorerActivityWorld
@@ -18,6 +18,9 @@ var best_button: Button
 var best_panel: VBoxContainer
 var best_title: Label
 var best_source: CodeEdit
+var output_panel: PanelContainer
+var output_title: Label
+var output_text: RichTextLabel
 var status: Label
 var board: GridContainer
 var info: Label
@@ -106,6 +109,19 @@ func _ready() -> void:
  best_source.editable = false
  best_panel.add_child(best_source)
  best_panel.hide()
+ output_panel = PanelContainer.new()
+ left.add_child(output_panel)
+ var output_stack := VBoxContainer.new()
+ output_panel.add_child(output_stack)
+ output_title = hud.label("", 15, Color("#b9dccc"))
+ output_stack.add_child(output_title)
+ output_text = RichTextLabel.new()
+ output_text.custom_minimum_size.y = 88
+ output_text.add_theme_font_size_override("normal_font_size", 15)
+ output_text.scroll_following = true
+ output_text.selection_enabled = true
+ output_stack.add_child(output_text)
+ output_panel.hide()
  var right := VBoxContainer.new()
  right.custom_minimum_size.x = 285
  right.add_theme_constant_override("separation", 9)
@@ -161,7 +177,7 @@ func _code_edit() -> CodeEdit:
 
 func _color_code(editor: CodeEdit, python: bool) -> void:
  var ink := CodeHighlighter.new()
- var structural := ["for", "in", "range", "def", "elif"] if python else ["repeat", "routine", "call", "end"]
+ var structural := ["for", "in", "range", "def", "elif", "print"] if python else ["repeat", "routine", "call", "end"]
  for word in ["hop", "fill", "plant", "water", "wait", "gather", "if", "else", "while", "not", "and", "or", "clear", "break", "continue"] + structural + Programs.CONDITIONS:
   ink.add_keyword_color(word, Color("#8bd5bc"))
  ink.add_color_region("#", "", Color("#a5ad99"), true)
@@ -233,6 +249,7 @@ func _toggle_best_program() -> void:
  source.hide()
  status.hide()
  best_panel.show()
+ output_panel.hide()
  best_button.text = "Back to draft"
  review_button.disabled = true
  best_source.grab_focus()
@@ -261,6 +278,7 @@ func _close_best_program() -> void:
  best_button.text = "Best program"
  review_button.disabled = false
  _draw_board(garden)
+ _draw_output(garden)
  source.grab_focus()
 
 func _choose(index: int) -> void:
@@ -367,6 +385,7 @@ func _check_code() -> void:
  else:
   var unit := "action" if preview.turn == 1 else "actions"
   status.text = "Check · %d of %d lilies harvested in %d %s" % [preview.harvested, preview.plants.size(), preview.turn, unit]
+ _draw_output(preview, "Check output")
  if not checked_route.actions.is_empty() or line >= 0:
   review_button.show()
 
@@ -421,12 +440,14 @@ func _close_review() -> void:
  if line >= 0:
   _mark_line(source, line)
  _draw_board(garden)
+ _draw_output(garden)
 
 func _discard_check() -> void:
  checked_source = null
  checked_route.clear()
  _close_review()
  review_button.hide()
+ _draw_output(garden)
 
 func _draw_review(value: float) -> void:
  var replaying_best := best_panel.visible
@@ -451,6 +472,7 @@ func _draw_review(value: float) -> void:
  else:
   editor.clear_executing_lines()
  _draw_board(preview, blocked)
+ _draw_output(route.preview, "Best run output" if replaying_best else "Check output", preview.turn)
 
 func _prepare_program() -> bool:
  if best_panel.visible:
@@ -582,6 +604,7 @@ func _draw() -> void:
  _draw_lessons(active)
  if not review_controls.visible:
   _draw_board(garden)
+  _draw_output(garden)
  if is_instance_valid(world):
   world.show_garden(garden)
 
@@ -605,6 +628,17 @@ func _draw_lessons(active: bool) -> void:
   lesson_status.text += "   Next unlock · %d" % next_unlock
  next_lesson_button.visible = progress.solved.has(Programs.GARDENS[puzzle].id) and progress.next_lesson(lilies) >= 0
  next_lesson_button.disabled = active
+
+func _draw_output(view: Programs, title := "Program output", through_turn := -1) -> void:
+ var lines := PackedStringArray()
+ for entry: Dictionary in view.output:
+  if through_turn < 0 or entry.turn <= through_turn:
+   lines.append("Line %d · %s" % [entry.line + 1, entry.text])
+ output_panel.visible = not lines.is_empty()
+ output_title.text = title
+ var transcript := "\n".join(lines)
+ if output_text.text != transcript:
+  output_text.text = transcript
 
 func _draw_board(view: Programs, blocked := false) -> void:
  var harvest := "Harvested %d" % view.harvested if view.practice else "Lilies %d / %d" % [view.harvested, view.plants.size()]

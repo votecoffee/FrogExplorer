@@ -769,12 +769,13 @@ func run(game) -> void:
   check("Line 3" in popup.status.text and "Plant this bed before watering it" in popup.status.text, "Watering an unplanted bed points to the original Python line")
   await finish_by_steps(popup, "if empty_bed(east) and not lily(east):\n    hop(east)\n    plant()\n    plant()\n")
   check(popup.garden.turn == 2 and popup.garden.plant_status(Vector2i(1, 0)) == "Thirsty ×1" and popup.world.garden_root.get_child_count() == bare_scene_size + 1 and "Line 4" in popup.status.text, "The adjacent bed sensor leads to a visible seedling and a second planting is blocked")
-  var nursery_python := nursery_starter + "while clear(east):\n    hop(east)\n    tend()\n"
+  var nursery_python := "print('Ready', spring())\n" + nursery_starter + "while clear(east):\n    hop(east)\n    tend()\n"
   await finish_by_steps(popup, nursery_python)
   check(popup.garden.turn == 16 and popup.garden.harvested == 3 and popup.progress.earned_lilies() == earned_before + 3 and popup.progress.garden_best_python.get(nursery.id, false), "The Python sweep harvests all three lilies and earns credit for the planted beds")
   popup.best_button.pressed.emit()
   popup.review_slider.value = popup.review_slider.max_value
   check("Best run · 16 / 16 actions" == popup.review_position.text and "Lilies 3 / 3" in popup.info.text, "Best program replays planting and harvesting")
+  check(popup.output_panel.visible and popup.output_title.text == "Best run output" and "Line 1 · Ready True" in popup.output_text.text, "Best program replays Python output from the recorded draft")
 
   var earned_for_practice: int = popup.progress.earned_lilies()
   popup.chooser.item_selected.emit(open_nursery)
@@ -819,6 +820,26 @@ func run(game) -> void:
   check(popup.garden.turn == 46 and popup.garden.harvested == 6, "The starter returns to the spring and tends a partially planted row on restart")
   popup._reset()
   check(popup.garden.turn == 0 and popup.garden.harvested == 0 and popup.garden.cell == Vector2i(0, 1), "Reset restores the starting nursery")
+  var logging_draft := "def report(heading):\n    print('Bed', heading, empty_bed(heading))\nprint('Spring', spring())\nfill()\nhop(north)\nreport(east)\nreport(west)\nhop(east)\nplant()\nprint('Thirsty', thirsty(), has_water())\n"
+  popup.source.text = logging_draft
+  popup.check_button.pressed.emit()
+  var expected_log := "Line 3 · Spring True\nLine 2 · Bed east True\nLine 2 · Bed west False\nLine 10 · Thirsty True True"
+  check(popup.garden.turn == 0 and popup.garden.output.is_empty() and popup.checked_route.actions.size() == 4 and popup.output_title.text == "Check output" and popup.output_text.text == expected_log, "Check prints sensor readings from the simulated board with original Python line numbers")
+  popup.review_button.pressed.emit()
+  check(popup.output_text.text == "Line 3 · Spring True", "Review starts with output written before the first action")
+  popup.review_slider.value = 2
+  check(popup.output_text.text == "Line 3 · Spring True\nLine 2 · Bed east True\nLine 2 · Bed west False" and popup.garden.turn == 0, "Review reveals output as actions advance")
+  await finish_by_steps(popup, logging_draft)
+  check(popup.garden.turn == 4 and popup.output_title.text == "Program output" and popup.output_text.text == expected_log, "Live output matches Check without spending extra actions")
+  popup.source.text = "while True:\n    print('still here')\n"
+  press_key(KEY_F10)
+  check(popup.garden.turn == 4 and "without doing an action" in popup.status.text and popup.output_text.text == "Line 2 · still here", "A print-only loop reports an error without advancing the board")
+  popup.source.text = "while True:\n    print(has_water())\n    wait()\n"
+  popup.check_button.pressed.emit()
+  var preview_output: Array = popup.checked_route.preview.output
+  check(preview_output.size() == Program.MAX_OUTPUT_MESSAGES and preview_output.back().turn == 4 + Program.MAX_STEPS and popup.garden.output.size() == 1, "Check keeps recent messages without replacing the live output buffer")
+  popup._reset()
+  check(not popup.output_panel.visible and popup.garden.output.is_empty(), "Reset clears program output")
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
