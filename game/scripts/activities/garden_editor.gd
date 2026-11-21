@@ -18,6 +18,10 @@ var score: Label
 var hint: Label
 var chooser: OptionButton
 var check_button: Button
+var review_button: Button
+var review_controls: VBoxContainer
+var review_position: Label
+var review_slider: HSlider
 var run_button: Button
 var step_button: Button
 var stop_button: Button
@@ -26,6 +30,8 @@ var offset := 0
 var interval := 0.0
 var running := false
 var checked_source: Variant = null
+var checked_actions: Array = []
+var blocked_line := -1
 
 func _ready() -> void:
  set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -90,6 +96,19 @@ func _ready() -> void:
  score = hud.label("", 15, Color("#b9dccc"))
  score.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  right.add_child(score)
+ review_button = _button(right, "Review", _toggle_review)
+ review_button.hide()
+ review_controls = VBoxContainer.new()
+ right.add_child(review_controls)
+ review_position = hud.label("", 15, Color("#b9dccc"))
+ review_controls.add_child(review_position)
+ review_slider = HSlider.new()
+ review_slider.step = 1
+ review_slider.focus_mode = Control.FOCUS_ALL
+ review_slider.tooltip_text = "Drag or use Left and Right to choose an action"
+ review_slider.value_changed.connect(_draw_review)
+ review_controls.add_child(review_slider)
+ review_controls.hide()
  board = GridContainer.new()
  board.add_theme_constant_override("h_separation", 3)
  board.add_theme_constant_override("v_separation", 3)
@@ -128,6 +147,7 @@ func _close() -> void:
  flush_draft()
  if not steps.is_empty():
   _stop()
+ _close_review()
  hide()
  dismissed.emit()
 
@@ -136,7 +156,7 @@ func _queue_save() -> void:
  if steps.is_empty() and not matches_check:
   source.clear_executing_lines()
   if checked_source is String:
-   checked_source = null
+   _discard_check()
    status.text = "Code changed. Check again for an updated result."
  if puzzle >= 0 and source.text != loaded_draft:
   draft_timer.start()
@@ -166,7 +186,7 @@ func _clear_program() -> void:
  offset = 0
 
 func _reset() -> void:
- checked_source = null
+ _discard_check()
  _clear_program()
  source.clear_executing_lines()
  garden.load_puzzle(puzzle)
@@ -189,6 +209,7 @@ func _compile_draft() -> Array:
 func _check_code() -> void:
  if not steps.is_empty():
   return
+ _discard_check()
  checked_source = source.text
  source.grab_focus()
  var commands := _compile_draft()
@@ -200,19 +221,74 @@ func _check_code() -> void:
  for action: Dictionary in commands:
   var error := preview.step(action)
   if not error.is_empty():
+   blocked_line = action.line
    _line_error("Check · Line %d · %s" % [action.line + 1, error], action.line)
-   return
+   break
   if preview.is_complete():
    var over: int = preview.turn - Programs.PUZZLES[puzzle].target
    var target := "meets target" if over <= 0 else "%d over target" % over
    status.text = "Check · %d actions to harvest all %d lilies · %s" % [preview.turn, preview.harvested, target]
-   return
- status.text = "Check · %d of %d lilies harvested in %d actions" % [preview.harvested, preview.plants.size(), preview.turn]
+   break
+ if blocked_line < 0 and not preview.is_complete():
+  status.text = "Check · %d of %d lilies harvested in %d actions" % [preview.harvested, preview.plants.size(), preview.turn]
+ checked_actions = commands.slice(0, preview.turn)
+ review_button.show()
+
+func _toggle_review() -> void:
+ if review_controls.visible:
+  _close_review()
+  return
+ if not review_button.visible or checked_source != source.text:
+  return
+ review_slider.max_value = checked_actions.size()
+ review_slider.set_value_no_signal(0)
+ review_slider.visible = not checked_actions.is_empty()
+ review_controls.show()
+ review_button.text = "Back to board"
+ _draw_review(0)
+ if review_slider.visible:
+  review_slider.grab_focus()
+
+func _close_review() -> void:
+ if not review_controls.visible:
+  return
+ review_controls.hide()
+ review_button.text = "Review"
+ source.clear_executing_lines()
+ if blocked_line >= 0:
+  _mark_line(blocked_line)
+ _draw_board(garden)
+
+func _discard_check() -> void:
+ checked_source = null
+ checked_actions.clear()
+ blocked_line = -1
+ _close_review()
+ review_button.hide()
+
+func _draw_review(value: float) -> void:
+ if not review_controls.visible or checked_source != source.text:
+  return
+ var count := clampi(roundi(value), 0, checked_actions.size())
+ var preview := Programs.new()
+ preview.load_puzzle(puzzle)
+ for index in count:
+  preview.step(checked_actions[index])
+ var blocked := blocked_line >= 0 and count == checked_actions.size()
+ review_position.text = "Preview · %d / %d actions" % [count, checked_actions.size()]
+ if blocked:
+  review_position.text += " · Blocked"
+  _mark_line(blocked_line)
+ elif count > 0:
+  _mark_line(checked_actions[count - 1].line)
+ else:
+  source.clear_executing_lines()
+ _draw_board(preview, blocked)
 
 func _prepare_program() -> bool:
  if not steps.is_empty():
   return true
- checked_source = null
+ _discard_check()
  steps = _compile_draft()
  if steps.is_empty():
   return false
@@ -288,7 +364,6 @@ func _advance() -> void:
  _draw()
 
 func _draw() -> void:
- info.text = "Water %d / %d    Lilies %d / %d" % [garden.tank, Programs.CAPACITY, garden.harvested, garden.plants.size()]
  var item: Dictionary = Programs.PUZZLES[puzzle]
  var best_actions: int = progress.garden_best.get(item.id, 0)
  var target_status := "Target met" if best_actions > 0 and best_actions <= item.target else "Target"
@@ -301,29 +376,37 @@ func _draw() -> void:
  stop_button.disabled = not active
  chooser.disabled = active
  source.editable = not active
+ if not review_controls.visible:
+  _draw_board(garden)
+ if is_instance_valid(world):
+  world.show_garden(garden)
+
+func _draw_board(view: Programs, blocked := false) -> void:
+ info.text = "Water %d / %d    Lilies %d / %d" % [view.tank, Programs.CAPACITY, view.harvested, view.plants.size()]
  for child in board.get_children():
   board.remove_child(child)
   child.queue_free()
- board.columns = garden.rows[0].length()
- for y in garden.rows.size():
-  for x in garden.rows[y].length():
+ board.columns = view.rows[0].length()
+ for y in view.rows.size():
+  for x in view.rows[y].length():
    var cell := Vector2i(x, y)
-   var tile: String = garden.tile(cell)
-   var plant: String = garden.plant_status(cell)
+   var tile: String = view.tile(cell)
+   var plant: String = view.plant_status(cell)
    var card := PanelContainer.new()
    var style := StyleBoxFlat.new()
-   style.bg_color = Color("#1f5950") if cell == garden.cell else Color("#214355") if tile == "~" else Color("#424744") if tile == "#" else Color("#293b27")
+   if cell == view.cell:
+    style.bg_color = Color("#784b30") if blocked else Color("#1f5950")
+   else:
+    style.bg_color = Color("#214355") if tile == "~" else Color("#424744") if tile == "#" else Color("#293b27")
    style.set_corner_radius_all(6)
    card.add_theme_stylebox_override("panel", style)
    card.custom_minimum_size = Vector2(67, 44)
-   var icon := "● " if cell == garden.cell else ""
+   var icon := "● " if cell == view.cell else ""
    var caption := plant if not plant.is_empty() else "Spring" if tile == "~" else "#" if tile == "#" else "·"
    var label: Label = hud.label(icon + "\n" + caption if not icon.is_empty() else caption, 12)
    label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
    card.add_child(label)
    board.add_child(card)
- if is_instance_valid(world):
-  world.show_garden(garden)
 
 func _input(event: InputEvent) -> void:
  if not visible:

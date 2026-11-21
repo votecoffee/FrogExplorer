@@ -212,11 +212,22 @@ func run(game) -> void:
   popup.check_button.pressed.emit()
   check("9 actions to harvest all 2 lilies" in popup.status.text and "meets target" in popup.status.text, "Check predicts the starter program's action count and target")
   check(popup.garden.turn == 0 and not popup.progress.solved.has(puzzle_id) and not popup.progress.garden_best.has(puzzle_id) and popup.board.get_child(0) == first_card and popup.world.garden_root.get_child(0) == first_plot, "Check preserves both boards and the completion record")
+  popup.review_button.pressed.emit()
+  check(popup.review_controls.visible and popup.review_slider.value == 0 and popup.review_slider.max_value == 9 and popup.review_slider.has_focus(), "Review opens the checked program at action zero with the slider focused")
+  press_key(KEY_RIGHT)
+  check(popup.review_slider.value == 1 and popup.source.get_executing_lines() == PackedInt32Array([1]), "The arrow keys scrub the focused preview slider")
+  popup.review_slider.value = 4
+  check("Ripe" in popup.board.get_child(1).get_child(0).text and "Water 2 / 3" in popup.info.text and popup.source.get_executing_lines() == PackedInt32Array([5]), "Scrubbing shows the predicted plant, tank and source line")
+  popup.review_slider.value = 9
+  var preview_harvest: bool = "Lilies 2 / 2" in popup.info.text
+  popup.review_slider.value = 1
+  check(preview_harvest and "Lilies 0 / 2" in popup.info.text and "Water 3 / 3" in popup.info.text, "Scrubbing backward reconstructs the earlier state")
+  check(popup.garden.turn == 0 and popup.world.garden_root.get_child(0) == first_plot and not popup.progress.garden_best.has(puzzle_id), "Review leaves the live scene and personal best intact")
   popup.source.set_caret_line(0)
   popup.source.set_caret_column(0)
   popup.source.insert_text_at_caret("# Edit after checking\n")
   await frames(3)
-  check("Code changed" in popup.status.text, "Editing invalidates the previous check result")
+  check("Code changed" in popup.status.text and not popup.review_controls.visible and not popup.review_button.visible and "Water 0 / 3" in popup.info.text, "Editing invalidates the checked program and returns to the live board")
   popup.source.set_caret_line(0)
   popup.source.set_caret_column(0)
   popup.source.insert_text_at_caret("# Check this edit immediately\n")
@@ -229,15 +240,28 @@ func run(game) -> void:
   popup.source.text = "fill\nrepeat 3\n  hop east\nend"
   popup.check_button.pressed.emit()
   check("Check · Line 3" in popup.status.text and "blocks this hop" in popup.status.text and popup.source.get_executing_lines() == PackedInt32Array([2]), "Check marks a blocked command inside a loop")
+  popup.review_button.pressed.emit()
+  popup.review_slider.value = popup.review_slider.max_value
+  check(popup.review_slider.max_value == 3 and "Blocked" in popup.review_position.text and "●" in popup.board.get_child(2).get_child(0).text and popup.source.get_executing_lines() == PackedInt32Array([2]), "A blocked hop ends the preview on the last reachable tile")
+  popup.review_button.pressed.emit()
+  check(not popup.review_controls.visible and "Water 0 / 3" in popup.info.text and "Check · Line 3" in popup.status.text, "Back to board restores the live grid and keeps the check result")
+  popup.source.text = "hop north"
+  popup.check_button.pressed.emit()
+  popup.review_button.pressed.emit()
+  check(popup.review_controls.visible and not popup.review_slider.visible and "0 / 0 actions · Blocked" in popup.review_position.text, "A command blocked on the first action still shows the starting tile")
   popup.source.text = "fill\nunknown"
   popup.check_button.pressed.emit()
-  check("Line 2" in popup.status.text and popup.source.get_executing_lines() == PackedInt32Array([1]), "Check marks a compile error before running")
+  check("Line 2" in popup.status.text and popup.source.get_executing_lines() == PackedInt32Array([1]) and not popup.review_button.visible, "A compile error marks the line and clears the preview")
   popup.source.text = starter + "hop north"
   popup.check_button.pressed.emit()
   check("9 actions to harvest all 2 lilies" in popup.status.text, "Check stops at the final harvest just like Run")
   popup.source.text = starter
+  popup.check_button.pressed.emit()
+  popup.review_button.pressed.emit()
+  popup.review_slider.value = 9
   press_key(KEY_F10)
   await frames(18)
+  check(not popup.review_controls.visible and not popup.review_button.visible and "Lilies 0 / 2" in popup.info.text, "Stepping starts the live program and closes Review")
   check(popup.garden.turn == 1 and popup.garden.tank == Program.CAPACITY and not popup.running, "F10 executes one command and waits for the next step")
   var paused_note: String = popup.status.text
   popup.check_button.pressed.emit()
