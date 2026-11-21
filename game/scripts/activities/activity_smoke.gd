@@ -38,6 +38,11 @@ func cross_next(game, tick: float) -> void:
  game.rides.body.position = center + direction * 2
  game.activities._physics_process(tick)
 
+func wait_for_garden_pause(popup) -> void:
+ var deadline := Time.get_ticks_msec() + 8000
+ while popup.running and Time.get_ticks_msec() < deadline:
+  await get_tree().process_frame
+
 func finish_by_steps(popup, program: String) -> void:
  popup.source.text = program
  popup.step_button.pressed.emit()
@@ -279,12 +284,33 @@ func run(game) -> void:
   check(popup.garden.turn == paused_turn + 1 and not popup.running, "F10 steps the paused program at its current position")
   press_key(KEY_ENTER, true)
   await frames(3)
-  var deadline := Time.get_ticks_msec() + 8000
-  while popup.running and Time.get_ticks_msec() < deadline:
-   await get_tree().process_frame
+  await wait_for_garden_pause(popup)
   check(popup.progress.solved.get(Program.PUZZLES[0].id, false) and popup.garden.harvested == 2, "The popup animates and completes the starter program")
   check(popup.source.get_executing_lines() == PackedInt32Array([6]) and popup.source.editable, "The completed loop marks its gather command and unlocks the editor")
   check(popup.progress.garden_best.get("first_bloom", 0) == 9 and "Target met" in popup.score.text, "A finished program saves the action count and marks the target")
+  popup.source.set_caret_line(3)
+  press_key(KEY_F9)
+  check(popup.source.is_line_breakpointed(3), "F9 sets a breakpoint on the current command")
+  popup.check_button.pressed.emit()
+  check("9 actions to harvest all 2 lilies" in popup.status.text and popup.source.is_line_breakpointed(3), "Check previews the whole run with breakpoints enabled")
+  press_key(KEY_ENTER, true)
+  await wait_for_garden_pause(popup)
+  check(not popup.running and popup.garden.turn == 1 and popup.garden.cell == Vector2i.ZERO and "Breakpoint · line 4" in popup.status.text and popup.run_button.text.begins_with("Resume"), "Run pauses before the marked hop changes the board")
+  press_key(KEY_ENTER, true)
+  await wait_for_garden_pause(popup)
+  check(not popup.running and popup.garden.turn == 5 and popup.garden.cell == Vector2i(1, 0) and "Breakpoint · line 4" in popup.status.text, "Resume runs the current hop and stops on the next loop iteration")
+  press_key(KEY_F10)
+  check(not popup.running and popup.garden.turn == 6 and popup.garden.cell == Vector2i(2, 0), "F10 executes one command while paused at a breakpoint")
+  press_key(KEY_F9)
+  check(not popup.source.is_line_breakpointed(3), "F9 removes the breakpoint")
+  press_key(KEY_ENTER, true)
+  await wait_for_garden_pause(popup)
+  check(popup.garden.turn == 9 and popup.garden.harvested == 2, "Resuming after stepping completes the same program")
+  popup.source.set_caret_line(3)
+  press_key(KEY_F9)
+  popup._reset()
+  check(popup.garden.turn == 0 and popup.source.is_line_breakpointed(3), "Reset board keeps breakpoints for another run")
+  press_key(KEY_F9)
   popup.step_button.pressed.emit()
   popup.stop_button.pressed.emit()
   check(popup.garden.turn == 1 and popup.source.text == starter and popup.source.editable, "Stop preserves the current board and draft for editing")
@@ -308,11 +334,13 @@ func run(game) -> void:
 
   press_key(KEY_F5)
   await frames(4)
+  popup.source.set_caret_line(1)
+  press_key(KEY_F9)
   for index in [3, 4]:
    var item: Dictionary = Program.PUZZLES[index]
    popup.chooser.item_selected.emit(index)
    var plot_count: int = item.rows.size() * item.rows[0].length()
-   check(popup.visible and popup.chooser.selected == index and popup.board.get_child_count() == plot_count and popup.world.garden_root.get_child_count() > plot_count, item.name + " loads on the popup board and in the 3D garden")
+   check(popup.visible and popup.chooser.selected == index and popup.source.get_breakpointed_lines().is_empty() and popup.board.get_child_count() == plot_count and popup.world.garden_root.get_child_count() > plot_count, item.name + " loads on both boards with its own editor state")
    var start := Vector2i(0, 2) if index == 3 else Vector2i.ZERO
    check(popup.garden.cell == start and popup.garden.plants.size() == 4, item.name + " starts at its spring with four unharvested lilies")
    await finish_by_steps(popup, terrace_patrol if index == 3 else solutions[index])

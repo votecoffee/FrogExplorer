@@ -27,6 +27,7 @@ var step_button: Button
 var stop_button: Button
 var steps: Array = []
 var offset := 0
+var breakpoint_offset := -1
 var interval := 0.0
 var running := false
 var checked_source: Variant = null
@@ -66,6 +67,7 @@ func _ready() -> void:
  source = CodeEdit.new()
  source.size_flags_vertical = Control.SIZE_EXPAND_FILL
  source.gutters_draw_line_numbers = true
+ source.gutters_draw_breakpoints_gutter = true
  source.gutters_draw_executing_lines = true
  source.highlight_current_line = true
  source.placeholder_text = "Type Pondbot commands here"
@@ -116,7 +118,7 @@ func _ready() -> void:
  hint = hud.label("", 15)
  hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  right.add_child(hint)
- var guide: Label = hud.label("hop north / east / south / west\nfill     water     wait     gather\nrepeat N … end     # comment", 15, Color("#b9dccc"))
+ var guide: Label = hud.label("hop north / east / south / west\nfill     water     wait     gather\nrepeat N … end     # comment\nF9 toggles a breakpoint", 15, Color("#b9dccc"))
  right.add_child(guide)
  var legend: Label = hud.label("● Pondbot     ~ Spring     # Stone\nA watered lily ripens on the next turn.", 14)
  right.add_child(legend)
@@ -176,6 +178,7 @@ func _choose(index: int) -> void:
  chooser.select(index)
  var item: Dictionary = Programs.PUZZLES[index]
  loaded_draft = str(progress.drafts.get(item.id, item.draft))
+ source.clear_breakpointed_lines()
  source.text = loaded_draft
  _reset()
  hint.text = item.hint
@@ -184,6 +187,7 @@ func _clear_program() -> void:
  running = false
  steps.clear()
  offset = 0
+ breakpoint_offset = -1
 
 func _reset() -> void:
  _discard_check()
@@ -335,9 +339,18 @@ func _process(delta: float) -> void:
  if interval > 0:
   return
  interval = .23
+ var action: Dictionary = steps[offset]
+ if breakpoint_offset != offset and source.is_line_breakpointed(action.line):
+  running = false
+  breakpoint_offset = offset
+  status.text = "Breakpoint · line %d · %d / %d actions" % [action.line + 1, offset, steps.size()]
+  _mark_line(action.line)
+  _draw()
+  return
  _advance()
 
 func _advance() -> void:
+ breakpoint_offset = -1
  var action: Dictionary = steps[offset]
  var error: String = garden.step(action)
  if not error.is_empty():
@@ -417,6 +430,10 @@ func _input(event: InputEvent) -> void:
    get_viewport().set_input_as_handled()
   elif event.ctrl_pressed and event.keycode in [KEY_ENTER, KEY_KP_ENTER]:
    _run()
+   get_viewport().set_input_as_handled()
+  elif event.keycode == KEY_F9:
+   var line := source.get_caret_line()
+   source.set_line_as_breakpoint(line, not source.is_line_breakpointed(line))
    get_viewport().set_input_as_handled()
   elif event.keycode == KEY_F10:
    _step()
