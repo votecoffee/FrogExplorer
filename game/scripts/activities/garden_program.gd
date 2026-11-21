@@ -14,6 +14,7 @@ const PUZZLES = [
  {"id":"spring_relay", "name":"Spring relay", "rows":["~LHL.",".####","~.HL."], "target":35, "hint":"Sweep the lower bed. Go back west to the spring column and hop north twice. The upper bed takes two tankfuls. Already gathered plots can be crossed again.", "draft":"# Sweep the lower bed, then plan two trips along the upper bed\nroutine tend_plot\n  while thirsty and has_water\n    water\n  end\n  if growing or ripe\n    if growing\n      wait\n    end\n    gather\n  end\nend\nroutine sweep_east\n  while clear east and has_water\n    hop east\n    call tend_plot\n  end\nend\n\nfill\ncall sweep_east\n"},
  {"id":"side_channels", "name":"Side channels", "rows":["##L#L","~....","#L#L#"], "target":31, "hint":"Follow the center path and look for lilies to the north or south. Return west to refill after the third lily. A second sweep can skip the lilies you already gathered.", "draft":"# Look for lilies off the center path before hopping\nroutine tend_plot\n  water\n  wait\n  gather\nend\nroutine sweep_east\n  while clear east and has_water\n    hop east\n    if lily north\n      hop north\n      call tend_plot\n      hop south\n    end\n    if lily south and has_water\n      hop south\n      call tend_plot\n      hop north\n    end\n  end\nend\n\nfill\ncall sweep_east\n"},
  {"id":"compass_banks", "name":"Compass banks", "rows":["L####","..~..","####H"], "target":17, "hint":"The spring is between two mirrored paths. After the west sweep, return east to the spring. Call sweep again with east along the bank, south toward the lily, and north back to the path.", "draft":"# Sweep west, then reuse the routine with different directions\nroutine tend_bed toward back\n  hop toward\n  while thirsty and has_water\n    water\n  end\n  wait\n  gather\n  hop back\nend\nroutine sweep along branch return_path\n  while clear along and has_water\n    hop along\n    if lily branch\n      call tend_bed branch return_path\n    end\n  end\nend\n\nfill\ncall sweep west north south\n"},
+ {"id":"low_water_row", "name":"Low water row", "rows":["~LLHL"], "target":25, "hint":"The first sweep runs out of water at the double lily. Return to the spring, refill, and sweep again. The routine skips plots you already gathered.", "draft":"# Leave the row to refill when a plot still needs water\nroutine sweep\n  while clear east\n    hop east\n    if not lily\n      continue\n    end\n    while thirsty and has_water\n      water\n    end\n    if thirsty\n      break\n    end\n    wait\n    gather\n  end\nend\n\nfill\ncall sweep\n"},
 ]
 const DIRECTIONS = {"north":Vector2i(0,-1), "east":Vector2i(1,0), "south":Vector2i(0,1), "west":Vector2i(-1,0)}
 const CONDITIONS := ["spring", "has_water", "lily", "thirsty", "growing", "ripe"]
@@ -33,7 +34,7 @@ var while_entries: Dictionary = {}
 static func compile(source: String) -> Dictionary:
  if source.length() > 8192:
   return {"error":"Programs can contain up to 8,192 characters.", "line":0}
- var blocks: Array[Dictionary] = [{"steps":[], "times":1, "line":0}]
+ var blocks: Array[Dictionary] = [{"steps":[]}]
  var routines: Dictionary = {}
  var parameters := PackedStringArray()
  var lines := source.split("\n")
@@ -110,17 +111,20 @@ static func compile(source: String) -> Dictionary:
      return _error(index, "This %s block exceeds the 256-instruction limit." % kind)
     # Relative jumps still work when a repeat or routine copies these instructions.
     outer.append({"clauses":inner.clauses, "skip":skip, "line":inner.line, "loop":is_loop})
-    outer.append_array(then_steps)
     if is_loop:
+     _append_loop_body(outer, then_steps, outer.size() + skip, true)
      outer.append({"back":skip, "line":inner.line})
-    elif has_else:
-     outer.append({"skip":else_steps.size(), "line":inner.else_line})
-     outer.append_array(else_steps)
+    else:
+     outer.append_array(then_steps)
+     if has_else:
+      outer.append({"skip":else_steps.size(), "line":inner.else_line})
+      outer.append_array(else_steps)
     continue
-   if outer.size() + inner.steps.size() * inner.times > MAX_STEPS:
+   var loop_end: int = outer.size() + inner.steps.size() * inner.times
+   if loop_end > MAX_STEPS:
     return _error(index, "This loop expands beyond 256 instructions.")
    for count in inner.times:
-    outer.append_array(inner.steps)
+    _append_loop_body(outer, inner.steps, loop_end)
    continue
   var steps: Array = blocks.back().steps
   if command == "call":
@@ -144,14 +148,20 @@ static func compile(source: String) -> Dictionary:
     bindings[targets[argument_index]] = argument
    steps.append_array(_bind_directions(routine.steps, bindings))
    continue
+  var instruction := {"command":command, "direction":"", "line":index}
   if command == "hop":
    if words.size() != 2 or not _is_direction(words[1], parameters):
     return _error(index, "Use hop with north, east, south, west, or a routine parameter.")
+   instruction.direction = words[1]
+  elif command in ["break", "continue"]:
+   if words.size() != 1 or not blocks.any(func(block): return block.has("times") or block.get("loop", false)):
+    return _error(index, "Put %s on its own line inside repeat or while." % command)
+   instruction = {"loop_control":command, "line":index}
   elif words.size() != 1 or command not in ["fill", "water", "wait", "gather"]:
-   return _error(index, "Use hop, fill, water, wait, gather, repeat, routine, call, if, or while.")
+   return _error(index, "Use hop, fill, water, wait, gather, repeat, routine, call, if, while, break, or continue.")
   if steps.size() >= MAX_STEPS:
    return _error(index, "Programs can contain up to 256 instructions after expansion.")
-  steps.append({"command":command, "direction":words[1] if command == "hop" else "", "line":index})
+  steps.append(instruction)
  if blocks.size() > 1:
   var unclosed: Dictionary = blocks.back()
   var kind := "routine" if unclosed.has("routine") else "repeat block"
@@ -161,6 +171,20 @@ static func compile(source: String) -> Dictionary:
  if blocks[0].steps.is_empty():
   return _error(0, "Add at least one action.")
  return {"steps":blocks[0].steps}
+
+static func _append_loop_body(outer: Array, body: Array, loop_end: int, is_while := false) -> void:
+ var start := outer.size()
+ for instruction: Dictionary in body:
+  if not instruction.has("loop_control"):
+   outer.append(instruction)
+   continue
+  # Continue reaches the next repeat copy or the while back edge.
+  var leaving: bool = instruction.loop_control == "break"
+  var destination := loop_end if leaving else start + body.size()
+  var jump := {"skip":destination - outer.size() - 1, "line":instruction.line}
+  if leaving and is_while:
+   jump.leave_while = outer.size() - start + 1
+  outer.append(jump)
 
 static func _is_direction(word: String, parameters: PackedStringArray) -> bool:
  return DIRECTIONS.has(word) or word in parameters
@@ -271,6 +295,8 @@ func next_action_index(instructions: Array, first: int) -> int:
     runtime_error = "The program reached its %d-action limit." % MAX_STEPS
     runtime_error_line = instruction.line
    break
+  if instruction.has("leave_while"):
+   while_entries.erase(index - int(instruction.leave_while))
   var passes: bool = instruction.has("clauses") and _meets_any_clause(instruction.clauses)
   if instruction.get("loop", false):
    if passes:

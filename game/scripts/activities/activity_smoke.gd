@@ -214,6 +214,8 @@ func run(game) -> void:
  check(Program.compile("if lily upward\nwait\nend").get("line", -1) == 0, "A lily condition rejects an unknown direction")
  check(Program.compile("if ripe\ngather").get("line", -1) == 0, "An unclosed conditional marks its opening line")
  check(Program.compile("repeat 2\nif spring\nrepeat 2\nif thirsty\nif ripe\nwait\nend\nend\nend\nend\nend").get("line", -1) == 4, "Repeats and conditions share a bounded nesting depth")
+ check(Program.compile("if spring\nbreak\nend").get("line", -1) == 1 and Program.compile("routine skip\ncontinue\nend\nrepeat 2\ncall skip\nend").get("line", -1) == 1, "Loop control requires a loop in the same routine or top-level program")
+ check(Program.compile("repeat 2\ncontinue east\nend").get("line", -1) == 1, "Continue takes no arguments")
 
  # Each garden has a complete solution using the normal commands.
  var terrace_patrol := "repeat 2\nfill\nrepeat 2\nhop east\nwater\nwait\ngather\nend\nrepeat 2\nhop west\nend\nhop north\nend"
@@ -224,6 +226,7 @@ func run(game) -> void:
  var relay_solution: String = Program.PUZZLES[9].draft + "while not spring and clear west\n  hop west\nend\nrepeat 2\n  hop north\nend\nfill\ncall sweep_east\nwhile not spring and clear west\n  hop west\nend\nfill\ncall sweep_east\n"
  var channels_solution: String = Program.PUZZLES[10].draft + "while not spring\n  hop west\nend\nfill\ncall sweep_east\n"
  var compass_solution: String = Program.PUZZLES[11].draft + "while not spring\n  hop east\nend\ncall sweep east south north\n"
+ var low_water_solution: String = Program.PUZZLES[12].draft + "while not spring\n  hop west\nend\nfill\ncall sweep\n"
  var solutions := [
   "fill\nrepeat 2\nhop east\nwater\nwait\ngather\nend",
   "fill\nhop east\nhop east\nwater\nwait\ngather\nhop south\nhop east\nwater\nwait\ngather\nhop west\nhop south\nwater\nwait\ngather",
@@ -237,6 +240,7 @@ func run(game) -> void:
   relay_solution,
   channels_solution,
   compass_solution,
+  low_water_solution,
  ]
  check(solutions.size() == Program.PUZZLES.size(), "Every garden has a smoke-test solution")
  for index in solutions.size():
@@ -655,6 +659,33 @@ func run(game) -> void:
   popup.best_button.pressed.emit()
   popup.review_slider.value = popup.review_slider.max_value
   check("Best run · 17 / 17 actions" == popup.review_position.text and "Lilies 2 / 2" in popup.info.text, "Best program replays the saved calls with both sets of directions")
+
+  popup.chooser.item_selected.emit(12)
+  var low_water: Dictionary = Program.PUZZLES[popup.puzzle]
+  check(low_water.id == "low_water_row" and popup.garden.plants.size() == 4 and "continue" in popup.source.text and "break" in popup.source.text, "Low water row opens with a sweep that can skip and exit")
+  popup.check_button.pressed.emit()
+  check("2 of 4 lilies harvested in 11 actions" in popup.status.text, "The starter leaves the double lily half watered when the tank runs dry")
+  var nested_control := "repeat 3\n  while spring\n    wait\n    break\n    hop west\n  end\n  continue\n  hop east\nend\nfill"
+  await finish_by_steps(popup, nested_control)
+  check(popup.garden.turn == 4 and popup.garden.cell == Vector2i.ZERO and popup.garden.tank == Program.CAPACITY, "Inner break leaves the enclosing repeat open and continue advances it")
+  await finish_by_steps(popup, "fill\nrepeat 4\n  hop east\n  if lily\n    break\n  end\n  hop west\nend\nwater")
+  check(popup.garden.turn == 3 and popup.garden.cell == Vector2i(1, 0) and popup.garden.plant_status(Vector2i(1, 0)) == "Growing", "Break skips all remaining repeat iterations and reaches the following action")
+  popup.source.text = "while spring\n  continue\nend"
+  popup.check_button.pressed.emit()
+  check("Check · Line 1" in popup.status.text and "without doing an action" in popup.status.text, "Continuing without an action still trips the while guard")
+  popup.source.text = "while spring\n  while spring\n    if has_water\n      break\n    end\n    fill\n  end\n  wait\nend"
+  popup.check_button.pressed.emit()
+  check("Check · Line 1" in popup.status.text and "16-iteration limit" in popup.status.text and popup.checked_route.actions.size() == 17, "Breaking and reentering a nested while starts a fresh iteration budget")
+  popup.source.text = low_water_solution
+  popup.check_button.pressed.emit()
+  check("25 actions to harvest all 4 lilies · meets target" in popup.status.text and not popup.progress.solved.has(low_water.id), "Check counts the partial watering, refill, and second sweep")
+  await finish_by_steps(popup, low_water_solution)
+  check(popup.garden.harvested == 4 and popup.progress.garden_best.get(low_water.id, 0) == 25, "The Low water row solution saves a score with loop control")
+  popup.best_button.pressed.emit()
+  popup.review_slider.value = 17
+  var skipped_again: bool = popup.best_source.get_executing_lines() == PackedInt32Array([3]) and "●" in popup.board.get_child(2).get_child(0).text
+  popup.review_slider.value = popup.review_slider.max_value
+  check(skipped_again and "Best run · 25 / 25 actions" == popup.review_position.text and "Lilies 4 / 4" in popup.info.text, "Replay skips gathered lilies on the second sweep and shows the final harvest")
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

@@ -126,7 +126,7 @@ func _ready() -> void:
  hint = hud.label("", 15)
  hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  right.add_child(hint)
- var guide: Label = hud.label("hop north / east / south / west\nfill     water     wait     gather\nrepeat N … end     # comment\nroutine NAME heading · call NAME east\nif / while CONDITION … end\nelse     not     and     or\nLook ahead with clear east or lily north\nF9 toggles a breakpoint", 15, Color("#b9dccc"))
+ var guide: Label = hud.label("hop north / east / south / west\nfill     water     wait     gather\nrepeat N … end     # comment\nroutine NAME heading · call NAME east\nif / while CONDITION … end\nelse · not · and · or · break · continue\nLook ahead with clear east or lily north\nF9 toggles a breakpoint", 15, Color("#b9dccc"))
  right.add_child(guide)
  var legend: Label = hud.label("● Pondbot     ~ Spring     # Stone\nA watered lily ripens on the next turn.", 14)
  right.add_child(legend)
@@ -143,7 +143,7 @@ func _code_edit() -> CodeEdit:
  editor.gutters_draw_executing_lines = true
  editor.add_theme_font_size_override("font_size", 18)
  var ink := CodeHighlighter.new()
- for word in ["hop", "fill", "water", "wait", "gather", "repeat", "routine", "call", "if", "else", "while", "not", "and", "or", "end", "clear"] + Programs.CONDITIONS:
+ for word in ["hop", "fill", "water", "wait", "gather", "repeat", "routine", "call", "if", "else", "while", "not", "and", "or", "end", "clear", "break", "continue"] + Programs.CONDITIONS:
   ink.add_keyword_color(word, Color("#8bd5bc"))
  ink.add_color_region("#", "", Color("#a5ad99"), true)
  editor.syntax_highlighter = ink
