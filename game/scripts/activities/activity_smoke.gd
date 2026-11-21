@@ -200,6 +200,8 @@ func run(game) -> void:
  check(Program.compile("while spring\nwait\nelse\nfill\nend").get("line", -1) == 2, "Else belongs to if blocks")
  check(Program.compile("while spring\nwait").get("line", -1) == 0, "An unclosed while marks its opening line")
  check(Program.compile("if not\nwait\nend").get("line", -1) == 0, "A negated condition requires a test")
+ check(Program.compile("fill\nif spring and\nwait\nend").get("line", -1) == 1, "A dangling conjunction points to the condition line")
+ check(Program.compile("while clear or has_water\nwait\nend").get("line", -1) == 0 and Program.compile("if spring or and ripe\nwait\nend").get("line", -1) == 0, "Compound tests reject missing directions and operands")
  check(Program.compile("if ripe\ngather").get("line", -1) == 0, "An unclosed conditional marks its opening line")
  check(Program.compile("repeat 2\nif spring\nrepeat 2\nif thirsty\nif ripe\nwait\nend\nend\nend\nend\nend").get("line", -1) == 4, "Repeats and conditions share a bounded nesting depth")
 
@@ -209,6 +211,7 @@ func run(game) -> void:
  var patchwork_solution := "routine water_plot\n  repeat 2\n    if thirsty\n      if has_water\n        water\n      end\n    end\n  end\nend\nroutine finish_plot\n  if growing\n    wait\n  end\n  if ripe\n    gather\n  end\nend\nfill\nhop east\nhop east\ncall water_plot\nhop east\ncall water_plot\ncall finish_plot\nhop west\ncall finish_plot\nhop west\nhop west\nhop north\nhop north\nfill\nhop east\ncall water_plot\ncall finish_plot\nhop east\nhop east\ncall water_plot\ncall finish_plot"
  var banks_solution := "routine to_lily\n  if clear east\n    repeat 2\n      hop east\n    end\n  else\n    hop south\n    repeat 2\n      hop east\n    end\n    hop north\n  end\nend\nroutine to_spring\n  if clear west\n    repeat 2\n      hop west\n    end\n  else\n    hop south\n    repeat 2\n      hop west\n    end\n    hop north\n  end\nend\nroutine tend\n  repeat 2\n    if thirsty\n      water\n    end\n  end\n  wait\n  gather\nend\nfill\ncall to_lily\ncall tend\ncall to_spring\nrepeat 2\n  hop north\nend\ncall to_lily\ncall tend\n"
  var lantern_solution := "routine tend_plot\n  repeat 2\n    if thirsty\n      water\n    end\n  end\n  if growing\n    wait\n  end\n  if ripe\n    gather\n  end\nend\nroutine sweep_east\n  while clear east\n    hop east\n    call tend_plot\n  end\nend\nfill\ncall sweep_east\nwhile clear west\n  hop west\nend\nrepeat 2\n  hop north\nend\nfill\ncall sweep_east\n"
+ var relay_solution: String = Program.PUZZLES[9].draft + "while not spring and clear west\n  hop west\nend\nrepeat 2\n  hop north\nend\nfill\ncall sweep_east\nwhile not spring and clear west\n  hop west\nend\nfill\ncall sweep_east\n"
  var solutions := [
   "fill\nrepeat 2\nhop east\nwater\nwait\ngather\nend",
   "fill\nhop east\nhop east\nwater\nwait\ngather\nhop south\nhop east\nwater\nwait\ngather\nhop west\nhop south\nwater\nwait\ngather",
@@ -219,6 +222,7 @@ func run(game) -> void:
   patchwork_solution,
   banks_solution,
   lantern_solution,
+  relay_solution,
  ]
  check(solutions.size() == Program.PUZZLES.size(), "Every garden has a smoke-test solution")
  for index in solutions.size():
@@ -230,8 +234,10 @@ func run(game) -> void:
   var cursor := program.next_action_index(instructions, 0)
   while error.is_empty() and cursor < instructions.size():
    error = program.step(instructions[cursor])
+   if program.is_complete():
+    break
    cursor = program.next_action_index(instructions, cursor + 1)
-  check(error.is_empty() and program.harvested == program.plants.size() and program.turn == Program.PUZZLES[index].target, "Garden puzzle %d can be solved at its action target" % (index + 1))
+  check(error.is_empty() and program.runtime_error.is_empty() and program.is_complete() and program.turn == Program.PUZZLES[index].target, "Garden puzzle %d can be solved at its action target" % (index + 1))
 
  if has_garden:
   press_key(KEY_F5)
@@ -433,7 +439,7 @@ func run(game) -> void:
   await finish_by_steps(popup, "wait")
   check(popup.garden.harvested == 0 and popup.progress.garden_best.get("twin_terraces", 0) == 19, "A program that ends early does not replace a completed score")
   popup.best_button.pressed.emit()
-  popup.chooser.item_selected.emit(solutions.size() - 4)
+  popup.chooser.item_selected.emit(5)
   check(not popup.best_panel.visible and not popup.best_button.visible and not popup.review_controls.visible and popup.source.visible, "Changing puzzles closes the saved replay and opens the other draft")
   var spillway: Dictionary = Program.PUZZLES[popup.puzzle]
   check(spillway.id == "stone_spillway" and popup.board.get_child_count() == 16 and popup.garden.cell == Vector2i(0, 3) and "routine finish_lily" in popup.source.text, "Stone spillway opens at its lower spring with a reusable routine in the draft")
@@ -456,7 +462,7 @@ func run(game) -> void:
   popup.stop_button.pressed.emit()
   await finish_by_steps(popup, spillway_solution)
   check(popup.garden.harvested == 6 and popup.progress.garden_best.get(spillway.id, 0) == 36, "Stepping through routine calls completes Stone spillway at the target")
-  popup.chooser.item_selected.emit(solutions.size() - 3)
+  popup.chooser.item_selected.emit(6)
   var patchwork: Dictionary = Program.PUZZLES[popup.puzzle]
   check(patchwork.id == "patchwork_beds" and popup.board.get_child_count() == 12 and popup.garden.cell == Vector2i(0, 2) and "if thirsty" in popup.source.text, "Patchwork beds opens with empty plots and a conditional starter program")
   popup.check_button.pressed.emit()
@@ -489,7 +495,7 @@ func run(game) -> void:
   popup.stop_button.pressed.emit()
   await finish_by_steps(popup, patchwork_solution)
   check(popup.garden.harvested == 4 and popup.progress.garden_best.get(patchwork.id, 0) == 26, "Stepping through conditions saves the verified Patchwork beds score")
-  popup.chooser.item_selected.emit(solutions.size() - 2)
+  popup.chooser.item_selected.emit(7)
   var banks: Dictionary = Program.PUZZLES[popup.puzzle]
   check(banks.id == "forked_banks" and popup.board.get_child_count() == 16 and popup.garden.cell == Vector2i(0, 2) and "if clear east" in popup.source.text, "Forked banks starts at the blocked bank with a route routine")
   popup.check_button.pressed.emit()
@@ -519,7 +525,7 @@ func run(game) -> void:
   popup.stop_button.pressed.emit()
   await finish_by_steps(popup, banks_solution)
   check(popup.garden.harvested == 2 and popup.progress.garden_best.get(banks.id, 0) == 20, "The reusable route completes Forked banks at its action target")
-  popup.chooser.item_selected.emit(solutions.size() - 1)
+  popup.chooser.item_selected.emit(8)
   var lantern: Dictionary = Program.PUZZLES[popup.puzzle]
   check(lantern.id == "lantern_rows" and popup.board.get_child_count() == 15 and popup.garden.cell == Vector2i(0, 2) and "while clear east" in popup.source.text, "Lantern rows opens with a sweep routine and beds of different lengths")
   popup.check_button.pressed.emit()
@@ -569,6 +575,26 @@ func run(game) -> void:
   popup.stop_button.pressed.emit()
   await finish_by_steps(popup, lantern_solution)
   check(popup.garden.harvested == 3 and popup.progress.garden_best.get(lantern.id, 0) == 22, "Stepping through both while sweeps saves the Lantern rows target")
+
+  popup.chooser.item_selected.emit(9)
+  var relay: Dictionary = Program.PUZZLES[popup.puzzle]
+  check(relay.id == "spring_relay" and popup.garden.cell == Vector2i(0, 2) and popup.board.get_child_count() == 15 and popup.garden.plants.size() == 5 and "while thirsty and has_water" in popup.source.text, "Spring relay opens with a compound test and five lilies")
+  popup.check_button.pressed.emit()
+  check("2 of 5 lilies harvested in 11 actions" in popup.status.text, "The starter completes the lower bed with one tank")
+  popup.review_button.pressed.emit()
+  popup.review_slider.value = popup.review_slider.max_value
+  check("Water 0 / 3" in popup.info.text and "●" in popup.board.get_child(13).get_child(0).text and popup.garden.tile(Vector2i(4, 2)) == ".", "A compound while stops on an empty tank even when the next hop is open")
+  var precedence := "if not spring and has_water\n  hop west\nend\nif thirsty or not has_water\n  fill\nend\nif spring or ripe and thirsty\n  hop east\nend"
+  await finish_by_steps(popup, precedence)
+  check(popup.garden.turn == 2 and popup.garden.cell == Vector2i(1, 2) and popup.garden.tank == Program.CAPACITY, "Compound tests evaluate not first, then and, then or")
+  popup.source.text = relay_solution
+  popup.check_button.pressed.emit()
+  check("35 actions to harvest all 5 lilies · meets target" in popup.status.text and not popup.progress.solved.has(relay.id), "Check predicts Spring relay with a return to refill")
+  await finish_by_steps(popup, relay_solution)
+  check(popup.garden.harvested == 5 and popup.progress.garden_best.get(relay.id, 0) == 35, "Spring relay records a completed compound-condition run")
+  popup.best_button.pressed.emit()
+  popup.review_slider.value = popup.review_slider.max_value
+  check("Best run · 35 / 35 actions" == popup.review_position.text and "Lilies 5 / 5" in popup.info.text, "Best program replays a solution with compound tests")
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
