@@ -37,8 +37,8 @@ var breakpoint_offset := -1
 var interval := 0.0
 var running := false
 var checked_source: Variant = null
-var checked_actions: Array = []
-var blocked_line := -1
+var checked_route: Dictionary = {}
+var best_route: Dictionary = {}
 
 func _ready() -> void:
  set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -72,7 +72,6 @@ func _ready() -> void:
  _button(actions, "Reset board", _reset)
  source = _code_edit()
  source.gutters_draw_breakpoints_gutter = true
- source.gutters_draw_executing_lines = true
  source.highlight_current_line = true
  source.placeholder_text = "Type Pondbot commands here"
  draft_timer = Timer.new()
@@ -86,6 +85,7 @@ func _ready() -> void:
  best_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
  left.add_child(best_panel)
  best_title = hud.label("", 17, Color("#f3ebb4"))
+ best_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  best_panel.add_child(best_title)
  best_source = _code_edit()
  best_source.editable = false
@@ -140,6 +140,7 @@ func _code_edit() -> CodeEdit:
  var editor := CodeEdit.new()
  editor.size_flags_vertical = Control.SIZE_EXPAND_FILL
  editor.gutters_draw_line_numbers = true
+ editor.gutters_draw_executing_lines = true
  editor.add_theme_font_size_override("font_size", 18)
  var ink := CodeHighlighter.new()
  for word in ["hop", "fill", "water", "wait", "gather", "repeat", "routine", "call", "if", "else", "while", "not", "end"]:
@@ -169,8 +170,8 @@ func _close() -> void:
  flush_draft()
  if not steps.is_empty():
   _stop()
- _close_review()
  _close_best_program()
+ _close_review()
  hide()
  dismissed.emit()
 
@@ -210,19 +211,36 @@ func _toggle_best_program() -> void:
  best_source.set_caret_column(0)
  actions.hide()
  source.hide()
+ status.hide()
  best_panel.show()
  best_button.text = "Back to draft"
  review_button.disabled = true
  best_source.grab_focus()
+ var result: Dictionary = Programs.compile(recorded)
+ if result.has("error"):
+  best_title.text += "\nReplay unavailable · " + result.error
+  _mark_line(best_source, result.line)
+  return
+ best_route = _trace(result.steps)
+ var preview: Programs = best_route.preview
+ if best_route.line >= 0:
+  best_title.text += "\nLine %d · %s" % [best_route.line + 1, best_route.error]
+ elif not preview.is_complete():
+  best_title.text += "\nReplay gathers %d of %d lilies" % [preview.harvested, preview.plants.size()]
+ _open_review(best_route.actions.size())
 
 func _close_best_program() -> void:
  if not best_panel.visible:
   return
  best_panel.hide()
+ best_route.clear()
+ review_controls.hide()
  actions.show()
  source.show()
+ status.show()
  best_button.text = "Best program"
  review_button.disabled = false
+ _draw_board(garden)
  source.grab_focus()
 
 func _choose(index: int) -> void:
@@ -275,31 +293,36 @@ func _check_code() -> void:
  if commands.is_empty():
   return
  source.clear_executing_lines()
+ checked_route = _trace(commands)
+ var preview: Programs = checked_route.preview
+ var line: int = checked_route.line
+ if line >= 0:
+  _line_error("Check · Line %d · %s" % [line + 1, checked_route.error], line)
+ elif preview.is_complete():
+  var over: int = preview.turn - Programs.PUZZLES[puzzle].target
+  var target := "meets target" if over <= 0 else "%d over target" % over
+  status.text = "Check · %d actions to harvest all %d lilies · %s" % [preview.turn, preview.harvested, target]
+ else:
+  var unit := "action" if preview.turn == 1 else "actions"
+  status.text = "Check · %d of %d lilies harvested in %d %s" % [preview.harvested, preview.plants.size(), preview.turn, unit]
+ if not checked_route.actions.is_empty() or line >= 0:
+  review_button.show()
+
+func _trace(commands: Array) -> Dictionary:
  var preview := Programs.new()
  preview.load_puzzle(puzzle)
+ var traced: Array[Dictionary] = []
  var index := preview.next_action_index(commands, 0)
  while index < commands.size():
   var action: Dictionary = commands[index]
   var error := preview.step(action)
   if not error.is_empty():
-   blocked_line = action.line
-   _line_error("Check · Line %d · %s" % [action.line + 1, error], action.line)
-   break
-  checked_actions.append(action)
+   return {"actions":traced, "preview":preview, "line":action.line, "error":error}
+  traced.append(action)
   if preview.is_complete():
-   var over: int = preview.turn - Programs.PUZZLES[puzzle].target
-   var target := "meets target" if over <= 0 else "%d over target" % over
-   status.text = "Check · %d actions to harvest all %d lilies · %s" % [preview.turn, preview.harvested, target]
    break
   index = preview.next_action_index(commands, index + 1)
- if not preview.runtime_error.is_empty():
-  blocked_line = preview.runtime_error_line
-  _line_error("Check · Line %d · %s" % [blocked_line + 1, preview.runtime_error], blocked_line)
- elif blocked_line < 0 and not preview.is_complete():
-  var unit := "action" if preview.turn == 1 else "actions"
-  status.text = "Check · %d of %d lilies harvested in %d %s" % [preview.harvested, preview.plants.size(), preview.turn, unit]
- if not checked_actions.is_empty() or blocked_line >= 0:
-  review_button.show()
+ return {"actions":traced, "preview":preview, "line":preview.runtime_error_line, "error":preview.runtime_error}
 
 func _toggle_review() -> void:
  if best_panel.visible:
@@ -309,49 +332,57 @@ func _toggle_review() -> void:
   return
  if not review_button.visible or checked_source != source.text:
   return
- review_slider.max_value = checked_actions.size()
- review_slider.set_value_no_signal(0)
- review_slider.visible = not checked_actions.is_empty()
- review_controls.show()
  review_button.text = "Back to board"
+ _open_review(checked_route.actions.size())
+
+func _open_review(length: int) -> void:
+ review_slider.max_value = length
+ review_slider.set_value_no_signal(0)
+ review_slider.visible = length > 0
+ review_controls.show()
  _draw_review(0)
  if review_slider.visible:
   review_slider.grab_focus()
 
 func _close_review() -> void:
- if not review_controls.visible:
+ if best_panel.visible or not review_controls.visible:
   return
  review_controls.hide()
  review_button.text = "Review"
  source.clear_executing_lines()
- if blocked_line >= 0:
-  _mark_line(blocked_line)
+ var line: int = checked_route.get("line", -1)
+ if line >= 0:
+  _mark_line(source, line)
  _draw_board(garden)
 
 func _discard_check() -> void:
  checked_source = null
- checked_actions.clear()
- blocked_line = -1
+ checked_route.clear()
  _close_review()
  review_button.hide()
 
 func _draw_review(value: float) -> void:
- if not review_controls.visible or checked_source != source.text:
+ var replaying_best := best_panel.visible
+ if not review_controls.visible or (not replaying_best and checked_source != source.text):
   return
- var count := clampi(roundi(value), 0, checked_actions.size())
+ var route := best_route if replaying_best else checked_route
+ var traced: Array = route.actions
+ var line: int = route.line
+ var editor := best_source if replaying_best else source
+ var count := clampi(roundi(value), 0, traced.size())
  var preview := Programs.new()
  preview.load_puzzle(puzzle)
  for index in count:
-  preview.step(checked_actions[index])
- var blocked := blocked_line >= 0 and count == checked_actions.size()
- review_position.text = "Preview · %d / %d actions" % [count, checked_actions.size()]
+  preview.step(traced[index])
+ var blocked := line >= 0 and count == traced.size()
+ review_position.text = "%s · %d / %d actions" % ["Best run" if replaying_best else "Preview", count, traced.size()]
  if blocked:
   review_position.text += " · Blocked"
-  _mark_line(blocked_line)
+  _mark_line(editor, line)
  elif count > 0:
-  _mark_line(checked_actions[count - 1].line)
+  _mark_line(editor, traced[count - 1].line)
  else:
-  source.clear_executing_lines()
+  editor.clear_executing_lines()
  _draw_board(preview, blocked)
 
 func _prepare_program() -> bool:
@@ -394,15 +425,15 @@ func _show_progress() -> void:
   "Running" if running else "Paused", garden.turn, next.line + 1,
  ]
 
-func _mark_line(line: int) -> void:
- var marked := clampi(line, 0, source.get_line_count() - 1)
- source.clear_executing_lines()
- source.set_line_as_executing(marked, true)
- source.set_caret_line(marked)
+func _mark_line(editor: CodeEdit, line: int) -> void:
+ var marked := clampi(line, 0, editor.get_line_count() - 1)
+ editor.clear_executing_lines()
+ editor.set_line_as_executing(marked, true)
+ editor.set_caret_line(marked)
 
 func _line_error(message: String, line: int) -> void:
  status.text = message
- _mark_line(line)
+ _mark_line(source, line)
  source.grab_focus()
 
 func _process(delta: float) -> void:
@@ -418,7 +449,7 @@ func _process(delta: float) -> void:
   breakpoint_offset = offset
   var unit := "action" if garden.turn == 1 else "actions"
   status.text = "Breakpoint · line %d · %d %s" % [action.line + 1, garden.turn, unit]
-  _mark_line(action.line)
+  _mark_line(source, action.line)
   _draw()
   return
  _advance()
@@ -431,7 +462,7 @@ func _advance() -> void:
   _clear_program()
   _line_error("Line %d · %s" % [action.line + 1, error], action.line)
  else:
-  _mark_line(action.line)
+  _mark_line(source, action.line)
   if garden.is_complete():
    var completed_program := submitted_program
    _clear_program()

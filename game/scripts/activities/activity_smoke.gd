@@ -323,14 +323,39 @@ func run(game) -> void:
   check(popup.best_button.visible and popup.progress.garden_best_programs.get(puzzle_id) == starter, "Completing a puzzle makes the recorded program available")
   var revision := "# Try a shorter route later\nwait\n"
   popup.source.text = revision
+  popup.check_button.pressed.emit()
+  popup.review_button.pressed.emit()
+  popup.review_slider.value = 1
+  var live_plot: Node = popup.world.garden_root.get_child(0)
   popup.best_button.pressed.emit()
   check(popup.best_panel.visible and popup.best_source.text == starter and not popup.best_source.editable and popup.source.text == revision, "Best program shows the saved code in a separate read-only view")
+  check(popup.review_controls.visible and popup.review_slider.has_focus() and popup.review_slider.value == 0 and "Best run · 0 / 9 actions" == popup.review_position.text and "Water 0 / 3" in popup.info.text, "Best program opens the saved replay at the starting board")
+  press_key(KEY_RIGHT)
+  check(popup.review_slider.value == 1 and popup.best_source.get_executing_lines() == PackedInt32Array([1]) and popup.source.get_executing_lines().is_empty() and "Water 3 / 3" in popup.info.text, "The saved replay uses the arrow keys and marks only the recorded source")
+  popup.review_slider.value = 9
+  var replay_harvest: bool = "Lilies 2 / 2" in popup.info.text and popup.best_source.get_executing_lines() == PackedInt32Array([6])
+  popup.review_slider.value = 2
+  check(replay_harvest and "Lilies 0 / 2" in popup.info.text and "●" in popup.board.get_child(1).get_child(0).text and popup.world.garden_root.get_child(0) == live_plot, "Scrubbing the saved run in both directions leaves the live garden alone")
   press_key(KEY_F10)
   press_key(KEY_ENTER, true)
   await frames(4)
   check(popup.best_panel.visible and not popup.running and popup.garden.turn == 9, "Run and Step leave the board idle while reading the best program")
   press_key(KEY_ESCAPE)
-  check(popup.visible and not popup.best_panel.visible and popup.source.has_focus() and popup.source.text == revision, "Escape returns to the current draft")
+  check(popup.visible and not popup.best_panel.visible and not popup.review_controls.visible and popup.source.has_focus() and popup.source.text == revision and "Lilies 2 / 2" in popup.info.text, "Escape restores the current draft and live board")
+  popup.review_button.pressed.emit()
+  popup.review_slider.value = 1
+  check(popup.review_controls.visible and "Preview · 1 / 1 actions" == popup.review_position.text and popup.source.get_executing_lines() == PackedInt32Array([1]), "The previously checked draft still has its own route")
+  popup.review_button.pressed.emit()
+  popup.progress.garden_best_programs[puzzle_id] = "fill\nhop north"
+  popup.best_button.pressed.emit()
+  popup.review_slider.value = popup.review_slider.max_value
+  check("Best run · 1 / 1 actions · Blocked" == popup.review_position.text and "Line 2" in popup.best_title.text and popup.best_source.get_executing_lines() == PackedInt32Array([1]), "A saved route blocked under current rules shows its last reachable action")
+  popup.best_button.pressed.emit()
+  popup.progress.garden_best_programs[puzzle_id] = "unknown"
+  popup.best_button.pressed.emit()
+  check(popup.best_panel.visible and not popup.review_controls.visible and "Replay unavailable · Line 1" in popup.best_title.text and popup.best_source.text == "unknown", "Code that cannot be replayed remains available to read")
+  popup.best_button.pressed.emit()
+  popup.progress.garden_best_programs[puzzle_id] = starter
   await finish_by_steps(popup, "# Same route, different comment\n" + starter)
   check(popup.garden.turn == 9 and popup.progress.garden_best_programs.get(puzzle_id) == starter, "A tied run keeps the previously recorded code")
   popup.source.text = starter
@@ -409,7 +434,7 @@ func run(game) -> void:
   check(popup.garden.harvested == 0 and popup.progress.garden_best.get("twin_terraces", 0) == 19, "A program that ends early does not replace a completed score")
   popup.best_button.pressed.emit()
   popup.chooser.item_selected.emit(solutions.size() - 4)
-  check(not popup.best_panel.visible and not popup.best_button.visible and popup.source.visible, "Changing puzzles returns to that puzzle's draft and record")
+  check(not popup.best_panel.visible and not popup.best_button.visible and not popup.review_controls.visible and popup.source.visible, "Changing puzzles closes the saved replay and opens the other draft")
   var spillway: Dictionary = Program.PUZZLES[popup.puzzle]
   check(spillway.id == "stone_spillway" and popup.board.get_child_count() == 16 and popup.garden.cell == Vector2i(0, 3) and "routine finish_lily" in popup.source.text, "Stone spillway opens at its lower spring with a reusable routine in the draft")
   popup.check_button.pressed.emit()
@@ -507,7 +532,7 @@ func run(game) -> void:
   check("0 of 3 lilies harvested in 1 action" in popup.status.text, "A negated while reevaluates its condition after filling")
   popup.source.text = "while spring\nif ripe\nwait\nend\nend"
   popup.check_button.pressed.emit()
-  check("Check · Line 1" in popup.status.text and "without doing an action" in popup.status.text and popup.checked_actions.is_empty(), "Check catches a while loop with no executable action")
+  check("Check · Line 1" in popup.status.text and "without doing an action" in popup.status.text and popup.checked_route.actions.is_empty(), "Check catches a while loop with no executable action")
   press_key(KEY_ENTER, true)
   check(not popup.running and popup.garden.turn == 0 and "without doing an action" in popup.status.text and popup.source.get_executing_lines() == PackedInt32Array([0]), "Run marks the same loop before advancing the board")
   var wait_loop := "while spring\nwait\nend"
@@ -521,7 +546,7 @@ func run(game) -> void:
   check(popup.garden.turn == Program.MAX_WHILE_ITERATIONS and "16-iteration limit" in popup.status.text and popup.source.editable, "Stepping a loop halts at the same iteration limit")
   popup.source.text = "while spring\nrepeat 16\nwait\nend\nrepeat 15\nwait\nend\nend"
   popup.check_button.pressed.emit()
-  check("256-action limit" in popup.status.text and popup.checked_actions.size() == Program.MAX_STEPS, "A while loop with a long body still respects the program action budget")
+  check("256-action limit" in popup.status.text and popup.checked_route.actions.size() == Program.MAX_STEPS, "A while loop with a long body still respects the program action budget")
   popup.source.text = lantern_solution
   popup.check_button.pressed.emit()
   check("22 actions to harvest all 3 lilies · meets target" in popup.status.text and not popup.progress.solved.has(lantern.id), "Check finds the target using the same loop on both beds")
