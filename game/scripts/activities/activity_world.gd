@@ -208,9 +208,11 @@ func show_garden(garden) -> void:
    var at := Vector3(x * GARDEN_PLOT - 2, 0, y * GARDEN_PLOT - 1)
    var tile: String = garden.tile(cell)
    var soil := Color("#507e98") if tile == "~" else Color("#a3a9a1") if tile == "#" else Color("#674d37")
+   if tile == "B":
+    soil = Color("#8e6941")
    _box(at + Vector3.UP * .08, Vector3(1.23, .16, 1.23), material("plot_" + tile, soil), 0, false, garden_root)
    var status: String = garden.plant_status(cell)
-   if not status.is_empty() and status != "Gathered":
+   if status not in ["", "Gathered", Gardens.EMPTY_BED]:
     mesh_instance(sphere, foliage, at + Vector3.UP * .23, Vector3(.52, .19, .52), garden_root)
     if status == "Ripe":
      mesh_instance(sphere, ripe, at + Vector3.UP * .41, Vector3(.38, .24, .38), garden_root)

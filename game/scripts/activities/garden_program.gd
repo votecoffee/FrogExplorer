@@ -15,9 +15,12 @@ const PUZZLES = [
  {"id":"side_channels", "name":"Side channels", "unlock_lilies":18, "rows":["##L#L","~....","#L#L#"], "target":31, "hint":"Follow the center path and look for lilies to the north or south. Return west to refill after the third lily. A second sweep can skip the lilies you already gathered.", "draft":"# Look for lilies off the center path before hopping\nroutine tend_plot\n  water\n  wait\n  gather\nend\nroutine sweep_east\n  while clear east and has_water\n    hop east\n    if lily north\n      hop north\n      call tend_plot\n      hop south\n    end\n    if lily south and has_water\n      hop south\n      call tend_plot\n      hop north\n    end\n  end\nend\n\nfill\ncall sweep_east\n", "python_draft":"# Look for lilies off the center path before hopping\ndef tend_plot():\n    water()\n    wait()\n    gather()\ndef sweep_east():\n    while clear(east) and has_water():\n        hop(east)\n        if lily(north):\n            hop(north)\n            tend_plot()\n            hop(south)\n        if lily(south) and has_water():\n            hop(south)\n            tend_plot()\n            hop(north)\n\nfill()\nsweep_east()\n"},
  {"id":"compass_banks", "name":"Compass banks", "unlock_lilies":18, "rows":["L####","..~..","####H"], "target":17, "hint":"The spring is between two mirrored paths. After the west sweep, return east to the spring. Call sweep again with east along the bank, south toward the lily, and north back to the path.", "draft":"# Sweep west, then reuse the routine with different directions\nroutine tend_bed toward back\n  hop toward\n  while thirsty and has_water\n    water\n  end\n  wait\n  gather\n  hop back\nend\nroutine sweep along branch return_path\n  while clear along and has_water\n    hop along\n    if lily branch\n      call tend_bed branch return_path\n    end\n  end\nend\n\nfill\ncall sweep west north south\n", "python_draft":"# Sweep west, then reuse the routine with different directions\ndef tend_bed(toward, back):\n    hop(toward)\n    while thirsty() and has_water():\n        water()\n    wait()\n    gather()\n    hop(back)\ndef sweep(along, branch, return_path):\n    while clear(along) and has_water():\n        hop(along)\n        if lily(branch):\n            tend_bed(branch, return_path)\n\nfill()\nsweep(west, north, south)\n"},
  {"id":"low_water_row", "name":"Low water row", "unlock_lilies":18, "rows":["~LLHL"], "target":25, "hint":"The first sweep runs out of water at the double lily. Return to the spring, refill, and sweep again. The routine skips plots you already gathered.", "draft":"# Leave the row to refill when a plot still needs water\nroutine sweep\n  while clear east\n    hop east\n    if not lily\n      continue\n    end\n    while thirsty and has_water\n      water\n    end\n    if thirsty\n      break\n    end\n    wait\n    gather\n  end\nend\n\nfill\ncall sweep\n", "python_draft":"# Leave the row to refill when a plot still needs water\ndef sweep():\n    while clear(east):\n        hop(east)\n        if not lily():\n            continue\n        while thirsty() and has_water():\n            water()\n        if thirsty():\n            break\n        wait()\n        gather()\n\nfill()\nsweep()\n"},
+ {"id":"nursery_beds", "name":"Nursery beds", "unlock_lilies":26, "rows":["~B.BL"], "target":16, "hint":"Plant the brown seedbeds, then water and gather their lilies. The starter tends the first bed. Keep moving east and reuse tend to handle a blank path, another seedbed, and a lily already planted.", "draft":"# Tend the first bed, then reuse the routine along the row\nroutine tend\n  if empty_bed\n    plant\n  end\n  if lily\n    water\n    wait\n    gather\n  end\nend\n\nfill\nhop east\ncall tend\n", "python_draft":"# Tend the first bed, then reuse the function along the row\ndef tend():\n    if empty_bed():\n        plant()\n    if lily():\n        water()\n        wait()\n        gather()\n\nfill()\nhop(east)\ntend()\n"},
 ]
 const DIRECTIONS = {"north":Vector2i(0,-1), "east":Vector2i(1,0), "south":Vector2i(0,1), "west":Vector2i(-1,0)}
-const CONDITIONS := ["spring", "has_water", "lily", "thirsty", "growing", "ripe"]
+const CONDITIONS := ["spring", "has_water", "empty_bed", "lily", "thirsty", "growing", "ripe"]
+const PLOT_DOSES := {"B":0, "L":1, "H":2}
+const EMPTY_BED := "Empty bed"
 const CAPACITY = 3
 const MAX_STEPS = 256
 const MAX_WHILE_ITERATIONS := 16
@@ -160,8 +163,8 @@ static func compile(source: String, case_sensitive := false) -> Dictionary:
    if words.size() != 1 or not blocks.any(func(block): return block.has("times") or block.get("loop", false)):
     return _error(index, "Put %s on its own line inside repeat or while." % command)
    instruction = {"loop_control":command, "line":index}
-  elif words.size() != 1 or command not in ["fill", "water", "wait", "gather"]:
-   return _error(index, "Use hop, fill, water, wait, gather, repeat, routine, call, if, while, break, or continue.")
+  elif words.size() != 1 or command not in ["fill", "plant", "water", "wait", "gather"]:
+   return _error(index, "Use hop, fill, plant, water, wait, gather, repeat, routine, call, if, while, break, or continue.")
   if steps.size() >= MAX_STEPS:
    return _error(index, "Programs can contain up to 256 instructions after expansion.")
   steps.append(instruction)
@@ -269,7 +272,7 @@ static func _parse_condition(words: PackedStringArray, parameters: PackedStringA
    direction = words[index]
    index += 1
   elif condition not in CONDITIONS:
-   return {"error":"Expected a condition. Try spring, has_water, lily north, thirsty, growing, ripe, or clear east."}
+   return {"error":"Expected a condition. Try spring, has_water, empty_bed, lily north, thirsty, growing, ripe, or clear east."}
   elif index < words.size() and _is_direction(words[index], parameters):
    if condition == "has_water":
     return {"error":"Use has_water without a direction. It checks Pondbot's tank."}
@@ -293,6 +296,13 @@ static func _parse_condition(words: PackedStringArray, parameters: PackedStringA
 static func _error(line: int, message: String) -> Dictionary:
  return {"error":"Line %d · %s" % [line + 1, message], "line":line}
 
+static func puzzle_lilies(puzzle: Dictionary) -> int:
+ var total := 0
+ for row: String in puzzle.rows:
+  for plot: String in PLOT_DOSES:
+   total += row.count(plot)
+ return total
+
 func load_puzzle(index: int) -> void:
  rows = PUZZLES[index].rows
  plants.clear()
@@ -305,10 +315,11 @@ func load_puzzle(index: int) -> void:
  for y in rows.size():
   for x in rows[y].length():
    var location := Vector2i(x, y)
-   match tile(location):
-    "~": cell = location
-    "L": plants[location] = {"need":1, "ready":-1, "harvested":false}
-    "H": plants[location] = {"need":2, "ready":-1, "harvested":false}
+   var plot := tile(location)
+   if plot == "~":
+    cell = location
+   elif PLOT_DOSES.has(plot):
+    plants[location] = {"need":PLOT_DOSES[plot], "ready":-1, "harvested":false, "planted":plot != "B"}
 
 func tile(location: Vector2i) -> String:
  if location.y < 0 or location.y >= rows.size() or location.x < 0 or location.x >= rows[location.y].length():
@@ -319,6 +330,8 @@ func plant_status(location: Vector2i) -> String:
  var plant: Dictionary = plants.get(location, {})
  if plant.is_empty():
   return ""
+ if not plant.planted:
+  return EMPTY_BED
  if plant.harvested:
   return "Gathered"
  if plant.need > 0:
@@ -381,8 +394,10 @@ func _meets_condition(condition: String, direction: String) -> bool:
    return tile(location) == "~"
   "has_water":
    return tank > 0
+  "empty_bed":
+   return not plants.get(location, {}).get("planted", true)
   "lily":
-   return plants.has(location) and not plants[location].harvested
+   return plants.has(location) and plants[location].planted and not plants[location].harvested
   "thirsty":
    var plant: Dictionary = plants.get(location, {})
    return int(plant.get("need", 0)) > 0
@@ -405,7 +420,14 @@ func step(action: Dictionary) -> String:
    if tile(cell) != "~":
     return "Fill at the spring."
    tank = CAPACITY
+  "plant":
+   if plant.get("planted", true):
+    return "Plant on a prepared empty bed."
+   plant.planted = true
+   plant.need = 1
   "water":
+   if not plant.get("planted", true):
+    return "Plant this bed before watering it."
    if plant.is_empty() or plant.harvested or plant.need == 0:
     return "This plot does not need water."
    if tank == 0:

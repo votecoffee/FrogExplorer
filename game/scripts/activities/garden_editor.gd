@@ -3,8 +3,8 @@ extends PanelContainer
 signal dismissed
 const Programs = preload("res://scripts/activities/garden_program.gd")
 const Progress = preload("res://scripts/activities/activity_progress.gd")
-const CLASSIC_GUIDE := "hop north / east / south / west\nfill     water     wait     gather\nrepeat N … end     # comment\nroutine NAME heading · call NAME east\nif / while CONDITION … end\nelse · not · and · or · break · continue\nLook ahead with clear east or lily north\nF9 toggles a breakpoint"
-const PYTHON_GUIDE := "hop(east)    fill()    water()\nwait()       gather()\nfor _ in range(2):\nif lily(north):    while has_water():\ndef tend(heading):    tend(east)\nTab indents · Shift+Tab unindents\nF9 toggles a breakpoint"
+const CLASSIC_GUIDE := "hop north / east / south / west\nfill     plant     water     wait     gather\nrepeat N … end     # comment\nroutine NAME heading · call NAME east\nif / while CONDITION … end\nelse · not · and · or · break · continue\nLook ahead with clear east or lily north\nF9 toggles a breakpoint"
+const PYTHON_GUIDE := "hop(east)    fill()    water()\nplant()       wait()       gather()\nfor _ in range(2):\nif lily(north):    while has_water():\ndef tend(heading):    tend(east)\nTab indents · Shift+Tab unindents\nF9 toggles a breakpoint"
 var hud: ExplorerHUD
 var garden := Programs.new()
 var world: ExplorerActivityWorld
@@ -162,7 +162,7 @@ func _code_edit() -> CodeEdit:
 func _color_code(editor: CodeEdit, python: bool) -> void:
  var ink := CodeHighlighter.new()
  var structural := ["for", "in", "range", "def", "elif"] if python else ["repeat", "routine", "call", "end"]
- for word in ["hop", "fill", "water", "wait", "gather", "if", "else", "while", "not", "and", "or", "clear", "break", "continue"] + structural + Programs.CONDITIONS:
+ for word in ["hop", "fill", "plant", "water", "wait", "gather", "if", "else", "while", "not", "and", "or", "clear", "break", "continue"] + structural + Programs.CONDITIONS:
   ink.add_keyword_color(word, Color("#8bd5bc"))
  ink.add_color_region("#", "", Color("#a5ad99"), true)
  editor.syntax_highlighter = ink
@@ -599,6 +599,8 @@ func _draw_board(view: Programs, blocked := false) -> void:
    var style := StyleBoxFlat.new()
    if cell == view.cell:
     style.bg_color = Color("#784b30") if blocked else Color("#1f5950")
+   elif tile == "B":
+    style.bg_color = Color("#694f35")
    else:
     style.bg_color = Color("#214355") if tile == "~" else Color("#424744") if tile == "#" else Color("#293b27")
    style.set_corner_radius_all(6)

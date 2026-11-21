@@ -6,9 +6,11 @@ from pathlib import Path
 import sys
 
 
-ACTIONS = {"fill", "hop", "water", "wait", "gather"}
-SENSORS = {"clear", "spring", "has_water", "lily", "thirsty", "growing", "ripe"}
+ACTIONS = {"fill", "hop", "plant", "water", "wait", "gather"}
+SENSORS = {"clear", "spring", "has_water", "empty_bed", "lily", "thirsty", "growing", "ripe"}
 DIRECTIONS = {"north", "east", "south", "west"}
+# Older Python drafts could define these two names as routines.
+RESERVED_NAMES = (ACTIONS | SENSORS | DIRECTIONS | {"range"}) - {"plant", "empty_bed"}
 MAX_SOURCE = 8192
 
 
@@ -38,14 +40,14 @@ def direction(node):
     raise GardenError(node, "Use a compass direction such as east, or a direction parameter.")
 
 
-def clauses(node, inverted=False):
+def clauses(node, routines, inverted=False):
     if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
-        return clauses(node.operand, not inverted)
+        return clauses(node.operand, routines, not inverted)
     if isinstance(node, ast.BoolOp):
         join = isinstance(node.op, ast.And) != inverted
         result = [[]] if join else []
         for value in node.values:
-            terms = clauses(value, inverted)
+            terms = clauses(value, routines, inverted)
             if join:
                 if len(result) * len(terms) > 64:
                     raise GardenError(node, "Split this test into smaller conditions.")
@@ -58,8 +60,8 @@ def clauses(node, inverted=False):
                 raise GardenError(node, "Split this test into smaller conditions.")
         return result
     sensor, args = arguments(node)
-    if sensor not in SENSORS:
-        raise GardenError(node, "Use a garden test such as lily(north) or has_water().")
+    if sensor not in SENSORS or sensor in routines:
+        raise GardenError(node, "Use a garden test such as empty_bed(north) or has_water().")
     if len(args) > 1 or (sensor == "clear" and not args) or (sensor == "has_water" and args):
         raise GardenError(node, "Check the direction arguments for this garden test.")
     term = " ".join([sensor, *(direction(arg) for arg in args)])
@@ -69,6 +71,7 @@ def clauses(node, inverted=False):
 def lower(source):
     lines = []
     locations = []
+    routines = set()
 
     def emit(text, line):
         lines.append(text)
@@ -78,7 +81,7 @@ def lower(source):
         for node in statements:
             if isinstance(node, ast.Expr):
                 command, args = arguments(node.value)
-                if command in ACTIONS:
+                if command in ACTIONS and command not in routines:
                     if len(args) != int(command == "hop"):
                         raise GardenError(node, f"Check the arguments for {command}().")
                     words = [command]
@@ -92,8 +95,9 @@ def lower(source):
                     any(arg.annotation for arg in args.args)):
                     raise GardenError(node, "Use a simple def with optional direction parameters.")
                 routine = name(node.name, node)
-                if routine in ACTIONS | SENSORS | DIRECTIONS | {"range"}:
+                if routine in RESERVED_NAMES:
                     raise GardenError(node, "Choose a different name for this garden function.")
+                routines.add(routine)
                 emit(" ".join(["routine", routine, *(name(arg.arg, arg) for arg in args.args)]), node.lineno)
                 block(node.body)
                 emit("end", node.end_lineno)
@@ -101,7 +105,7 @@ def lower(source):
                 keyword = "if" if isinstance(node, ast.If) else "while"
                 if keyword == "while" and node.orelse:
                     raise GardenError(node, "Use else with if in the garden.")
-                test = " or ".join(" and ".join(group) for group in clauses(node.test))
+                test = " or ".join(" and ".join(group) for group in clauses(node.test, routines))
                 emit(f"{keyword} {test}", node.lineno)
                 block(node.body)
                 if node.orelse:

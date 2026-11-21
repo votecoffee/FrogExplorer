@@ -115,8 +115,7 @@ func earned_lilies() -> int:
  var total := 0
  for puzzle in Programs.PUZZLES:
   if solved.has(puzzle.id):
-   for row: String in puzzle.rows:
-    total += row.count("L") + row.count("H")
+   total += Programs.puzzle_lilies(puzzle)
  return total
 
 func lesson_available(puzzle: Dictionary, lilies: int) -> bool:

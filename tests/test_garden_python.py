@@ -22,6 +22,13 @@ class GardenPythonTests(unittest.TestCase):
         result = LOWER('def Sweep(Turn):\n    hop(Turn)\nSweep("west")\n')
         self.assertEqual(result["source"], "routine Sweep Turn\nhop Turn\nend\ncall Sweep west")
 
+    def test_planting_uses_the_bed_sensor_and_preserves_existing_routine_names(self):
+        self.assertEqual(LOWER("if empty_bed(east):\n    plant()\n")["source"], "if empty_bed east\nplant\nend")
+        for routine in ("plant", "empty_bed"):
+            with self.subTest(routine=routine):
+                source = f"def {routine}():\n    wait()\n{routine}()\n"
+                self.assertEqual(LOWER(source)["source"], f"routine {routine}\nwait\nend\ncall {routine}")
+
     def test_unsupported_syntax_is_rejected_at_its_source_line(self):
         for source, line in [
             ("fill()\nimport math\n", 1),

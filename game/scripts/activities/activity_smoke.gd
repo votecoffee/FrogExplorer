@@ -227,6 +227,7 @@ func run(game) -> void:
  var channels_solution: String = Program.PUZZLES[10].draft + "while not spring\n  hop west\nend\nfill\ncall sweep_east\n"
  var compass_solution: String = Program.PUZZLES[11].draft + "while not spring\n  hop east\nend\ncall sweep east south north\n"
  var low_water_solution: String = Program.PUZZLES[12].draft + "while not spring\n  hop west\nend\nfill\ncall sweep\n"
+ var nursery_sweep: String = Program.PUZZLES[13].draft + "while clear east\n  hop east\n  call tend\nend\n"
  var solutions := [
   "fill\nrepeat 2\nhop east\nwater\nwait\ngather\nend",
   "fill\nhop east\nhop east\nwater\nwait\ngather\nhop south\nhop east\nwater\nwait\ngather\nhop west\nhop south\nwater\nwait\ngather",
@@ -241,6 +242,7 @@ func run(game) -> void:
   channels_solution,
   compass_solution,
   low_water_solution,
+  nursery_sweep,
  ]
  check(solutions.size() == Program.PUZZLES.size(), "Every garden has a smoke-test solution")
  for index in solutions.size():
@@ -545,7 +547,7 @@ func run(game) -> void:
   popup.stop_button.pressed.emit()
   await finish_by_steps(popup, patchwork_solution)
   check(popup.garden.harvested == 4 and popup.progress.garden_best.get(patchwork.id, 0) == 26, "Stepping through conditions saves the verified Patchwork beds score")
-  check(popup.progress.earned_lilies() == 20 and not popup.chooser.is_item_disabled(12) and "Next unlock" not in popup.lesson_status.text, "Eighteen earned lilies open the last set of lessons")
+  check(popup.progress.earned_lilies() == 20 and not popup.chooser.is_item_disabled(12) and popup.chooser.is_item_disabled(13) and "Next unlock · 26" in popup.lesson_status.text, "Eighteen earned lilies open the advanced sweeps and show the nursery milestone")
   popup.chooser.item_selected.emit(7)
   var banks: Dictionary = Program.PUZZLES[popup.puzzle]
   check(banks.id == "forked_banks" and popup.board.get_child_count() == 16 and popup.garden.cell == Vector2i(0, 2) and "if clear east" in popup.source.text, "Forked banks starts at the blocked bank with a route routine")
@@ -735,6 +737,32 @@ func run(game) -> void:
   popup.source.text = "if not (lily() or thirsty()) and (spring() or ripe()):\n    fill()\nelse:\n    hop(west)"
   popup.check_button.pressed.emit()
   check("0 of 3 lilies harvested in 1 action" in popup.status.text, "Python grouping and negation determine the same action during Check")
+  var earned_before: int = popup.progress.earned_lilies()
+  popup.chooser.item_selected.emit(13)
+  var nursery: Dictionary = Program.PUZZLES[popup.puzzle]
+  check(nursery.id == "nursery_beds" and "Lilies 0 / 3" in popup.info.text and "Empty bed" in popup.board.get_child(1).get_child(0).text, "Nursery beds opens with its two seedbeds counted in the harvest goal")
+  var bare_scene_size: int = popup.world.garden_root.get_child_count()
+  var nursery_starter: String = popup.source.text
+  popup.check_button.pressed.emit()
+  check("1 of 3 lilies harvested in 6 actions" in popup.status.text and popup.garden.turn == 0, "Check predicts planting and tending the first bed")
+  popup.review_button.pressed.emit()
+  popup.review_slider.value = 3
+  check("Thirsty" in popup.board.get_child(1).get_child(0).text and popup.garden.plant_status(Vector2i(1, 0)) == Program.EMPTY_BED and popup.world.garden_root.get_child_count() == bare_scene_size, "Review shows the new plant while the live bed stays empty")
+  popup.review_button.pressed.emit()
+  popup.source.text = "plant()"
+  popup.check_button.pressed.emit()
+  check("Plant on a prepared empty bed" in popup.status.text, "Planting at the spring reports a blocked command")
+  popup.source.text = "fill()\nhop(east)\nwater()"
+  popup.check_button.pressed.emit()
+  check("Line 3" in popup.status.text and "Plant this bed before watering it" in popup.status.text, "Watering an unplanted bed points to the original Python line")
+  await finish_by_steps(popup, "if empty_bed(east) and not lily(east):\n    hop(east)\n    plant()\n    plant()\n")
+  check(popup.garden.turn == 2 and popup.garden.plant_status(Vector2i(1, 0)) == "Thirsty ×1" and popup.world.garden_root.get_child_count() == bare_scene_size + 1 and "Line 4" in popup.status.text, "The adjacent bed sensor leads to a visible seedling and a second planting is blocked")
+  var nursery_python := nursery_starter + "while clear(east):\n    hop(east)\n    tend()\n"
+  await finish_by_steps(popup, nursery_python)
+  check(popup.garden.turn == 16 and popup.garden.harvested == 3 and popup.progress.earned_lilies() == earned_before + 3 and popup.progress.garden_best_python.get(nursery.id, false), "The Python sweep harvests all three lilies and earns credit for the planted beds")
+  popup.best_button.pressed.emit()
+  popup.review_slider.value = popup.review_slider.max_value
+  check("Best run · 16 / 16 actions" == popup.review_position.text and "Lilies 3 / 3" in popup.info.text, "Best program replays planting and harvesting")
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
