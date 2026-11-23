@@ -3,6 +3,7 @@ extends PanelContainer
 signal dismissed
 const Programs = preload("res://scripts/activities/garden_program.gd")
 const Progress = preload("res://scripts/activities/activity_progress.gd")
+const RUN_INTERVAL := .23
 const CLASSIC_GUIDE := "hop north / east / south / west\nfill     plant     water     wait     gather\nrepeat N … end     # comment\nroutine NAME heading · call NAME east\nif / while CONDITION … end\nelse · not · and · or · break · continue\nLook ahead with clear east or lily north\nF9 toggles a breakpoint"
 const PYTHON_GUIDE := "hop(east)    fill()    water()\nplant()       wait()       gather()\nfor bed in range(2):\nif water_level() < tank_capacity():\nwhile clear(east):\ndef walk(heading, steps: int):\nstart = column()    print(start)\nTab indents · Shift+Tab unindents\nF9 toggles a breakpoint"
 var hud: ExplorerHUD
@@ -45,6 +46,7 @@ var review_controls: VBoxContainer
 var review_position: Label
 var review_slider: HSlider
 var run_button: Button
+var speed_choice: OptionButton
 var step_button: Button
 var stop_button: Button
 var steps: Array = []
@@ -95,6 +97,13 @@ func _ready() -> void:
  check_button = _button(actions, "Check", _check_code)
  check_button.tooltip_text = "Check the draft on a fresh board"
  run_button = _button(actions, "Run · Ctrl+Enter", _run)
+ speed_choice = OptionButton.new()
+ for speed in [1, 2, 4]:
+  speed_choice.add_item("Speed %d×" % speed, speed)
+ speed_choice.select(0)
+ speed_choice.tooltip_text = "F8 cycles nursery run speed."
+ speed_choice.hide()
+ actions.add_child(speed_choice)
  step_button = _button(actions, "Step · F10", _step)
  stop_button = _button(actions, "Stop", _stop)
  _button(actions, "Reset board", _reset)
@@ -353,6 +362,9 @@ func _buy_nursery_upgrade() -> void:
  elif upgrade == Progress.STONE_RING_MARKER:
   _choose(Programs.GARDENS.find(Programs.STONE_RING_NURSERY))
   status.text = "Stone ring nursery unlocked. Run the starter from either spring to tend one bank."
+ elif upgrade == Progress.SPEED_CONTROL_MARKER:
+  _refresh_speed_choice()
+  status.text = "Speed control fitted. Choose a speed or press F8."
  else:
   _apply_nursery_tools()
   if upgrade == Progress.RESERVOIR_MARKER:
@@ -372,6 +384,10 @@ func _apply_nursery_tools() -> void:
                                progress.has_nursery_upgrade(Progress.HARVEST_HOOK_MARKER))
  if previous_capacity != garden.water_capacity or previous_reach != garden.reach_tool or previous_hook != garden.harvest_hook:
   _discard_check()
+ _refresh_speed_choice()
+
+func _refresh_speed_choice() -> void:
+ speed_choice.visible = garden.practice and progress.has_nursery_upgrade(Progress.SPEED_CONTROL_MARKER)
 
 func _select_language(index: int) -> void:
  if not steps.is_empty():
@@ -414,6 +430,7 @@ func _reset() -> void:
  garden.load_puzzle(puzzle, progress.has_nursery_upgrade(Progress.RESERVOIR_MARKER),
                     progress.has_nursery_upgrade(Progress.REACH_TOOL_MARKER),
                     progress.has_nursery_upgrade(Progress.HARVEST_HOOK_MARKER))
+ _refresh_speed_choice()
  status.text = "Run or Step tends the current nursery." if garden.practice else "Harvest every lily. Run or Step starts from a fresh board."
  _draw()
 
@@ -616,10 +633,12 @@ func _line_error(message: String, line: int) -> void:
 func _process(delta: float) -> void:
  if not visible or not running:
   return
- interval -= delta
+ var speed := speed_choice.get_selected_id() if speed_choice.visible else 1
+ interval -= delta * speed
  if interval > 0:
   return
- interval = .23
+ # Carry fractional timing between frames and advance at most one action per frame.
+ interval = maxf(0.0, interval + RUN_INTERVAL)
  var action: Dictionary = steps[offset]
  if breakpoint_offset != offset and source.is_line_breakpointed(action.line):
   running = false
@@ -700,6 +719,8 @@ func _draw() -> void:
     label = "Buy harvest hook"
    Progress.STONE_RING_MARKER:
     label = "Unlock Stone ring nursery"
+   Progress.SPEED_CONTROL_MARKER:
+    label = "Buy speed control"
   nursery_upgrade_button.text = "%s · %d lilies" % [label, cost]
   nursery_upgrade_button.disabled = active or balance < cost
  best_button.visible = score.visible and progress.garden_best_programs.has(item.id)
@@ -828,6 +849,9 @@ func _input(event: InputEvent) -> void:
    return
   elif event.ctrl_pressed and event.keycode in [KEY_ENTER, KEY_KP_ENTER]:
    _run()
+   get_viewport().set_input_as_handled()
+  elif event.keycode == KEY_F8 and speed_choice.visible:
+   speed_choice.select((speed_choice.selected + 1) % speed_choice.item_count)
    get_viewport().set_input_as_handled()
   elif event.keycode == KEY_F9:
    var line := source.get_caret_line()

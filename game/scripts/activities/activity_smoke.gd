@@ -433,7 +433,12 @@ func check_nursery_storage() -> void:
  var ring := second.buy_nursery_upgrade(Progress.STONE_RING_MARKER)
  var ring_again := first.buy_nursery_upgrade(Progress.STONE_RING_MARKER)
  reopened.load_from(path)
- check(saved and ring == OK and ring_again == OK and reopened.nursery_balance() == 3 and reopened.lesson_available(Program.STONE_RING_NURSERY, 0) and reopened.next_nursery_upgrade().is_empty(), "Stone ring nursery unlocks once and persists across sessions")
+ check(saved and ring == OK and ring_again == OK and reopened.nursery_balance() == 3 and reopened.lesson_available(Program.STONE_RING_NURSERY, 0) and reopened.next_nursery_upgrade() == Progress.SPEED_CONTROL_MARKER, "Stone ring nursery unlocks once and persists across sessions")
+ saved = first.record_nursery_harvest(Progress.SPEED_CONTROL_COST) == OK and saved
+ var speed := second.buy_nursery_upgrade(Progress.SPEED_CONTROL_MARKER)
+ var speed_again := first.buy_nursery_upgrade(Progress.SPEED_CONTROL_MARKER)
+ reopened.load_from(path)
+ check(saved and speed == OK and speed_again == OK and reopened.nursery_balance() == 3 and reopened.has_nursery_upgrade(Progress.SPEED_CONTROL_MARKER) and reopened.next_nursery_upgrade().is_empty(), "Speed control persists and charges its price once across sessions")
 
 func check_willow_nursery(popup, open_nursery: int) -> void:
  var willow := Program.GARDENS.find(Program.WILLOW_NURSERY)
@@ -724,7 +729,7 @@ func check_stone_ring_nursery(popup, hook_route: String) -> void:
  popup.stop_button.pressed.emit()
  popup.nursery_upgrade_button.pressed.emit()
  var remaining := balance - Progress.STONE_RING_COST
- check(popup.puzzle == ring and not popup.nursery_upgrade_button.visible and popup.garden.cell == Vector2i(0, 3) and popup.garden.water_capacity == 6 and popup.garden.reach_tool and popup.garden.harvest_hook and popup.garden.plants.size() == 8 and popup.progress.nursery_balance() == remaining, "The purchase opens eight beds at the west spring and preserves the change")
+ check(popup.puzzle == ring and popup.nursery_upgrade_button.disabled and "Buy speed control" in popup.nursery_upgrade_button.text and popup.garden.cell == Vector2i(0, 3) and popup.garden.water_capacity == 6 and popup.garden.reach_tool and popup.garden.harvest_hook and popup.garden.plants.size() == 8 and popup.progress.nursery_balance() == remaining, "The purchase opens eight beds at the west spring and preserves the change")
 
  var starter: String = popup.source.text
  popup.check_button.pressed.emit()
@@ -751,6 +756,67 @@ func check_stone_ring_nursery(popup, hook_route: String) -> void:
  route = route.replace("range(4)", "range(2)")
  await finish_by_steps(popup, route)
  check(popup.garden.turn == 118 and popup.garden.harvested == 32 and popup.progress.nursery_balance() == remaining + 32 and popup.garden.cell == Vector2i(0, 3), "The next live circuit harvests sixteen more lilies from the replanted beds")
+
+func check_nursery_speed(popup) -> void:
+ press_key(KEY_F8)
+ check(not popup.speed_choice.visible and popup.speed_choice.get_selected_id() == 1, "Nursery speeds stay locked before purchase")
+ popup.source.text = Program.STONE_RING_NURSERY.python_draft.replace("\nif spring():", "\nwhile spring():")
+ press_key(KEY_ENTER, true)
+ for action in Program.MAX_STEPS:
+  if not popup.running or popup.progress.nursery_balance() >= Progress.SPEED_CONTROL_COST:
+   break
+  popup._process(.25)
+ check(popup.running and popup.progress.nursery_balance() == Progress.SPEED_CONTROL_COST and popup.nursery_upgrade_button.disabled, "The automated Stone ring harvest funds speed control")
+ popup.stop_button.pressed.emit()
+ var prior_turn: int = popup.garden.turn
+ var prior_cell: Vector2i = popup.garden.cell
+ var prior_plants: Dictionary = popup.garden.plants.duplicate(true)
+ popup.nursery_upgrade_button.pressed.emit()
+ check(popup.speed_choice.visible and popup.speed_choice.item_count == 3 and popup.speed_choice.get_selected_id() == 1 and popup.progress.nursery_balance() == 0 and popup.garden.turn == prior_turn and popup.garden.cell == prior_cell and popup.garden.plants == prior_plants, "Buying speed control reveals three speeds without changing the live board")
+
+ popup.chooser.item_selected.emit(Program.GARDENS.find(Program.OPEN_NURSERY))
+ popup.source.text = "fill()\nhop(north)\nplant(east)\nwater(east)\nhop(east)\ngather()\n"
+ popup.check_button.pressed.emit()
+ var preview_status: String = popup.status.text
+ popup.speed_choice.select(2)
+ popup.check_button.pressed.emit()
+ check("Harvested 1 in 6 actions" in preview_status and popup.status.text == preview_status and popup.garden.turn == 0 and popup.progress.nursery_balance() == 0, "Run speed leaves the simulated route and crop growth unchanged")
+ press_key(KEY_F8)
+
+ popup.source.set_caret_line(5)
+ press_key(KEY_F9)
+ press_key(KEY_ENTER, true)
+ popup._process(0.0)
+ popup._process(.12)
+ check(popup.speed_choice.get_selected_id() == 1 and popup.running and popup.garden.turn == 1, "Normal speed leaves the next action waiting after a short frame")
+ press_key(KEY_F8)
+ popup._process(.06)
+ check(popup.speed_choice.get_selected_id() == 2 and popup.running and popup.garden.turn == 2 and popup.garden.cell == Vector2i(0, 0), "F8 changes a running program to double speed")
+ press_key(KEY_F8)
+ popup._process(.06)
+ check(popup.speed_choice.get_selected_id() == 4 and popup.garden.turn == 3 and popup.garden.plant_status(Vector2i(1, 0)) == "Thirsty ×1", "The same frame interval advances the program at quadruple speed")
+
+ press_key(KEY_ENTER, true)
+ popup._process(.5)
+ var paused_turn: int = popup.garden.turn
+ press_key(KEY_F10)
+ check(not popup.running and paused_turn == 3 and popup.garden.turn == 4 and popup.garden.plant_status(Vector2i(1, 0)) == "Growing", "Pausing holds the board and Step still runs one action at quadruple speed")
+ press_key(KEY_ENTER, true)
+ popup._process(0.0)
+ popup._process(.06)
+ check(not popup.running and popup.garden.turn == 5 and "Breakpoint · line 6" in popup.status.text and popup.garden.plant_status(Vector2i(1, 0)) == "Ripe", "A fast run stops at the breakpoint before harvesting")
+ press_key(KEY_ENTER, true)
+ popup._process(0.0)
+ check(popup.steps.is_empty() and popup.garden.turn == 6 and popup.garden.harvested == 1 and popup.progress.nursery_balance() == 1, "Resuming a fast run earns the same harvest as Check")
+
+ popup.chooser.item_selected.emit(0)
+ popup.source.text = "fill()\nwait()\n"
+ press_key(KEY_F8)
+ press_key(KEY_ENTER, true)
+ popup._process(0.0)
+ popup._process(.12)
+ check(not popup.speed_choice.visible and popup.speed_choice.get_selected_id() == 4 and popup.running and popup.garden.turn == 1, "Scored lessons run at normal speed regardless of the selected nursery speed")
+ popup.stop_button.pressed.emit()
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)
@@ -1595,6 +1661,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   var lotus_route: String = await check_lotus_marsh(popup, reach_route)
   var hook_route: String = await check_harvest_hook(popup, lotus_route)
   await check_stone_ring_nursery(popup, hook_route)
+  check_nursery_speed(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
