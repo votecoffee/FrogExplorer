@@ -150,6 +150,20 @@ print()
         self.assertEqual(result["details"]["2"], {"return": True})
         self.assertEqual(result["details"]["5"], {"return": True})
 
+    def test_function_results_lower_to_calls_with_a_local_or_module_destination(self):
+        result = LOWER("def reading(Heading):\n    return clear(Heading)\ndef survey(Heading):\n"
+                       "    ready = reading(Heading)\n    return ready\nseen = survey(north)\n")
+        self.assertEqual(result["source"], "routine reading Heading\nreturn\nend\nroutine survey Heading\n"
+                         "call reading Heading\nreturn\nend\ncall survey north")
+        self.assertEqual(result["details"]["1"], {
+            "return": True, "value": {"op": "sensor", "name": "clear", "direction": "Heading"},
+        })
+        self.assertEqual(result["details"]["4"], {"capture": {"name": "ready", "local": True}})
+        self.assertEqual(result["details"]["5"], {
+            "return": True, "value": {"op": "variable", "name": "ready", "local": True},
+        })
+        self.assertEqual(result["details"]["7"], {"capture": {"name": "seen", "local": False}})
+
     def test_unsupported_syntax_is_rejected_at_its_source_line(self):
         for source, line in [
             ("fill()\nimport math\n", 1),
@@ -174,7 +188,8 @@ print()
             ("turns = 2\ndef turns():\n    wait()\n", 0),
             ("def survey(heading):\n    heading = row()\n", 1),
             ("def survey():\n    global position\n", 1),
-            ("def survey():\n    return column()\n", 1),
+            ("def survey():\n    return 'east'\n", 1),
+            ("def survey():\n    return 1\nprint(survey())\n", 2),
             ("x = 2\nx *= 3\n", 1),
         ]:
             with self.subTest(source=source):

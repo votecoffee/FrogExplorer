@@ -255,6 +255,50 @@ wait()
  popup._reset()
  press_key(KEY_F7)
 
+func check_function_results(popup) -> void:
+ press_key(KEY_F7)
+ var route := """def can_hop(heading):
+    return clear(heading)
+def walk(heading):
+    moved = 0
+    for _ in range(3):
+        ready = can_hop(heading)
+        if not ready:
+            return moved
+        hop(heading)
+        moved += 1
+    return moved
+def probe(heading):
+    reads = walk(heading)
+    available = can_hop(heading)
+    return available or reads
+first = probe(east)
+edge = can_hop(east)
+print(first, edge)
+second = walk(west)
+third = walk(west)
+print(second, third, column())
+"""
+ var expected := "Line 18 · 2 False\nLine 21 · 2 0 0"
+ popup.source.text = route
+ popup.check_button.pressed.emit()
+ check(popup.checked_route.actions.size() == 4 and popup.output_text.text == expected and popup.variables_text.text == "edge = False\nfirst = 2\nsecond = 2\nthird = 0" and popup.garden.variables.is_empty(), "Check captures nested function results, including zero and False, without changing the live board")
+ popup.review_button.pressed.emit()
+ check(popup.variables_text.text == "walk() · moved = 0\nwalk() · ready = True", "Review shows the local reading returned before the first hop")
+ popup.review_slider.value = 2
+ check(popup.variables_text.text == "edge = False\nfirst = 2\nwalk() · moved = 0\nwalk() · ready = True" and popup.garden.turn == 0, "Review shows the two results assigned when Pondbot reaches the east bank")
+ await finish_by_steps(popup, route)
+ check(popup.garden.turn == 4 and popup.garden.cell == Vector2i(0, 1) and popup.garden.local_frames.is_empty() and popup.garden.loop_entries.is_empty() and popup.output_text.text == expected, "Returning values preserves the live route and releases the completed calls")
+
+ popup.source.text = "def sensor():\n    return 99\ndef maybe():\n    sensor()\n    if False:\n        return 8\nreading = 5\nreading = maybe()\n"
+ popup.check_button.pressed.emit()
+ check(popup.checked_route.get("line", -1) == 7 and "Function 'maybe' returned without a number or Boolean" in popup.status.text and popup.variables_text.text == "reading = 5", "A discarded inner result cannot fill a missing outer result or overwrite its destination")
+ popup.source.text = "def broken():\n    return missing\nbroken()\nwait()\n"
+ popup.check_button.pressed.emit()
+ check(popup.checked_route.get("line", -1) == 1 and popup.checked_route.actions.is_empty() and "Variable 'missing' has no value yet" in popup.status.text, "Returning an expression evaluates it even when the caller discards the result")
+ popup._reset()
+ press_key(KEY_F7)
+
 func check_switchback_beds(popup, index: int) -> void:
  var earned: int = popup.progress.earned_lilies()
  popup.chooser.item_selected.emit(index)
@@ -1125,6 +1169,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   await check_python_ranges(popup)
   check_function_locals(popup)
   check_python_returns(popup)
+  await check_function_results(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

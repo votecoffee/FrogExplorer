@@ -247,8 +247,8 @@ static func compile(source: String, case_sensitive := false, details: Dictionary
    if inner.has("routine"):
     if inner.steps.is_empty():
      return _error(inner.line, "Add at least one action to this routine.")
-    _resolve_returns(inner.steps)
-    routines[inner.routine] = {"steps":inner.steps, "parameters":parameters, "local_scope":inner.local_scope}
+    var returns_value := _resolve_returns(inner.steps)
+    routines[inner.routine] = {"steps":inner.steps, "parameters":parameters, "scope":inner.local_scope or returns_value}
     parameters = PackedStringArray()
     continue
    var outer: Array = blocks.back().steps
@@ -300,8 +300,9 @@ static func compile(source: String, case_sensitive := false, details: Dictionary
    if arguments.size() != targets.size():
     var unit := "argument" if targets.size() == 1 else "arguments"
     return _error(index, "Routine %s expects %d direction %s." % [words[1], targets.size(), unit])
-   var local_scope: bool = routine.local_scope
-   if steps.size() + routine.steps.size() + 2 * int(local_scope) > MAX_STEPS:
+   var capture: Dictionary = detail.get("capture", {})
+   var keeps_scope: bool = routine.scope or not capture.is_empty()
+   if steps.size() + routine.steps.size() + 2 * int(keeps_scope) > MAX_STEPS:
     return _error(index, "This call expands the program beyond 256 instructions.")
    var bindings: Dictionary = {}
    for argument_index in arguments.size():
@@ -309,11 +310,11 @@ static func compile(source: String, case_sensitive := false, details: Dictionary
     if not _is_direction(argument, parameters):
      return _error(index, "Argument %s needs a compass direction or a routine parameter." % targets[argument_index])
     bindings[targets[argument_index]] = argument
-   if local_scope:
+   if keeps_scope:
     steps.append({"enter_scope":words[1], "line":index})
    steps.append_array(_bind_directions(routine.steps, bindings))
-   if local_scope:
-    steps.append({"leave_scope":true, "line":index})
+   if keeps_scope:
+    steps.append({"leave_scope":true, "capture":capture, "line":index})
    continue
   var instruction := {"command":command, "direction":"", "line":index}
   if (command == "diagnostic" and detail.has("output")) or (command == "assign" and detail.has("assign")):
@@ -329,7 +330,7 @@ static func compile(source: String, case_sensitive := false, details: Dictionary
   elif command == "return" and detail.has("return"):
    if blocks.size() < 2 or not blocks[1].has("routine"):
     return _error(index, "Use return inside a function.")
-   instruction = {"return":true, "line":index}
+   instruction = detail.merged({"line":index})
   elif words.size() != 1 or command not in ["fill", "plant", "water", "wait", "gather"]:
    return _error(index, "Use hop, fill, plant, water, wait, gather, repeat, routine, call, if, while, break, or continue.")
   if steps.size() >= MAX_STEPS:
@@ -389,12 +390,18 @@ static func compile_python(source: String) -> Dictionary:
   result.steps[index] = instruction
  return result
 
-static func _resolve_returns(body: Array) -> void:
+static func _resolve_returns(body: Array) -> bool:
+ var returns_value := false
  for index in body.size():
   var instruction: Dictionary = body[index]
   if instruction.has("return"):
    # Relative bounds keep the return inside its own call when the body is copied.
-   body[index] = {"from_start":index, "return_offset":body.size() - index, "line":instruction.line}
+   var resolved := {"from_start":index, "return_offset":body.size() - index, "line":instruction.line}
+   if instruction.has("value"):
+    resolved.value = instruction.value
+    returns_value = true
+   body[index] = resolved
+ return returns_value
 
 static func _append_loop_body(outer: Array, body: Array, loop_end: int, has_loop_header := false) -> void:
  var start := outer.size()
@@ -434,7 +441,7 @@ static func _bind_directions(instructions: Array, bindings: Dictionary) -> Array
     _bind_expression(value, bindings)
   elif instruction.has("range"):
    _bind_expression(instruction.range, bindings)
-  elif instruction.has("assign"):
+  elif instruction.has("value"):
    _bind_expression(instruction.value, bindings)
   expanded.append(instruction)
  return expanded
@@ -587,6 +594,12 @@ func next_action_index(instructions: Array, first: int) -> int:
    index -= int(instruction.back)
    continue
   if instruction.has("return_offset"):
+   if instruction.has("value"):
+    var value: Variant = _expression_value(instruction.value)
+    if value == null:
+     runtime_error_line = instruction.line
+     break
+    local_frames.back().result = value
    var start := index - int(instruction.from_start)
    var end := index + int(instruction.return_offset)
    for header: int in loop_entries.keys():
@@ -600,8 +613,16 @@ func next_action_index(instructions: Array, first: int) -> int:
    index += 1
    continue
   if instruction.has("leave_scope"):
-   local_frames.pop_back()
+   var frame: Dictionary = local_frames.pop_back()
    variable_revision += 1
+   var capture: Dictionary = instruction.capture
+   if not capture.is_empty():
+    var value: Variant = frame.get("result")
+    if value == null:
+     runtime_error = "Function '%s' returned without a number or Boolean." % frame.function
+     runtime_error_line = instruction.line
+     break
+    _set_variable(capture.name, value, capture.local)
    index += 1
    continue
   if instruction.has("output"):

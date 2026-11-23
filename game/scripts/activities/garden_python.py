@@ -52,9 +52,9 @@ def direction(node):
     raise GardenError(node, "Use a compass direction such as east, or a direction parameter.")
 
 
-def sensor_call(node, routines):
+def sensor_call(node):
     sensor, args = arguments(node)
-    if sensor not in SENSORS | NUMERIC_SENSORS or sensor in routines:
+    if sensor not in SENSORS | NUMERIC_SENSORS:
         raise GardenError(node, "Use a garden test such as empty_bed(north) or has_water().")
     if sensor in NUMERIC_SENSORS and args:
         raise GardenError(node, f"Use {sensor}() without arguments.")
@@ -79,7 +79,9 @@ def expression(node, routines, parameters, local_names, depth=0):
             result["local"] = True
         return result
     if isinstance(node, ast.Call):
-        sensor, target = sensor_call(node, routines)
+        if isinstance(node.func, ast.Name) and node.func.id in routines:
+            raise GardenError(node, "Assign the function result to a variable before using it here.")
+        sensor, target = sensor_call(node)
         if target and target not in DIRECTIONS and target not in parameters:
             raise GardenError(node, "Use a compass direction or a direction parameter.")
         return {"op": "sensor", "name": sensor, "direction": target}
@@ -137,6 +139,9 @@ def lower(source):
         lines.append(text)
         locations.append(line - 1)
 
+    def emit_call(command, args, line):
+        emit(" ".join(["call", command, *(direction(arg) for arg in args)]), line)
+
     def block(statements, parameters, local_names):
         def lower_value(node):
             return expression(node, routines, parameters, local_names)
@@ -159,16 +164,22 @@ def lower(source):
                 if command in ACTIONS and command not in routines:
                     if len(args) != int(command == "hop"):
                         raise GardenError(node, f"Check the arguments for {command}().")
-                    words = [command]
+                    emit(" ".join([command, *(direction(arg) for arg in args)]), node.lineno)
                 else:
-                    words = ["call", command]
-                emit(" ".join(words + [direction(arg) for arg in args]), node.lineno)
+                    emit_call(command, args, node.lineno)
             elif isinstance(node, (ast.Assign, ast.AugAssign)):
                 targets = node.targets if isinstance(node, ast.Assign) else [node.target]
                 if len(targets) != 1 or not isinstance(targets[0], ast.Name):
                     raise GardenError(node, "Assign one variable at a time, such as visits = 0.")
                 token = target_name(targets[0])
                 value = node.value
+                if isinstance(node, ast.Assign) and isinstance(value, ast.Call) and isinstance(value.func, ast.Name):
+                    called = value.func.id
+                    if called in routines or called in routine_names - SENSORS - NUMERIC_SENSORS:
+                        command, args = arguments(value)
+                        details[str(len(lines))] = {"capture": {"name": token, "local": token in local_names}}
+                        emit_call(command, args, node.lineno)
+                        continue
                 if isinstance(node, ast.AugAssign):
                     value = ast.copy_location(ast.BinOp(targets[0], node.op, value), node)
                 assignment = {"assign": token, "value": lower_value(value)}
@@ -223,9 +234,10 @@ def lower(source):
             elif isinstance(node, (ast.Break, ast.Continue)):
                 emit(type(node).__name__.lower(), node.lineno)
             elif isinstance(node, ast.Return):
+                result = {"return": True}
                 if node.value is not None and not (isinstance(node.value, ast.Constant) and node.value.value is None):
-                    raise GardenError(node, "Use return by itself to leave a garden function.")
-                details[str(len(lines))] = {"return": True}
+                    result["value"] = lower_value(node.value)
+                details[str(len(lines))] = result
                 emit("return", node.lineno)
             else:
                 raise GardenError(node, "Use garden calls, assignments, def, if, while, for, break, continue, or return.")

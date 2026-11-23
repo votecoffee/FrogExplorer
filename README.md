@@ -245,6 +245,17 @@ Use `for bed in range(2):` to count from zero or `for bed in range(2, 0, -1):` t
 
 Define reusable functions above their first call. Functions can accept direction parameters, as in `def seek(heading):` with `hop(heading)` inside. `seek(north)` then uses north for that call. Use a bare `return` to end a function early and resume just after its call. The Python starter in **Low water row** uses it to end a sweep when the tank runs dry.
 
+To use a function's result, return a whole number or a Boolean and assign the call to a variable. A call used in an assignment must return a value on the path it takes. Here, `ready` stores the reading from `clear(east)`.
+
+```python
+def can_hop(heading):
+    return clear(heading)
+
+ready = can_hop(east)
+if ready:
+    hop(east)
+```
+
 `break` exits the innermost loop and `continue` advances it. A `while` loop stops with a line error if it repeats without an action or a change to a variable. Scored puzzles allow up to 16 iterations of each `while` loop and 256 board actions. Programs that keep computing without an action also have an instruction limit.
 
 Each board has an action target and saves your fewest actions for a completed run. Open **Best program** to read and replay the source that earned the score. Use **Back to draft** or **Esc** to return to the editor. Select **Classic Pondbot** in the language menu to open an earlier draft written with commands such as `hop east` and `repeat 2`. The two formats have separate drafts and share each puzzle's score. Drafts, completed puzzles, and best programs save locally across restarts.
