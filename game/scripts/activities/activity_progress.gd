@@ -29,6 +29,7 @@ const NURSERY_UNLOCKS := {
  Programs.LOTUS_MARSH.id:LOTUS_MARSH_MARKER,
  Programs.STONE_RING_NURSERY.id:STONE_RING_MARKER,
 }
+const DRAFT_COPY_SEPARATOR := "-copy-"
 const NURSERY_BEST_PREFIX := "nursery-best-"
 const NURSERY_TALLY_PREFIX := "nursery-yield-"
 const NURSERY_TALLY_SUFFIX := ".txt"
@@ -84,6 +85,12 @@ func load_from(path: String) -> void:
   var python_draft := folder.path_join("draft-" + id + ".py")
   if FileAccess.file_exists(python_draft):
    python_drafts[id] = FileAccess.get_file_as_string(python_draft)
+  var copy_prefix := "draft-" + id + DRAFT_COPY_SEPARATOR
+  for name in names:
+   if not name.begins_with(copy_prefix) or name.get_extension() not in ["py", "txt"]:
+    continue
+   var saved := python_drafts if name.ends_with(".py") else drafts
+   saved[name.trim_prefix("draft-").get_basename()] = FileAccess.get_file_as_string(folder.path_join(name))
   if puzzle.get("practice", false):
    var target_file := "target-" + id + ".txt"
    if target_file in names:
@@ -309,6 +316,20 @@ func set_nursery_target(id: String, value: int) -> Error:
   return ERR_INVALID_PARAMETER
  nursery_targets[id] = value
  return _save("target-" + id + ".txt", str(value))
+
+func draft_copy_keys(id: String, python: bool) -> PackedStringArray:
+ var saved := python_drafts if python else drafts
+ var copies := PackedStringArray()
+ for key: String in saved:
+  if key.begins_with(id + DRAFT_COPY_SEPARATOR):
+   copies.append(key)
+ copies.sort()
+ return copies
+
+func create_draft_copy(id: String, source: String, python: bool) -> Dictionary:
+ var unique := "%016d-%010d-%016d" % [roundi(Time.get_unix_time_from_system() * 1000), OS.get_process_id(), Time.get_ticks_usec()]
+ var key := id + DRAFT_COPY_SEPARATOR + unique
+ return {"key":key, "error":edit_draft(key, source, python)}
 
 func edit_draft(id: String, text: String, python := false) -> Error:
  var saved := python_drafts if python else drafts

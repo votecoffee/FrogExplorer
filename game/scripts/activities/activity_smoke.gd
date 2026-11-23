@@ -489,6 +489,17 @@ func check_nursery_storage() -> void:
  var migrated := first.nursery_record(id, board)
  check(legacy_saved == OK and older.score == Vector3i(12, 3, 1) and older.source.is_empty() and matched == OK and migrated.score == older.score and migrated.source == match_source and migrated.python, "A tied live result adds source to a legacy score without changing the score")
 
+ var main_source := "# Main draft\nwait()\n"
+ var main_saved := first.edit_draft(id, main_source, true)
+ var first_copy := first.create_draft_copy(id, match_source, true)
+ var second_copy := second.create_draft_copy(id, match_source, true)
+ var classic_copy := second.create_draft_copy(id, best_source, false)
+ var revised := "# Revised copy\nwait()\n"
+ var copy_saved := first.edit_draft(first_copy.key, revised, true)
+ reopened.load_from(path)
+ check(main_saved == OK and first_copy.error == OK and second_copy.error == OK and classic_copy.error == OK and copy_saved == OK and first_copy.key != second_copy.key and reopened.python_drafts.get(id) == main_source and reopened.python_drafts.get(first_copy.key) == revised and reopened.python_drafts.get(second_copy.key) == match_source and reopened.drafts.get(classic_copy.key) == best_source, "Independent copies and the main draft reload with their own saved sources")
+ check(reopened.draft_copy_keys(id, true).size() == 2 and reopened.draft_copy_keys(id, false) == PackedStringArray([classic_copy.key]) and reopened.draft_copy_keys(marsh_id, true).is_empty(), "Draft copies are listed only for the matching board and language")
+
 func check_willow_nursery(popup, open_nursery: int) -> void:
  var willow := Program.GARDENS.find(Program.WILLOW_NURSERY)
  var earned: int = popup.progress.earned_lilies()
@@ -1023,6 +1034,16 @@ func check_nursery_bests(popup) -> void:
  check("Best run · 7 / 7 actions" in popup.review_position.text and "Water used 1 · Fills 1" in popup.review_position.text and popup.progress.nursery_balance() == balance + 1, "The replay reaches the recorded total without earning another lily")
  press_key(KEY_ESCAPE)
  check(popup.visible and not popup.best_panel.visible and popup.nursery_target.editable and popup.garden.turn == 7 and popup.source.text.begins_with("# New Python draft"), "Closing the replay restores the live board and editable draft")
+ popup.best_button.pressed.emit()
+ popup.edit_copy_button.pressed.emit()
+ check(not popup.best_panel.visible and popup.language.selected == 1 and popup.source.text == classic and popup.source.editable and popup.draft_choice.visible and popup.draft_choice.selected == 1 and popup.garden.turn == 7 and popup.progress.nursery_balance() == balance + 1, "Edit a copy opens the recorded language and leaves the live nursery intact")
+ popup.source.text = "# Edited Classic copy\n" + classic
+ popup.draft_choice.item_selected.emit(0)
+ check(popup.source.text == classic and popup.draft_choice.selected == 0, "Switching back to the main draft leaves its Classic code intact")
+ popup.draft_choice.item_selected.emit(1)
+ check(popup.source.text.begins_with("# Edited Classic copy"), "Switching drafts saves the edits in the copied program")
+ popup.language.item_selected.emit(0)
+ check(popup.source.text == "# New Python draft\n" + route and not popup.draft_choice.visible, "Copying a Classic record preserves the separate Python draft")
  popup._reset()
  popup.source.text = route
  popup.check_button.pressed.emit()
@@ -1044,7 +1065,19 @@ func check_nursery_bests(popup) -> void:
   popup._process(.25)
  popup.best_button.pressed.emit()
  check(popup.best_panel.visible and popup.best_python and popup.best_source.text == long_route and popup.best_route.actions.size() == 270 and not popup.best_route.limited and popup.best_route.preview.run_harvest_count() == 2 and popup.progress.nursery_balance() == balance + 4, "Best program replays a completed nursery run past the Check limit")
- press_key(KEY_ESCAPE)
+ popup.edit_copy_button.pressed.emit()
+ popup.source.text = "# Improved copy\n" + long_route
+ popup.best_button.pressed.emit()
+ popup.edit_copy_button.pressed.emit()
+ var second_selected: bool = popup.draft_choice.item_count == 3 and popup.draft_choice.selected == 2 and popup.source.text == long_route
+ popup.draft_choice.item_selected.emit(1)
+ var kept_first: bool = popup.source.text == "# Improved copy\n" + long_route
+ check(second_selected and kept_first and popup.progress.nursery_record(id, popup.garden).source == long_route and popup.garden.turn == 270, "Opening another copy preserves both the earlier edit and the saved best program")
+ press_key(KEY_ENTER, true)
+ check(popup.draft_choice.disabled and popup.running and popup.draft_choice.selected == 1, "Draft selection stays locked while the editor executes a copy")
+ popup.stop_button.pressed.emit()
+ popup.draft_choice.item_selected.emit(0)
+ check(popup.source.text == long_route and popup.draft_choice.selected == 0, "The original main draft remains available after creating and running copies")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)

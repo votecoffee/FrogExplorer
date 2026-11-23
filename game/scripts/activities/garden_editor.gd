@@ -13,11 +13,14 @@ var puzzle := -1
 var progress: Progress
 var draft_timer: Timer
 var loaded_draft := ""
+var draft_selections: Dictionary = {}
+var draft_choice: OptionButton
 var source: CodeEdit
 var actions: HBoxContainer
 var best_button: Button
 var best_panel: VBoxContainer
 var best_title: Label
+var edit_copy_button: Button
 var best_source: CodeEdit
 var output_panel: PanelContainer
 var output_title: Label
@@ -109,6 +112,11 @@ func _ready() -> void:
  step_button = _button(actions, "Step · F10", _step)
  stop_button = _button(actions, "Stop", _stop)
  _button(actions, "Reset board", _reset)
+ draft_choice = OptionButton.new()
+ draft_choice.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+ draft_choice.tooltip_text = "Switch between the main draft and saved copies."
+ draft_choice.item_selected.connect(_select_draft)
+ left.add_child(draft_choice)
  source = _code_edit()
  source.gutters_draw_breakpoints_gutter = true
  source.highlight_current_line = true
@@ -123,9 +131,14 @@ func _ready() -> void:
  best_panel = VBoxContainer.new()
  best_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
  left.add_child(best_panel)
+ var best_header := HBoxContainer.new()
+ best_panel.add_child(best_header)
  best_title = hud.label("", 17, Color("#f3ebb4"))
  best_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
- best_panel.add_child(best_title)
+ best_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ best_header.add_child(best_title)
+ edit_copy_button = _button(best_header, "Edit a copy", _edit_best_copy)
+ edit_copy_button.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
  best_source = _code_edit()
  best_source.editable = false
  best_panel.add_child(best_source)
@@ -282,7 +295,7 @@ func flush_draft() -> void:
  draft_timer.stop()
  if puzzle >= 0 and source.text != loaded_draft:
   loaded_draft = source.text
-  if progress.edit_draft(Programs.GARDENS[puzzle].id, loaded_draft, python_mode) != OK:
+  if progress.edit_draft(_draft_key(), loaded_draft, python_mode) != OK:
    hud.toast("Could not save activity progress.")
  elif progress.flush() != OK:
   hud.toast("Could not save activity progress.")
@@ -314,6 +327,7 @@ func _toggle_best_program() -> void:
  best_source.set_caret_line(0)
  best_source.set_caret_column(0)
  actions.hide()
+ draft_choice.hide()
  source.hide()
  status.hide()
  best_panel.show()
@@ -344,6 +358,21 @@ func _toggle_best_program() -> void:
  elif not preview.is_complete():
   best_title.text += "\nReplay gathers %d of %d lilies" % [preview.harvested, preview.plants.size()]
  _open_review(best_route.actions.size())
+
+func _edit_best_copy() -> void:
+ if not best_panel.visible or not steps.is_empty() or best_source.text.is_empty():
+  return
+ flush_draft()
+ var copy := progress.create_draft_copy(Programs.GARDENS[puzzle].id, best_source.text, best_python)
+ python_mode = best_python
+ language.select(0 if python_mode else 1)
+ draft_selections[_draft_context()] = copy.key
+ _close_best_program()
+ _load_draft(false)
+ status.text = "Editing %s" % draft_choice.get_item_text(draft_choice.selected)
+ if copy.error != OK:
+  hud.toast("Could not save activity progress.")
+ source.grab_focus()
 
 func _close_best_program() -> void:
  if not best_panel.visible:
@@ -434,10 +463,41 @@ func _select_language(index: int) -> void:
  _load_draft(not garden.practice)
  source.grab_focus()
 
+func _draft_context() -> String:
+ return "%s.%s" % [Programs.GARDENS[puzzle].id, "py" if python_mode else "txt"]
+
+func _draft_key() -> String:
+ return draft_selections.get(_draft_context(), Programs.GARDENS[puzzle].id)
+
+func _refresh_draft_choice() -> void:
+ var id: String = Programs.GARDENS[puzzle].id
+ var current := _draft_key()
+ var copies := progress.draft_copy_keys(id, python_mode)
+ draft_choice.clear()
+ draft_choice.add_item("Main draft")
+ draft_choice.set_item_metadata(0, id)
+ var selected := 0
+ for index in copies.size():
+  draft_choice.add_item("Copy %d" % (index + 1))
+  draft_choice.set_item_metadata(index + 1, copies[index])
+  if copies[index] == current:
+   selected = index + 1
+ draft_choice.select(selected)
+
+func _select_draft(index: int) -> void:
+ if not steps.is_empty() or best_panel.visible:
+  return
+ flush_draft()
+ draft_selections[_draft_context()] = draft_choice.get_item_metadata(index)
+ draft_choice.select(index)
+ _load_draft(false)
+ source.grab_focus()
+
 func _load_draft(reset_board := true) -> void:
  var item: Dictionary = Programs.GARDENS[puzzle]
  var saved := progress.python_drafts if python_mode else progress.drafts
- loaded_draft = str(saved.get(item.id, item.python_draft if python_mode else item.draft))
+ loaded_draft = str(saved.get(_draft_key(), item.python_draft if python_mode else item.draft))
+ _refresh_draft_choice()
  _color_code(source, python_mode)
  source.indent_automatic = python_mode
  source.placeholder_text = "Type Python for Pondbot" if python_mode else "Type Pondbot commands"
@@ -838,6 +898,8 @@ func _draw() -> void:
  stop_button.disabled = not active
  nursery_target.editable = not active and not best_panel.visible
  chooser.disabled = active
+ draft_choice.visible = draft_choice.item_count > 1 and not best_panel.visible
+ draft_choice.disabled = active
  language.disabled = active
  source.editable = not active
  _draw_lessons(active)
