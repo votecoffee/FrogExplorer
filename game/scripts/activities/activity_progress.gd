@@ -29,6 +29,7 @@ const NURSERY_UNLOCKS := {
  Programs.LOTUS_MARSH.id:LOTUS_MARSH_MARKER,
  Programs.STONE_RING_NURSERY.id:STONE_RING_MARKER,
 }
+const NURSERY_BEST_PREFIX := "nursery-best-"
 const NURSERY_TALLY_PREFIX := "nursery-yield-"
 const NURSERY_TALLY_SUFFIX := ".txt"
 
@@ -42,6 +43,7 @@ var garden_best_programs: Dictionary = {}
 var garden_best_python: Dictionary = {}
 var nursery_upgrades: Dictionary = {}
 var nursery_targets: Dictionary = {}
+var nursery_bests: Dictionary = {}
 var nursery_harvested := 0
 var session_harvests := 0
 var nursery_tally := ""
@@ -55,6 +57,7 @@ func load_from(path: String) -> void:
  nursery_harvested = 0
  nursery_upgrades.clear()
  nursery_targets.clear()
+ nursery_bests.clear()
  if not DirAccess.dir_exists_absolute(folder):
   return
  var names := DirAccess.get_files_at(folder)
@@ -222,6 +225,7 @@ func buy_nursery_upgrade(upgrade: String) -> Error:
  return OK
 
 func _load_nursery(names: PackedStringArray) -> void:
+ _load_nursery_bests(names)
  nursery_upgrades.clear()
  for upgrade: String in NURSERY_UPGRADE_COSTS:
   if upgrade in names:
@@ -233,6 +237,45 @@ func _load_nursery(names: PackedStringArray) -> void:
   var tally := FileAccess.get_file_as_string(folder.path_join(name)).strip_edges()
   if tally.is_valid_int() and int(tally) > 0:
    nursery_harvested += int(tally)
+
+func _nursery_best_key(id: String, board: Programs) -> String:
+ var tools := int(board.reach_tool) + 2 * int(board.harvest_hook)
+ var layout := "/".join(board.rows).sha256_text().left(12)
+ return "%s-%s-%d-%d-%d" % [id, layout, board.harvest_target, board.water_capacity, tools]
+
+func nursery_best(id: String, board: Programs) -> Vector3i:
+ return nursery_bests.get(_nursery_best_key(id, board), Vector3i.ZERO)
+
+func _remember_nursery_best(key: String, result: Vector3i) -> bool:
+ var previous: Vector3i = nursery_bests.get(key, Vector3i.ZERO)
+ # Order by actions, then water doses, then fills.
+ if previous != Vector3i.ZERO and not result < previous:
+  return false
+ nursery_bests[key] = result
+ return true
+
+func _load_nursery_bests(names: PackedStringArray) -> void:
+ nursery_bests.clear()
+ for name in names:
+  if not name.begins_with(NURSERY_BEST_PREFIX) or not name.ends_with(".txt"):
+   continue
+  var record := name.trim_prefix(NURSERY_BEST_PREFIX).trim_suffix(".txt").rsplit("-", true, 3)
+  if record.size() != 4 or not record[1].is_valid_int() or not record[2].is_valid_int() or not record[3].is_valid_int():
+   continue
+  var result := Vector3i(int(record[1]), int(record[2]), int(record[3]))
+  if result.x > 0 and result.y >= 0 and result.z >= 0 and result.y + result.z <= result.x:
+   _remember_nursery_best(record[0], result)
+
+func record_nursery_best(id: String, board: Programs) -> Error:
+ if not board.practice or board.starting_turn != 0 or board.run_harvest_count() < board.harvest_target or not board.runtime_error.is_empty():
+  return ERR_INVALID_PARAMETER
+ var key := _nursery_best_key(id, board)
+ var result := Vector3i(board.run_action_count(), board.run_water_used, board.run_fills)
+ if not _remember_nursery_best(key, result):
+  return OK
+ # Different scores use different files so simultaneous sessions keep the better result on reload.
+ var filename := "%s%s-%d-%d-%d.txt" % [NURSERY_BEST_PREFIX, key, result.x, result.y, result.z]
+ return _save(filename, "completed")
 
 func next_lesson(lilies: int) -> int:
  for index in Programs.PUZZLES.size():

@@ -447,6 +447,30 @@ func check_nursery_storage() -> void:
  var scored := first.set_nursery_target("first_bloom", 4)
  reopened.load_from(path)
  check(written == OK and separate == OK and invalid == ERR_INVALID_PARAMETER and scored == ERR_INVALID_PARAMETER and reopened.nursery_target(ring_id) == 48 and reopened.nursery_target(marsh_id) == 8 and reopened.nursery_target(Program.OPEN_NURSERY.id) == Program.DEFAULT_HARVEST_TARGET, "Harvest targets persist independently and absent targets use the default")
+ var board := Program.new()
+ var nursery := Program.GARDENS.find(Program.OPEN_NURSERY)
+ var id: String = Program.OPEN_NURSERY.id
+ board.load_puzzle(nursery, true, true, true)
+ board.harvest_target = 1
+ board.harvested = 1
+ board.turn = 9
+ board.run_water_used = 3
+ board.run_fills = 1
+ var saved_result := first.record_nursery_best(id, board)
+ board.run_water_used = 2
+ var lower_water := second.record_nursery_best(id, board)
+ board.turn = 10
+ board.run_water_used = 1
+ var more_actions := first.record_nursery_best(id, board)
+ board.starting_turn = 1
+ var established := second.record_nursery_best(id, board)
+ reopened.load_from(path)
+ check(saved_result == OK and lower_water == OK and more_actions == OK and established == ERR_INVALID_PARAMETER and reopened.nursery_best(id, board) == Vector3i(9, 2, 1), "Reload keeps the fewest actions and breaks ties by water across sessions")
+ board.harvest_target = 2
+ var other_target := reopened.nursery_best(id, board)
+ board.harvest_target = 1
+ board.reach_tool = false
+ check(other_target == Vector3i.ZERO and reopened.nursery_best(id, board) == Vector3i.ZERO, "Personal bests are scoped to the same target and tools")
 
 func check_willow_nursery(popup, open_nursery: int) -> void:
  var willow := Program.GARDENS.find(Program.WILLOW_NURSERY)
@@ -918,6 +942,7 @@ func check_nursery_target(popup) -> void:
  for action in 42:
   popup._process(.25)
  check(popup.steps.is_empty() and popup.garden.turn == 118 and popup.garden.harvested == 32 and popup.progress.nursery_balance() == starting_balance + 32 and "Harvested 16 in 42 actions · Target 16 met · Water used 12 · Fills 2" in popup.status.text, "A second run reports only its own work on the established nursery")
+ check(popup.progress.nursery_best(Program.STONE_RING_NURSERY.id, popup.garden) == Vector3i(76, 24, 4), "An established board cannot replace the fresh-board personal best")
 
  popup.chooser.item_selected.emit(marsh)
  var starts_with_default: bool = int(popup.nursery_target.value) == 32
@@ -957,6 +982,30 @@ func check_nursery_reports(popup) -> void:
  var shows_progress: bool = "3 / 8 lilies this run" in popup.status.text
  popup.stop_button.pressed.emit()
  check(shows_progress and popup.progress.nursery_balance() == balance + 3 and popup.status.text == "Stopped · Harvested 3 in 4 actions · 5 short of 8 · Water used 0 · Fills 0", "Stopping reports the current run's lotus reward without counting earlier fills")
+
+func check_nursery_bests(popup) -> void:
+ var nursery := Program.GARDENS.find(Program.OPEN_NURSERY)
+ var id: String = Program.OPEN_NURSERY.id
+ popup.chooser.item_selected.emit(nursery)
+ popup.nursery_target.value = 1
+ var balance: int = popup.progress.nursery_balance()
+ var route := "fill()\nhop(north)\nplant(east)\nwater(east)\nwait()\ngather(east)\n"
+ popup.source.text = route.replace("wait()\n", "wait()\nwait()\n")
+ press_key(KEY_ENTER, true)
+ for action in 7:
+  popup._process(.25)
+ check(popup.steps.is_empty() and popup.progress.nursery_best(id, popup.garden) == Vector3i(7, 1, 1) and "New personal best" in popup.status.text and "Best for target 1 · 7 actions" in popup.score.text, "A finished reset-board run earns a nursery personal best")
+ popup._reset()
+ popup.source.text = route
+ popup.check_button.pressed.emit()
+ check("Compared with best · -1 actions · +0 doses · +0 fills" in popup.status.text and popup.progress.nursery_best(id, popup.garden) == Vector3i(7, 1, 1) and popup.progress.nursery_balance() == balance + 1, "Check compares a faster route without recording a new best")
+ press_key(KEY_ENTER, true)
+ for action in 6:
+  popup._process(.25)
+ check(popup.steps.is_empty() and popup.progress.nursery_best(id, popup.garden) == Vector3i(6, 1, 1) and popup.progress.nursery_balance() == balance + 2 and "New personal best" in popup.status.text, "Completing the improved route saves the better result")
+
+ popup.nursery_target.value = 2
+ check(not popup.score.visible and popup.progress.nursery_best(id, popup.garden) == Vector3i.ZERO, "Changing the target clears the displayed comparison until there is a matching best")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)
@@ -1805,6 +1854,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   await check_run_counters(popup, hook_route)
   await check_nursery_target(popup)
   check_nursery_reports(popup)
+  check_nursery_bests(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

@@ -277,6 +277,8 @@ Set **Harvest target** in a nursery and read it with `harvest_target()` in Pytho
 
 Nursery summaries show how many lilies the program gathered, how many actions it completed, whether it met the target, and how many water doses and fills it used. Check reports the preview. Run and Stop report the live program. In Review, scrub through the preview to see its water use and fills at each step. Every successful `fill()` counts, including top-ups.
 
+For a nursery personal best, use **Reset board**, then complete a live program that meets the harvest target. Records compare runs with the same starting board, target, and nursery tools. Fewer actions win, followed by fewer water doses and fewer fills. **Check** shows the differences from the saved best when the preview reaches the same target from a reset board. Personal bests save locally across restarts.
+
 Use Python `print("Tank ready", has_water())` to show messages and sensor readings with their source line numbers. **Program output** shows the live run. **Check output** shows readings from the simulated board, and **Review** reveals those messages as you move through the actions. Printing costs no actions, and each view retains the latest 32 messages.
 
 `water_level()` returns the remaining doses and `tank_capacity()` returns the tank's limit. `column()` counts from the left edge and `row()` counts from the top, both starting at zero. Print the readings with `print(column(), row(), water_level())` or compare them in a route. For example, use `while column() < 2 and clear(east):` with an indented `hop(east)` to move toward column 2. Use `spring() and water_level() < tank_capacity()` in an `if` before filling. Classic Pondbot uses comparisons such as `if water_level < tank_capacity`.

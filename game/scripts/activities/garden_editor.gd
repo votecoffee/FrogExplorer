@@ -475,6 +475,7 @@ func _set_nursery_target(value: float) -> void:
   hud.toast("Could not save the harvest target.")
  _discard_check()
  status.text = "Harvest target · %d lilies" % garden.harvest_target
+ _draw()
 
 func _stop() -> void:
  var show_summary := garden.practice and not steps.is_empty()
@@ -514,6 +515,11 @@ func _check_code() -> void:
   _line_error("Check · Line %d · %s" % [line + 1, checked_route.error], line, preview)
  elif preview.practice:
   status.text = "Check · " + _nursery_summary(preview) + (" · Preview limit" if checked_route.limited else "")
+  if preview.starting_turn == 0 and preview.run_harvest_count() >= preview.harvest_target and not checked_route.limited:
+   var best := progress.nursery_best(Programs.GARDENS[puzzle].id, preview)
+   if best != Vector3i.ZERO:
+    var change := Vector3i(preview.run_action_count(), preview.run_water_used, preview.run_fills) - best
+    status.text += "\nCompared with best · %+d actions · %+d doses · %+d fills" % [change.x, change.y, change.z]
  elif preview.is_complete():
   var over: int = preview.turn - Programs.GARDENS[puzzle].target
   var target := "meets target" if over <= 0 else "%d over target" % over
@@ -740,6 +746,13 @@ func _finish_incomplete() -> void:
   _line_error("Line %d · %s" % [line + 1, garden.runtime_error], line, garden)
  elif garden.practice:
   status.text = "Program ended · " + _nursery_summary(garden)
+  if garden.starting_turn == 0 and garden.run_harvest_count() >= garden.harvest_target:
+   var id: String = Programs.GARDENS[puzzle].id
+   var previous := progress.nursery_best(id, garden)
+   if progress.record_nursery_best(id, garden) != OK:
+    hud.toast("Could not save the nursery best.")
+   elif progress.nursery_best(id, garden) != previous:
+    status.text += " · New personal best"
  else:
   status.text = "Program ended · %d lilies remain." % (garden.plants.size() - garden.harvested)
 
@@ -757,8 +770,15 @@ func _nursery_summary(view: Programs) -> String:
 
 func _draw() -> void:
  var item: Dictionary = Programs.GARDENS[puzzle]
- score.visible = not garden.practice
- if score.visible:
+ if garden.practice:
+  var nursery_best := progress.nursery_best(item.id, garden)
+  score.visible = nursery_best != Vector3i.ZERO
+  if score.visible:
+   score.text = "Best for target %d · %d actions\nWater used %d · Fills %d" % [
+    garden.harvest_target, nursery_best.x, nursery_best.y, nursery_best.z,
+   ]
+ else:
+  score.show()
   var best_actions: int = progress.garden_best.get(item.id, 0)
   var target_status := "Target met" if best_actions > 0 and best_actions <= item.target else "Target"
   var best_text := "%d actions" % best_actions if best_actions > 0 else "—"
@@ -787,7 +807,7 @@ func _draw() -> void:
     label = "Buy speed control"
   nursery_upgrade_button.text = "%s · %d lilies" % [label, cost]
   nursery_upgrade_button.disabled = active or balance < cost
- best_button.visible = score.visible and progress.garden_best_programs.has(item.id)
+ best_button.visible = not garden.practice and progress.garden_best_programs.has(item.id)
  best_button.disabled = active
  check_button.disabled = active
  run_button.text = ("Pause" if running else "Resume" if active else "Run") + " · Ctrl+Enter"
