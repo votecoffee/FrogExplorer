@@ -19,6 +19,11 @@ var compare_drafts_button: Button
 var comparison_panel: VBoxContainer
 var comparison_choice: OptionButton
 var comparison_context: Label
+var comparison_timeline: HBoxContainer
+var comparison_slider: HSlider
+var comparison_position: Label
+var comparison_current_route: Dictionary = {}
+var comparison_other_route: Dictionary = {}
 var comparison_current: Label
 var comparison_other: Label
 var comparison_source := ""
@@ -559,6 +564,17 @@ func _add_draft_comparison(parent: Container) -> void:
  comparison_choice = OptionButton.new()
  comparison_choice.item_selected.connect(_compare_drafts)
  choices.add_child(comparison_choice)
+ comparison_timeline = HBoxContainer.new()
+ comparison_panel.add_child(comparison_timeline)
+ comparison_position = hud.label("", 14)
+ comparison_timeline.add_child(comparison_position)
+ comparison_slider = HSlider.new()
+ comparison_slider.step = 1
+ comparison_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ comparison_slider.focus_mode = Control.FOCUS_ALL
+ comparison_slider.tooltip_text = "Drag or use Left and Right to review both drafts at the same action."
+ comparison_slider.value_changed.connect(_show_comparison_step)
+ comparison_timeline.add_child(comparison_slider)
  var results := HBoxContainer.new()
  results.add_theme_constant_override("separation", 18)
  comparison_panel.add_child(results)
@@ -588,38 +604,70 @@ func _toggle_draft_comparison() -> void:
  comparison_choice.select(0)
  comparison_context.text = "Starting board · Live nursery" if garden.practice else "Starting board · Fresh lesson"
  comparison_source = source.text
+ comparison_current_route = _trace_draft(comparison_source)
  comparison_panel.show()
  compare_drafts_button.text = "Close comparison"
  _compare_drafts(0)
+ if comparison_timeline.visible:
+  comparison_slider.grab_focus()
 
 func _compare_drafts(index: int) -> void:
  if not comparison_panel.visible:
   return
  var other: String = comparison_choice.get_item_metadata(index)
- comparison_current.text = draft_choice.get_item_text(draft_choice.selected) + "\n" + _draft_forecast(source.text)
- comparison_other.text = comparison_choice.get_item_text(index) + "\n" + _draft_forecast(_draft_source(other))
+ comparison_other_route = _trace_draft(_draft_source(other))
+ var current_actions: Array = comparison_current_route.get("actions", [])
+ var other_actions: Array = comparison_other_route.get("actions", [])
+ var total := maxi(current_actions.size(), other_actions.size())
+ comparison_slider.max_value = total
+ comparison_slider.set_value_no_signal(total)
+ comparison_timeline.visible = total > 0
+ _show_comparison_step(total)
 
-func _draft_forecast(text: String) -> String:
+func _trace_draft(text: String) -> Dictionary:
  var result := _compile(text, python_mode)
- if result.has("error"):
-  return result.error
- var route := _trace(result.steps)
- var preview: Programs = route.preview
+ return result if result.has("error") else _trace(result.steps)
+
+func _show_comparison_step(value: float) -> void:
+ if not comparison_panel.visible:
+  return
+ var index := roundi(value)
+ comparison_position.text = "%d / %d actions" % [index, int(comparison_slider.max_value)]
+ comparison_current.text = draft_choice.get_item_text(draft_choice.selected) + "\n" + _comparison_snapshot(comparison_current_route, index)
+ comparison_other.text = comparison_choice.get_item_text(comparison_choice.selected) + "\n" + _comparison_snapshot(comparison_other_route, index)
+
+func _comparison_snapshot(route: Dictionary, index: int) -> String:
+ if not route.has("actions"):
+  return route.error
+ var traced: Array = route.actions
+ var count := mini(index, traced.size())
+ var at_end := count == traced.size()
+ var preview := _board_after_actions(route, count)
  var summary := _nursery_summary(preview)
  if not preview.practice:
   var unit := "action" if preview.turn == 1 else "actions"
   summary = "Harvested %d of %d in %d %s · %s" % [
    preview.harvested, preview.plants.size(), preview.turn, unit, _water_summary(preview),
   ]
- if route.line >= 0:
-  summary += "\nLine %d · %s" % [route.line + 1, route.error]
- elif route.limited:
-  summary += "\nPreview limit"
- return summary
+ var step := "Start" if count == 0 else "%d / %d actions" % [count, traced.size()]
+ if at_end and route.line >= 0:
+  step = "Blocked · Line %d · %s" % [route.line + 1, route.error]
+ elif at_end and route.limited:
+  step += " · Preview limit"
+ elif index > count:
+  step = "Finished · " + step
+ elif count > 0:
+  var action: Dictionary = traced[count - 1]
+  var command := (str(action.command) + " " + str(action.get("direction", ""))).strip_edges()
+  step += " · Line %d · %s" % [action.line + 1, command]
+ var position := "Row %d · Column %d · Tank %d / %d" % [preview.cell.y, preview.cell.x, preview.tank, preview.water_capacity]
+ return "%s\n%s\n%s" % [step, position, summary]
 
 func _close_draft_comparison() -> void:
  if comparison_panel.visible:
   comparison_panel.hide()
+  comparison_current_route.clear()
+  comparison_other_route.clear()
   compare_drafts_button.text = "Compare drafts"
 
 func _draft_source(key: String) -> String:
@@ -818,6 +866,16 @@ func _discard_check() -> void:
  review_button.hide()
  _draw_diagnostics(garden)
 
+func _board_after_actions(route: Dictionary, count: int) -> Programs:
+ var traced: Array = route.actions
+ if count == traced.size():
+  return route.preview as Programs
+ var initial: Programs = route.initial
+ var preview := initial.copy_board() as Programs
+ for index in count:
+  preview.step(traced[index])
+ return preview
+
 func _draw_review(value: float) -> void:
  var replaying_best := best_panel.visible
  if not review_controls.visible or (not replaying_best and checked_source != source.text):
@@ -827,10 +885,7 @@ func _draw_review(value: float) -> void:
  var line: int = route.line
  var editor := best_source if replaying_best else source
  var count := clampi(roundi(value), 0, traced.size())
- var initial: Programs = route.initial
- var preview := initial.copy_board() as Programs
- for index in count:
-  preview.step(traced[index])
+ var preview := _board_after_actions(route, count)
  var blocked := line >= 0 and count == traced.size()
  review_position.text = "%s · %d / %d actions" % ["Best run" if replaying_best else "Preview", count, traced.size()]
  if blocked:

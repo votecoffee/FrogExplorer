@@ -1113,22 +1113,31 @@ func check_draft_comparison(popup) -> void:
  popup.draft_choice.item_selected.emit(1)
  popup.source.text = "wait()\ngather(east)\n"
  popup.draft_choice.item_selected.emit(2)
- popup.source.text = "water(east)\n"
+ popup.source.text = "wait()\nwater(east)\n"
  popup.draft_choice.item_selected.emit(0)
  var current := "gather(east)\n"
  popup.source.text = current
  popup.compare_drafts_button.pressed.emit()
  check(popup.comparison_panel.visible and popup.comparison_choice.item_count == 2 and "Live nursery" in popup.comparison_context.text and "Harvested 1 in 1 action · Target 1 met" in popup.comparison_current.text and "Harvested 1 in 2 actions · Target 1 met" in popup.comparison_other.text, "Compare forecasts both drafts from the same living nursery")
+ check(popup.comparison_slider.max_value == 2 and popup.comparison_slider.value == 2 and popup.comparison_slider.has_focus() and "Finished · 1 / 1 actions" in popup.comparison_current.text and "Line 2 · gather east" in popup.comparison_other.text, "The comparison holds the shorter draft at its endpoint")
+ popup.comparison_slider.value = 0
+ check("0 / 2 actions" in popup.comparison_position.text and "Start" in popup.comparison_current.text and "Start" in popup.comparison_other.text and "Row 0 · Column 0 · Tank 5 / 6" in popup.comparison_current.text and "Row 0 · Column 0 · Tank 5 / 6" in popup.comparison_other.text and "Harvested 0" in popup.comparison_current.text and "Harvested 0" in popup.comparison_other.text, "Both previews return to the same nursery state at action zero")
+ press_key(KEY_RIGHT)
+ check(popup.comparison_slider.value == 1 and "Line 1 · gather east" in popup.comparison_current.text and "Line 1 · wait" in popup.comparison_other.text and "Harvested 1 in 1 action" in popup.comparison_current.text and "Harvested 0 in 1 action" in popup.comparison_other.text, "The keyboard moves both drafts to the same action and reveals the different harvests")
+ press_key(KEY_RIGHT)
+ check(popup.comparison_slider.value == 2 and "Finished · 1 / 1 actions" in popup.comparison_current.text and "Harvested 1 in 2 actions" in popup.comparison_other.text, "Advancing past the short route leaves its completed state visible")
  check(popup.draft_choice.selected == 0 and popup.source.text == current and popup.progress.python_drafts.get(id) == setup and popup.garden.turn == 5 and popup.garden.tank == 5 and popup.garden.plant_status(Vector2i(1, 0)) == "Ripe" and popup.progress.nursery_balance() == balance, "A comparison leaves the unsaved edit, saved draft, live bed, and wallet intact")
  popup.comparison_choice.select(1)
  popup.comparison_choice.item_selected.emit(1)
- check("Line 1 · This plot does not need water." in popup.comparison_other.text and "Harvested 1 in 1 action" in popup.comparison_current.text, "A blocked comparison draft does not hide the other result")
+ check("Blocked · Line 2 · This plot does not need water." in popup.comparison_other.text and "Harvested 1 in 1 action" in popup.comparison_current.text, "A blocked comparison draft does not hide the other result")
+ popup.comparison_slider.value = 0
+ check("Blocked" not in popup.comparison_other.text and "Start" in popup.comparison_other.text and "Harvested 0" in popup.comparison_current.text, "Rewinding the comparison puts the blocked action back in the future")
  press_key(KEY_ESCAPE)
  check(popup.visible and not popup.comparison_panel.visible, "Escape closes the comparison and stays in the editor")
  popup.compare_drafts_button.pressed.emit()
  popup.source.text = "wait()\n"
  popup._queue_save()
- check(not popup.comparison_panel.visible and popup.garden.turn == 5, "Editing the active draft clears the old comparison")
+ check(not popup.comparison_panel.visible and popup.comparison_current_route.is_empty() and popup.comparison_other_route.is_empty() and popup.garden.turn == 5, "Editing the active draft clears both old previews")
 
  var recorded: Dictionary = popup.progress.create_draft_copy("first_bloom", "fill(east)\n", true)
  popup.chooser.item_selected.emit(0)
