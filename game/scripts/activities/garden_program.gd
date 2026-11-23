@@ -289,7 +289,7 @@ if spring():
 const GARDENS := PUZZLES + [OPEN_NURSERY, WILLOW_NURSERY, LOTUS_MARSH, STONE_RING_NURSERY]
 const DIRECTIONS = {"north":Vector2i(0,-1), "east":Vector2i(1,0), "south":Vector2i(0,1), "west":Vector2i(-1,0)}
 const CONDITIONS := ["always", "spring", "has_water", "empty_bed", "lily", "thirsty", "growing", "ripe", "has_reach_tool", "has_harvest_hook"]
-const NUMERIC_SENSORS := ["water_level", "tank_capacity", "row", "column", "harvest_count", "action_count"]
+const NUMERIC_SENSORS := ["water_level", "tank_capacity", "row", "column", "harvest_count", "action_count", "harvest_target"]
 const COMPARISONS := ["<", "<=", "==", "!=", ">=", ">"]
 const NEIGHBOR_ACTIONS := ["plant", "water", "gather"]
 const LOTUS_BED := "X"
@@ -298,6 +298,8 @@ const PLOT_DOSES := {"B":1, "L":1, "H":2, LOTUS_BED:2}
 const EMPTY_BED := "Empty bed"
 const CAPACITY = 3
 const RESERVOIR_CAPACITY := 6
+const DEFAULT_HARVEST_TARGET := 32
+const MAX_HARVEST_TARGET := 999
 const MAX_STEPS = 256
 const MAX_WHILE_ITERATIONS := 16
 const MAX_FOR_ITERATIONS := 16
@@ -319,6 +321,7 @@ var turn := 0
 var harvested := 0
 var starting_turn := 0
 var starting_harvest := 0
+var harvest_target := DEFAULT_HARVEST_TARGET
 var runtime_error := ""
 var runtime_error_line := -1
 var loop_entries: Dictionary = {}
@@ -749,6 +752,7 @@ func copy_board() -> RefCounted:
  copy.harvested = harvested
  copy.starting_turn = starting_turn
  copy.starting_harvest = starting_harvest
+ copy.harvest_target = harvest_target
  return copy
 
 func tile(location: Vector2i) -> String:
@@ -981,6 +985,8 @@ func _read_number(operand: String) -> int:
    return harvested - starting_harvest
   "action_count":
    return turn - starting_turn
+  "harvest_target":
+   return harvest_target if practice else plants.size()
   _:
    return int(operand)
 

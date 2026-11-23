@@ -33,6 +33,8 @@ var info: Label
 var score: Label
 var nursery_wallet: Label
 var nursery_upgrade_button: Button
+var nursery_target_row: HBoxContainer
+var nursery_target: SpinBox
 var hint: Label
 var guide: Label
 var chooser: OptionButton
@@ -173,8 +175,21 @@ func _ready() -> void:
  score = hud.label("", 15, Color("#b9dccc"))
  score.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  right.add_child(score)
+ nursery_target_row = HBoxContainer.new()
  nursery_wallet = hud.label("", 15, Color("#b9dccc"))
- right.add_child(nursery_wallet)
+ nursery_wallet.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ nursery_target_row.add_child(nursery_wallet)
+ nursery_target_row.add_child(hud.label("Harvest target", 15))
+ nursery_target = SpinBox.new()
+ nursery_target.min_value = 1
+ nursery_target.max_value = Programs.MAX_HARVEST_TARGET
+ nursery_target.step = 1
+ nursery_target.value = Programs.DEFAULT_HARVEST_TARGET
+ nursery_target.select_all_on_focus = true
+ nursery_target.tooltip_text = "Python reads this value with harvest_target()."
+ nursery_target.value_changed.connect(_set_nursery_target)
+ nursery_target_row.add_child(nursery_target)
+ right.add_child(nursery_target_row)
  nursery_upgrade_button = _button(right, "", _buy_nursery_upgrade)
  best_button = _button(right, "Best program", _toggle_best_program)
  review_button = _button(right, "Review", _toggle_review)
@@ -244,6 +259,7 @@ func open() -> void:
  source.grab_focus()
 
 func _close() -> void:
+ _commit_target_edit()
  flush_draft()
  if not steps.is_empty():
   _stop()
@@ -329,6 +345,7 @@ func _choose(index: int) -> void:
  if not steps.is_empty() or not progress.lesson_available(Programs.GARDENS[index], progress.earned_lilies()):
   chooser.select(puzzle)
   return
+ _commit_target_edit()
  flush_draft()
  _close_best_program()
  puzzle = index
@@ -431,8 +448,33 @@ func _reset() -> void:
                     progress.has_nursery_upgrade(Progress.REACH_TOOL_MARKER),
                     progress.has_nursery_upgrade(Progress.HARVEST_HOOK_MARKER))
  _refresh_speed_choice()
+ nursery_target_row.visible = garden.practice
+ if garden.practice:
+  garden.harvest_target = progress.nursery_target(Programs.GARDENS[puzzle].id)
+  _show_nursery_target()
  status.text = "Run or Step tends the current nursery." if garden.practice else "Harvest every lily. Run or Step starts from a fresh board."
  _draw()
+
+func _commit_target_edit() -> void:
+ if garden.practice and steps.is_empty():
+  nursery_target.apply()
+
+func _show_nursery_target() -> void:
+ nursery_target.set_value_no_signal(garden.harvest_target)
+ nursery_target.get_line_edit().text = str(garden.harvest_target)
+
+func _set_nursery_target(value: float) -> void:
+ if not garden.practice or not steps.is_empty():
+  _show_nursery_target()
+  return
+ if garden.harvest_target == int(value):
+  return
+ garden.harvest_target = int(value)
+ _show_nursery_target()
+ if progress.set_nursery_target(Programs.GARDENS[puzzle].id, garden.harvest_target) != OK:
+  hud.toast("Could not save the harvest target.")
+ _discard_check()
+ status.text = "Harvest target · %d lilies" % garden.harvest_target
 
 func _stop() -> void:
  _clear_program()
@@ -453,6 +495,7 @@ func _compile_draft() -> Array:
 func _check_code() -> void:
  if best_panel.visible or not steps.is_empty():
   return
+ _commit_target_edit()
  _discard_check()
  checked_source = source.text
  source.grab_focus()
@@ -582,6 +625,7 @@ func _prepare_program() -> bool:
   return false
  if not steps.is_empty():
   return true
+ _commit_target_edit()
  _discard_check()
  steps = _compile_draft()
  if steps.is_empty():
@@ -730,6 +774,7 @@ func _draw() -> void:
  run_button.text = ("Pause" if running else "Resume" if active else "Run") + " · Ctrl+Enter"
  step_button.disabled = running
  stop_button.disabled = not active
+ nursery_target.editable = not active
  chooser.disabled = active
  language.disabled = active
  source.editable = not active

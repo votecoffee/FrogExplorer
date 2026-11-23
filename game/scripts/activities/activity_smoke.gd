@@ -439,6 +439,14 @@ func check_nursery_storage() -> void:
  var speed_again := first.buy_nursery_upgrade(Progress.SPEED_CONTROL_MARKER)
  reopened.load_from(path)
  check(saved and speed == OK and speed_again == OK and reopened.nursery_balance() == 3 and reopened.has_nursery_upgrade(Progress.SPEED_CONTROL_MARKER) and reopened.next_nursery_upgrade().is_empty(), "Speed control persists and charges its price once across sessions")
+ var ring_id: String = Program.STONE_RING_NURSERY.id
+ var marsh_id: String = Program.LOTUS_MARSH.id
+ var written := first.set_nursery_target(ring_id, 48)
+ var separate := second.set_nursery_target(marsh_id, 8)
+ var invalid := first.set_nursery_target(ring_id, Program.MAX_HARVEST_TARGET + 1)
+ var scored := first.set_nursery_target("first_bloom", 4)
+ reopened.load_from(path)
+ check(written == OK and separate == OK and invalid == ERR_INVALID_PARAMETER and scored == ERR_INVALID_PARAMETER and reopened.nursery_target(ring_id) == 48 and reopened.nursery_target(marsh_id) == 8 and reopened.nursery_target(Program.OPEN_NURSERY.id) == Program.DEFAULT_HARVEST_TARGET, "Harvest targets persist independently and absent targets use the default")
 
 func check_willow_nursery(popup, open_nursery: int) -> void:
  var willow := Program.GARDENS.find(Program.WILLOW_NURSERY)
@@ -874,6 +882,49 @@ while harvest_count() < 16 and action_count() < 30:
  popup.source.text = "if action_count() == 0 and harvest_count() == 0:\n    fill()\nprint(harvest_count(), action_count())\n"
  popup.check_button.pressed.emit()
  check("0 of 2 lilies harvested in 1 action" in popup.status.text and popup.output_text.text.ends_with(" · 0 1"), "Scored lesson previews can read the same counters")
+
+func check_nursery_target(popup) -> void:
+ var ring := Program.GARDENS.find(Program.STONE_RING_NURSERY)
+ var marsh := Program.GARDENS.find(Program.LOTUS_MARSH)
+ popup.chooser.item_selected.emit(ring)
+ var starting_balance: int = popup.progress.nursery_balance()
+ var program: String = Program.STONE_RING_NURSERY.python_draft.replace("\nif spring():", "\nwhile spring() and harvest_count() < harvest_target():")
+ popup.source.text = program
+ popup.check_button.pressed.emit()
+ check(popup.nursery_target_row.visible and int(popup.nursery_target.value) == 32 and "Harvested 32 in 118 actions" in popup.status.text, "Python reads Stone ring's default harvest target")
+ popup.review_button.pressed.emit()
+ var target_input: LineEdit = popup.nursery_target.get_line_edit()
+ target_input.text = "16"
+ target_input.text_submitted.emit("16")
+ await frames(2)
+ check(popup.garden.harvest_target == 16 and popup.checked_route.is_empty() and not popup.review_controls.visible and popup.source.text == program, "Typing a new target clears Review and keeps the same draft")
+
+ target_input.text = "24"
+ popup.check_button.pressed.emit()
+ check("Harvested 24 in 97 actions" in popup.status.text and popup.garden.turn == 0 and popup.progress.nursery_balance() == starting_balance, "Check applies a typed target and previews the unchanged draft")
+ target_input.text = "16"
+ press_key(KEY_ENTER, true)
+ popup.nursery_target.value = 8
+ check(popup.running and not popup.nursery_target.editable and int(popup.nursery_target.value) == 16 and popup.garden.harvest_target == 16, "An active run keeps its original target")
+ for action in 76:
+  popup._process(.25)
+ check(popup.steps.is_empty() and popup.nursery_target.editable and popup.garden.turn == 76 and popup.garden.harvested == 16 and popup.progress.nursery_balance() == starting_balance + 16, "The live program stops at the chosen harvest target")
+
+ popup.chooser.item_selected.emit(marsh)
+ var starts_with_default: bool = int(popup.nursery_target.value) == 32
+ popup.nursery_target.value = 8
+ popup.chooser.item_selected.emit(ring)
+ check(starts_with_default and int(popup.nursery_target.value) == 16 and popup.source.text == program, "Switching nurseries restores each target with its draft")
+ popup.chooser.item_selected.emit(marsh)
+ popup.language.item_selected.emit(1)
+ popup.source.text = "if harvest_target == 8\n  wait\nend\n"
+ popup.check_button.pressed.emit()
+ check("Harvested 0 in 1 action" in popup.status.text and popup.checked_route.actions.size() == 1, "Classic Pondbot reads the saved harvest target")
+ popup.language.item_selected.emit(0)
+ popup.chooser.item_selected.emit(0)
+ popup.source.text = "print(harvest_target())\nfill()\n"
+ popup.check_button.pressed.emit()
+ check(not popup.nursery_target_row.visible and popup.output_text.text.ends_with(" · 2"), "Scored lessons report their required harvest instead of showing a nursery field")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)
@@ -1720,6 +1771,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   await check_stone_ring_nursery(popup, hook_route)
   check_nursery_speed(popup)
   await check_run_counters(popup, hook_route)
+  await check_nursery_target(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

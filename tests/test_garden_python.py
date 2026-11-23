@@ -212,20 +212,23 @@ print()
         old_draft = "def has_harvest_hook():\n    wait()\nhas_harvest_hook()\n"
         self.assertEqual(LOWER(old_draft)["source"], "routine has_harvest_hook\nwait\nend\ncall has_harvest_hook")
 
-    def test_run_counters_lower_numeric_readings_and_preserve_older_drafts(self):
-        result = LOWER("harvest_count = 4\naction_count = 7\n"
-                       "print(harvest_count, action_count, harvest_count(), action_count())\n")
-        self.assertEqual(result["source"], "assign\nassign\ndiagnostic")
-        self.assertEqual(result["details"]["2"]["output"], [
+    def test_run_readings_preserve_older_drafts(self):
+        result = LOWER("harvest_count = 4\naction_count = 7\nharvest_target = 8\n"
+                       "print(harvest_count, action_count, harvest_target, "
+                       "harvest_count(), action_count(), harvest_target())\n")
+        self.assertEqual(result["source"], "assign\nassign\nassign\ndiagnostic")
+        self.assertEqual(result["details"]["3"]["output"], [
             {"op": "variable", "name": "harvest_count"},
             {"op": "variable", "name": "action_count"},
+            {"op": "variable", "name": "harvest_target"},
             {"op": "sensor", "name": "harvest_count", "direction": ""},
             {"op": "sensor", "name": "action_count", "direction": ""},
+            {"op": "sensor", "name": "harvest_target", "direction": ""},
         ])
-        for counter in ("harvest_count", "action_count"):
-            with self.subTest(counter=counter):
-                old_draft = f"def {counter}():\n    wait()\n{counter}()\n"
-                self.assertEqual(LOWER(old_draft)["source"], f"routine {counter}\nwait\nend\ncall {counter}")
+        for reading in ("harvest_count", "action_count", "harvest_target"):
+            with self.subTest(reading=reading):
+                old_draft = f"def {reading}():\n    wait()\n{reading}()\n"
+                self.assertEqual(LOWER(old_draft)["source"], f"routine {reading}\nwait\nend\ncall {reading}")
 
     def test_unsupported_syntax_is_rejected_at_its_source_line(self):
         for source, line in [
@@ -245,6 +248,7 @@ print()
             ("gather(north, east)\n", 0),
             ("print(harvest_count(east))\n", 0),
             ("print(action_count(1))\n", 0),
+            ("print(harvest_target(32))\n", 0),
             ("plant(north, east)\n", 0),
             ("print(1 * 2)\n", 0),
             ("fill()\nif row(east) > 0:\n    wait()\n", 1),

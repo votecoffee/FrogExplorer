@@ -41,6 +41,7 @@ var garden_best: Dictionary = {}
 var garden_best_programs: Dictionary = {}
 var garden_best_python: Dictionary = {}
 var nursery_upgrades: Dictionary = {}
+var nursery_targets: Dictionary = {}
 var nursery_harvested := 0
 var session_harvests := 0
 var nursery_tally := ""
@@ -53,6 +54,7 @@ func load_from(path: String) -> void:
  nursery_tally = ""
  nursery_harvested = 0
  nursery_upgrades.clear()
+ nursery_targets.clear()
  if not DirAccess.dir_exists_absolute(folder):
   return
  var names := DirAccess.get_files_at(folder)
@@ -80,6 +82,13 @@ func load_from(path: String) -> void:
   if FileAccess.file_exists(python_draft):
    python_drafts[id] = FileAccess.get_file_as_string(python_draft)
   if puzzle.get("practice", false):
+   var target_file := "target-" + id + ".txt"
+   if target_file in names:
+    var stored := FileAccess.get_file_as_string(folder.path_join(target_file)).strip_edges()
+    if stored.is_valid_int():
+     var value := int(stored)
+     if value >= 1 and value <= Programs.MAX_HARVEST_TARGET:
+      nursery_targets[id] = value
    continue
   var marker := "solved-" + id
   if marker in names:
@@ -231,6 +240,17 @@ func next_lesson(lilies: int) -> int:
   if not solved.has(item.id) and lesson_available(item, lilies):
    return index
  return -1
+
+func nursery_target(id: String) -> int:
+ return int(nursery_targets.get(id, Programs.DEFAULT_HARVEST_TARGET))
+
+func set_nursery_target(id: String, value: int) -> Error:
+ if value < 1 or value > Programs.MAX_HARVEST_TARGET:
+  return ERR_INVALID_PARAMETER
+ if not Programs.GARDENS.any(func(item: Dictionary) -> bool: return item.id == id and item.get("practice", false)):
+  return ERR_INVALID_PARAMETER
+ nursery_targets[id] = value
+ return _save("target-" + id + ".txt", str(value))
 
 func edit_draft(id: String, text: String, python := false) -> Error:
  var saved := python_drafts if python else drafts

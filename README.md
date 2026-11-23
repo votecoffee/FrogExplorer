@@ -273,7 +273,7 @@ After unlocking Stone ring nursery, spend **96 nursery lilies** on **Speed contr
 
 Use `harvest_count()` for lilies earned by the current program and `action_count()` for completed board actions. A new run starts both at zero even when the nursery already has crops. Pausing, stepping, or resuming an active run keeps its counts. A lotus adds three to the harvest count. Check and Review use their own preview counts. In Classic Pondbot, use `harvest_count` and `action_count` in comparisons.
 
-To stop at a harvest quota in Stone ring nursery, replace the starter's final `if spring():` with `while spring() and harvest_count() < 32:` and keep its indented body. Pondbot checks the target at each spring, so it finishes the current bank before stopping.
+Set **Harvest target** in a nursery and read it with `harvest_target()` in Python or `harvest_target` in Classic Pondbot. Each nursery remembers its own target. In Stone ring nursery, replace the starter's final `if spring():` with `while spring() and harvest_count() < harvest_target():` and keep its indented body. Change the field to reuse the code for a new quota. Pondbot checks the target at each spring, so it finishes the current bank before stopping. Scored lessons report the board's required harvest.
 
 Use Python `print("Tank ready", has_water())` to show messages and sensor readings with their source line numbers. **Program output** shows the live run. **Check output** shows readings from the simulated board, and **Review** reveals those messages as you move through the actions. Printing costs no actions, and each view retains the latest 32 messages.
 
