@@ -227,7 +227,66 @@ hop(east)
 gather()
 """,
 }
-const GARDENS := PUZZLES + [OPEN_NURSERY, WILLOW_NURSERY, LOTUS_MARSH]
+const STONE_RING_NURSERY := {
+ "id":"stone_ring_nursery", "name":"Stone ring nursery", "practice":true,
+ "rows":["BXXB#", "....~", ".###.", "~....", "#BXXB"],
+ "hint":"Fill at each spring and sweep the next bank. Each bank takes six doses. The first circuit plants the crops. Return on the next circuit to harvest and replant from the path.",
+ "draft":"""# Run one bank from either spring.
+routine tend heading
+  if ripe heading
+    gather heading
+  end
+  if empty_bed heading
+    plant heading
+  end
+  while thirsty heading and has_water
+    water heading
+  end
+end
+
+routine sweep along across
+  fill
+  hop across
+  hop across
+  while not spring
+    call tend across
+    hop along
+  end
+end
+
+if spring
+  if column == 0
+    call sweep east north
+  else
+    call sweep west south
+  end
+end
+""",
+ "python_draft":"""# Run one bank from either spring. Loop the last block to automate both.
+def tend(heading):
+    if ripe(heading):
+        gather(heading)
+    if empty_bed(heading):
+        plant(heading)
+    while thirsty(heading) and has_water():
+        water(heading)
+
+def sweep(along, across):
+    fill()
+    hop(across)
+    hop(across)
+    while not spring():
+        tend(across)
+        hop(along)
+
+if spring():
+    if column() == 0:
+        sweep(east, north)
+    else:
+        sweep(west, south)
+""",
+}
+const GARDENS := PUZZLES + [OPEN_NURSERY, WILLOW_NURSERY, LOTUS_MARSH, STONE_RING_NURSERY]
 const DIRECTIONS = {"north":Vector2i(0,-1), "east":Vector2i(1,0), "south":Vector2i(0,1), "west":Vector2i(-1,0)}
 const CONDITIONS := ["always", "spring", "has_water", "empty_bed", "lily", "thirsty", "growing", "ripe", "has_reach_tool", "has_harvest_hook"]
 const NUMERIC_SENSORS := ["water_level", "tank_capacity", "row", "column"]

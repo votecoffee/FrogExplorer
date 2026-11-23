@@ -428,7 +428,12 @@ func check_nursery_storage() -> void:
  var hook := second.buy_nursery_upgrade(Progress.HARVEST_HOOK_MARKER)
  var hook_again := first.buy_nursery_upgrade(Progress.HARVEST_HOOK_MARKER)
  reopened.load_from(path)
- check(saved and hook == OK and hook_again == OK and reopened.nursery_balance() == 3 and reopened.has_nursery_upgrade(Progress.HARVEST_HOOK_MARKER) and reopened.next_nursery_upgrade().is_empty(), "The harvest hook persists and costs its price once across sessions")
+ check(saved and hook == OK and hook_again == OK and reopened.nursery_balance() == 3 and reopened.has_nursery_upgrade(Progress.HARVEST_HOOK_MARKER) and reopened.next_nursery_upgrade() == Progress.STONE_RING_MARKER, "The harvest hook persists and costs its price once across sessions")
+ saved = first.record_nursery_harvest(Progress.STONE_RING_COST) == OK and saved
+ var ring := second.buy_nursery_upgrade(Progress.STONE_RING_MARKER)
+ var ring_again := first.buy_nursery_upgrade(Progress.STONE_RING_MARKER)
+ reopened.load_from(path)
+ check(saved and ring == OK and ring_again == OK and reopened.nursery_balance() == 3 and reopened.lesson_available(Program.STONE_RING_NURSERY, 0) and reopened.next_nursery_upgrade().is_empty(), "Stone ring nursery unlocks once and persists across sessions")
 
 func check_willow_nursery(popup, open_nursery: int) -> void:
  var willow := Program.GARDENS.find(Program.WILLOW_NURSERY)
@@ -623,7 +628,7 @@ print(water_level())
  check(popup.garden.turn == 46 and popup.garden.harvested == 16 and popup.progress.nursery_balance() == 16, "The same program replants and harvests both lotus beds again")
  return route
 
-func check_harvest_hook(popup, lotus_route: String) -> void:
+func check_harvest_hook(popup, lotus_route: String) -> String:
  popup.source.text = "print(has_harvest_hook())\ngather(north)\n"
  popup.check_button.pressed.emit()
  check(popup.output_text.text.ends_with(" · False") and "requires the harvest hook" in popup.status.text and popup.checked_route.actions.is_empty(), "Directional gathering waits for the harvest hook")
@@ -698,6 +703,54 @@ print(has_harvest_hook(), water_level())
  popup.source.text = "print(has_harvest_hook())\ngather(east)\n"
  popup.check_button.pressed.emit()
  check(popup.output_text.text.ends_with(" · False") and "requires the harvest hook" in popup.status.text and popup.garden.turn == 0, "Scored lessons retain their original gather behavior")
+ return route
+
+func check_stone_ring_nursery(popup, hook_route: String) -> void:
+ var marsh := Program.GARDENS.find(Program.LOTUS_MARSH)
+ var ring := Program.GARDENS.find(Program.STONE_RING_NURSERY)
+ popup.chooser.item_selected.emit(marsh)
+ popup.chooser.item_selected.emit(ring)
+ check(popup.puzzle == marsh and popup.chooser.is_item_disabled(ring) and "72 nursery lilies" in popup.chooser.get_item_text(ring), "Stone ring nursery stays locked until its purchase")
+ var helpers := hook_route.get_slice("\nfill()\n", 0)
+ var circuit := "fill()\n" + hook_route.get_slice("\nfill()\n", 1).get_slice("\nprint(", 0)
+ popup.source.text = helpers + "\nwhile True:\n" + circuit.indent("    ")
+ press_key(KEY_ENTER, true)
+ for action in Program.MAX_STEPS:
+  if not popup.running or popup.progress.nursery_balance() >= Progress.STONE_RING_COST:
+   break
+  popup._process(.25)
+ var balance: int = popup.progress.nursery_balance()
+ check(popup.running and balance == 73 and popup.nursery_upgrade_button.disabled, "Live harvests with the hook fund Stone ring nursery")
+ popup.stop_button.pressed.emit()
+ popup.nursery_upgrade_button.pressed.emit()
+ var remaining := balance - Progress.STONE_RING_COST
+ check(popup.puzzle == ring and not popup.nursery_upgrade_button.visible and popup.garden.cell == Vector2i(0, 3) and popup.garden.water_capacity == 6 and popup.garden.reach_tool and popup.garden.harvest_hook and popup.garden.plants.size() == 8 and popup.progress.nursery_balance() == remaining, "The purchase opens eight beds at the west spring and preserves the change")
+
+ var starter: String = popup.source.text
+ popup.check_button.pressed.emit()
+ check("Harvested 0 in 17 actions" in popup.status.text and popup.checked_route.preview.cell == Vector2i(4, 1) and popup.checked_route.preview.tank == 0 and popup.garden.turn == 0, "The Python starter waters the first bank on one tank and ends at the east spring")
+ popup.language.item_selected.emit(1)
+ popup.check_button.pressed.emit()
+ check("Harvested 0 in 17 actions" in popup.status.text and popup.checked_route.preview.cell == Vector2i(4, 1), "Classic Pondbot surveys the same bank and reaches the east spring")
+ popup.language.item_selected.emit(0)
+
+ popup.source.text = starter.replace("\nif spring():", "\nwhile spring():")
+ popup.check_button.pressed.emit()
+ check("Harvested 84 in 256 actions" in popup.status.text and "Preview limit" in popup.status.text and popup.progress.nursery_balance() == remaining, "Continuous Python automation keeps harvesting in the preview without crediting live lilies")
+
+ var route := starter.replace("\nif spring():", "\nfor _ in range(4):")
+ popup.source.text = route
+ popup.check_button.pressed.emit()
+ check("Harvested 16 in 76 actions" in popup.status.text and popup.checked_route.preview.cell == Vector2i(0, 3) and popup.progress.nursery_balance() == remaining, "Check forecasts a complete warm-up circuit and a sixteen-lily harvest circuit")
+ popup.review_button.pressed.emit()
+ popup.review_slider.value = 18
+ check("Water 6 / 6" in popup.info.text and "●" in popup.board.get_child(9).get_child(0).text and popup.garden.tank == 0, "Review shows the second fill taking place at the east spring")
+ await finish_by_steps(popup, route)
+ check(popup.garden.turn == 76 and popup.garden.harvested == 16 and popup.progress.nursery_balance() == remaining + 16 and popup.garden.cell == Vector2i(0, 3), "The live program harvests both banks and returns west")
+
+ route = route.replace("range(4)", "range(2)")
+ await finish_by_steps(popup, route)
+ check(popup.garden.turn == 118 and popup.garden.harvested == 32 and popup.progress.nursery_balance() == remaining + 32 and popup.garden.cell == Vector2i(0, 3), "The next live circuit harvests sixteen more lilies from the replanted beds")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)
@@ -1540,7 +1593,8 @@ if not (3 <= water_level() <= 7) and column() > row():
   await check_nursery_reservoir(popup, open_nursery)
   var reach_route: String = await check_reach_tool(popup)
   var lotus_route: String = await check_lotus_marsh(popup, reach_route)
-  await check_harvest_hook(popup, lotus_route)
+  var hook_route: String = await check_harvest_hook(popup, lotus_route)
+  await check_stone_ring_nursery(popup, hook_route)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

@@ -194,7 +194,7 @@ Open Places with **N / R3** to select these single-player destinations. Random t
 | --- | --- |
 | Kingfisher Circuit | Board the convertible and drive two timed laps. The first start-line crossing starts the clock. Drive through each gate in order. |
 | Cloudring Course | Launch a helium balloon and fly through eight rings in order. The next ring glows gold. Use the right stick or I/K and J/L for altitude and strafe. |
-| Lily Code Garden | Type Python in a popup editor and program Pondbot to water and gather lilies across fifteen grid puzzles and three renewable nurseries. |
+| Lily Code Garden | Type Python in a popup editor and program Pondbot to water and gather lilies across fifteen grid puzzles and four renewable nurseries. |
 
 Press **F5 / A** again to restart a race. The course shows your current time and saved personal best. After your first timed finish, the HUD compares each gate or ring to your fastest run with recorded splits. Existing personal best times carry over. Use **H** or Places to return to the pond.
 
@@ -266,6 +266,8 @@ for _ in range(3):
     collect(south)
     hop(west)
 ```
+
+After buying the harvest hook, spend **72 nursery lilies** to unlock **Stone ring nursery**. Each bank has two lotus beds and two lily beds and needs a full six-dose tank. The starter tends one bank and stops at the opposite spring. Run it again to tend the next bank, or change its outer `if spring():` to `while spring():` in Python to keep circling. The first circuit plants and waters all eight beds. Each later circuit gathers **16 nursery lilies** and replants while staying on the path. If you stop mid-sweep, hop to either spring before starting the script again.
 
 Use Python `print("Tank ready", has_water())` to show messages and sensor readings with their source line numbers. **Program output** shows the live run. **Check output** shows readings from the simulated board, and **Review** reveals those messages as you move through the actions. Printing costs no actions, and each view retains the latest 32 messages.
 

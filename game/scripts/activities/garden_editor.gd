@@ -350,6 +350,9 @@ func _buy_nursery_upgrade() -> void:
  elif upgrade == Progress.LOTUS_MARSH_MARKER:
   _choose(Programs.GARDENS.find(Programs.LOTUS_MARSH))
   status.text = "Lotus marsh unlocked. Tend a neighboring lily while the lotus ripens."
+ elif upgrade == Progress.STONE_RING_MARKER:
+  _choose(Programs.GARDENS.find(Programs.STONE_RING_NURSERY))
+  status.text = "Stone ring nursery unlocked. Run the starter from either spring to tend one bank."
  else:
   _apply_nursery_tools()
   if upgrade == Progress.RESERVOIR_MARKER:
@@ -695,6 +698,8 @@ func _draw() -> void:
     label = "Unlock Lotus marsh"
    Progress.HARVEST_HOOK_MARKER:
     label = "Buy harvest hook"
+   Progress.STONE_RING_MARKER:
+    label = "Unlock Stone ring nursery"
   nursery_upgrade_button.text = "%s · %d lilies" % [label, cost]
   nursery_upgrade_button.disabled = active or balance < cost
  best_button.visible = score.visible and progress.garden_best_programs.has(item.id)
