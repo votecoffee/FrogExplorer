@@ -54,6 +54,9 @@ func finish_by_steps(popup, program: String) -> void:
 
 func check_python_variables(popup) -> void:
  popup._reset()
+ popup.source.grab_focus()
+ press_key(KEY_F7)
+ check(popup.variables_panel.visible and popup.variables_text.text == "No variables assigned" and popup.source.has_focus(), "F7 opens the variable inspector without stealing keyboard focus")
  var draft := """def survey(heading):
     if clear(heading) and visits < 2:
         hop(heading)
@@ -70,22 +73,37 @@ print(start, start_row, visits, column())
  popup.source.text = draft
  popup.check_button.pressed.emit()
  check(popup.garden.variables.is_empty() and popup.garden.turn == 0 and popup.checked_route.actions.size() == 2 and popup.output_text.text == expected, "Check uses its own Python variables and predicts the whole route")
+ var initial_values := "start = 0\nstart_row = 1\nvisits = 0"
+ var final_values := "start = 0\nstart_row = 1\nvisits = 2"
+ check(popup.variables_title.text == "Check variables" and popup.variables_text.text == final_values, "Check displays the final simulated variables")
+ popup.review_button.pressed.emit()
+ check(popup.variables_text.text == initial_values, "Review begins with values assigned before the first action")
+ popup.review_slider.value = 1
+ var middle_values: String = popup.variables_text.text
+ popup.review_slider.value = 0
+ check("visits = 1" in middle_values and popup.variables_text.text == initial_values and popup.garden.variables.is_empty(), "Scrubbing backward restores earlier variable values without changing the live program")
  press_key(KEY_ENTER, true)
  popup._process(.25)
  press_key(KEY_ENTER, true)
  check(not popup.running and popup.garden.turn == 1 and popup.garden.variables.get("visits") == 1, "Paused code retains its counter after the first action")
  press_key(KEY_F10)
  check(popup.steps.is_empty() and popup.garden.turn == 2 and popup.garden.variables.get("visits") == 2 and popup.output_text.text == expected, "The live counter and saved starting readings match Check")
+ check(popup.variables_title.text == "Program variables" and popup.variables_text.text == final_values, "Stepping displays the live values after leaving Review")
 
- popup.source.text = "visits = 0\nwhile visits < 3:\n    visits += 1\nprint(visits, False and missing, 7 or missing, 3 < 2 < missing)\n"
+ popup.source.text = "at_spring = spring()\nvisits = 0\nwhile visits < 3:\n    visits += 1\nprint(visits, False and missing, 7 or missing, 3 < 2 < missing)\n"
  press_key(KEY_F10)
- check(popup.garden.turn == 2 and not popup.garden.variables.has("start") and popup.output_text.text == "Line 4 · 3 False 7 False", "A fresh program clears earlier variables and short-circuits without board actions")
+ check(popup.garden.turn == 2 and not popup.garden.variables.has("start") and popup.output_text.text == "Line 5 · 3 False 7 False" and popup.variables_text.text == "at_spring = False\nvisits = 3", "A fresh program clears earlier variables and shows Boolean readings without board actions")
 
  popup.source.text = "if False:\n    visits = 5\nwait()\nprint(visits)\n"
  popup.check_button.pressed.emit()
  check(popup.checked_route.get("line", -1) == 3 and "Variable 'visits' has no value yet" in popup.status.text and popup.garden.variables.get("visits") == 3 and popup.garden.turn == 2, "Check reports an unset variable on its source line and preserves live values")
  press_key(KEY_F10)
  check(popup.garden.turn == 3 and popup.steps.is_empty() and popup.source.is_line_executing(3) and "Variable 'visits' has no value yet" in popup.status.text, "Step reports an unset variable after the preceding action")
+
+ popup.source.text = "at_edge = not clear(east)\nhop(east)\n"
+ popup.check_button.pressed.emit()
+ popup.review_button.pressed.emit()
+ check("Blocked" in popup.review_position.text and popup.variables_text.text == "at_edge = True" and popup.garden.variables.is_empty(), "Review shows assignments before a failed movement without copying them to the live program")
 
  popup.source.text = "visits = 2147483647\nvisits += 1\n"
  popup.check_button.pressed.emit()
@@ -94,6 +112,10 @@ print(start, start_row, visits, column())
  popup.check_button.pressed.emit()
  check("computed too many steps" in popup.status.text and popup.garden.turn == 3, "A changing endless counter stops within the computation budget")
  popup._reset()
+ popup.language.item_selected.emit(1)
+ check(not popup.variables_button.visible and not popup.variables_panel.visible, "Classic Pondbot keeps the Python variable inspector hidden")
+ popup.language.item_selected.emit(0)
+ press_key(KEY_F7)
 
 func check_python_ranges(popup) -> void:
  var survey := """def move(heading):
@@ -170,6 +192,11 @@ for stop in range(1, 3):
  popup.best_button.pressed.emit()
  popup.review_slider.value = popup.review_slider.max_value
  check(popup.best_source.text == full_route and "Best run · 36 / 36 actions" == popup.review_position.text and "Lilies 4 / 4" in popup.info.text, "Best program replays the saved switchback route")
+ press_key(KEY_F7)
+ check(popup.variables_panel.visible and popup.variables_title.text == "Best run variables" and popup.variables_text.text == "spring_column = 2\nstop = 2", "F7 shows the loop counter and starting position from the recorded best")
+ popup.review_slider.value = 0
+ check(popup.variables_text.text == "spring_column = 2", "Best program shows the variables at the beginning of the recorded run")
+ press_key(KEY_F7)
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)

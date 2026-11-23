@@ -654,13 +654,16 @@ func _append_output(instruction: Dictionary) -> void:
   var value: Variant = _expression_value(expression)
   if value == null:
    return
-  fields.append(("True" if value else "False") if value is bool else str(value))
+  fields.append(python_value_text(value))
  var message := " ".join(fields)
  if message.length() > MAX_OUTPUT_LENGTH:
   message = message.left(MAX_OUTPUT_LENGTH - 1) + "…"
  if output.size() >= MAX_OUTPUT_MESSAGES:
   output.pop_front()
  output.append({"line":instruction.line, "turn":turn, "text":message})
+
+static func python_value_text(value: Variant) -> String:
+ return ("True" if value else "False") if value is bool else str(value)
 
 func _meets_any_clause(clauses: Array) -> bool:
  for clause: Array in clauses:

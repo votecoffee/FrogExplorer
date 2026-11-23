@@ -21,6 +21,11 @@ var best_source: CodeEdit
 var output_panel: PanelContainer
 var output_title: Label
 var output_text: RichTextLabel
+var variables_button: Button
+var variables_panel: PanelContainer
+var variables_title: Label
+var variables_text: RichTextLabel
+var displayed_variables: Dictionary = {}
 var status: Label
 var board: GridContainer
 var info: Label
@@ -49,6 +54,7 @@ var running := false
 var checked_source: Variant = null
 var checked_route: Dictionary = {}
 var best_route: Dictionary = {}
+var best_python := false
 
 func _ready() -> void:
  set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -72,6 +78,8 @@ func _ready() -> void:
  language.add_item("Classic Pondbot")
  language.item_selected.connect(_select_language)
  top.add_child(language)
+ variables_button = _button(top, "Variables · F7", _refresh_variables)
+ variables_button.toggle_mode = true
  _button(top, "Close · Esc", _close)
  var pair := HBoxContainer.new()
  pair.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -109,8 +117,12 @@ func _ready() -> void:
  best_source.editable = false
  best_panel.add_child(best_source)
  best_panel.hide()
+ var diagnostics := HBoxContainer.new()
+ left.add_child(diagnostics)
  output_panel = PanelContainer.new()
- left.add_child(output_panel)
+ output_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ output_panel.size_flags_stretch_ratio = 2.0
+ diagnostics.add_child(output_panel)
  var output_stack := VBoxContainer.new()
  output_panel.add_child(output_stack)
  output_title = hud.label("", 15, Color("#b9dccc"))
@@ -122,6 +134,20 @@ func _ready() -> void:
  output_text.selection_enabled = true
  output_stack.add_child(output_text)
  output_panel.hide()
+ variables_panel = PanelContainer.new()
+ variables_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ diagnostics.add_child(variables_panel)
+ var variables_stack := VBoxContainer.new()
+ variables_panel.add_child(variables_stack)
+ variables_title = hud.label("", 15, Color("#b9dccc"))
+ variables_stack.add_child(variables_title)
+ variables_text = RichTextLabel.new()
+ variables_text.custom_minimum_size.y = output_text.custom_minimum_size.y
+ variables_text.add_theme_font_override("normal_font", source.get_theme_font("font"))
+ variables_text.add_theme_font_size_override("normal_font_size", 15)
+ variables_text.selection_enabled = true
+ variables_stack.add_child(variables_text)
+ variables_panel.hide()
  var right := VBoxContainer.new()
  right.custom_minimum_size.x = 285
  right.add_theme_constant_override("separation", 9)
@@ -239,9 +265,9 @@ func _toggle_best_program() -> void:
  if recorded.is_empty():
   return
  _close_review()
- var recorded_python: bool = progress.garden_best_python.get(item.id, false)
- best_title.text = "%s · %d actions · %s" % [item.name, progress.garden_best[item.id], "Python" if recorded_python else "Classic Pondbot"]
- _color_code(best_source, recorded_python)
+ best_python = progress.garden_best_python.get(item.id, false)
+ best_title.text = "%s · %d actions · %s" % [item.name, progress.garden_best[item.id], "Python" if best_python else "Classic Pondbot"]
+ _color_code(best_source, best_python)
  best_source.text = recorded
  best_source.set_caret_line(0)
  best_source.set_caret_column(0)
@@ -250,10 +276,11 @@ func _toggle_best_program() -> void:
  status.hide()
  best_panel.show()
  output_panel.hide()
+ _show_variables({}, "Best run")
  best_button.text = "Back to draft"
  review_button.disabled = true
  best_source.grab_focus()
- var result := _compile(recorded, recorded_python)
+ var result := _compile(recorded, best_python)
  if result.has("error"):
   best_title.text += "\nReplay unavailable · " + result.error
   _mark_line(best_source, result.line)
@@ -278,7 +305,7 @@ func _close_best_program() -> void:
  best_button.text = "Best program"
  review_button.disabled = false
  _draw_board(garden)
- _draw_output(garden)
+ _draw_diagnostics(garden)
  source.grab_focus()
 
 func _choose(index: int) -> void:
@@ -385,7 +412,7 @@ func _check_code() -> void:
  else:
   var unit := "action" if preview.turn == 1 else "actions"
   status.text = "Check · %d of %d lilies harvested in %d %s" % [preview.harvested, preview.plants.size(), preview.turn, unit]
- _draw_output(preview, "Check output")
+ _draw_diagnostics(preview, "Check")
  if not checked_route.actions.is_empty() or line >= 0:
   review_button.show()
 
@@ -398,17 +425,26 @@ func _trace(commands: Array) -> Dictionary:
  var preview := initial.copy_board() as Programs
  var traced: Array[Dictionary] = []
  var index := preview.next_action_index(commands, 0)
+ # Review position zero includes assignments before the first board action.
+ var variable_history: Array[Dictionary] = [preview.variables.duplicate()]
  while index < commands.size() and (not preview.practice or traced.size() < Programs.MAX_STEPS):
   var action: Dictionary = commands[index]
   var error := preview.step(action)
   if not error.is_empty():
-   return {"actions":traced, "initial":initial, "preview":preview, "line":action.line, "error":error}
+   return {"actions":traced, "initial":initial, "preview":preview, "line":action.line,
+           "error":error, "variable_history":variable_history}
   traced.append(action)
-  if preview.is_complete():
+  var complete := preview.is_complete()
+  var revision := preview.variable_revision
+  if not complete:
+   index = preview.next_action_index(commands, index + 1)
+  var values: Dictionary = variable_history.back() if preview.variable_revision == revision else preview.variables.duplicate()
+  variable_history.append(values)
+  if complete:
    break
-  index = preview.next_action_index(commands, index + 1)
  return {"actions":traced, "initial":initial, "preview":preview, "line":preview.runtime_error_line,
-         "error":preview.runtime_error, "limited":preview.practice and index < commands.size()}
+         "error":preview.runtime_error, "limited":preview.practice and index < commands.size(),
+         "variable_history":variable_history}
 
 func _toggle_review() -> void:
  if best_panel.visible:
@@ -440,14 +476,14 @@ func _close_review() -> void:
  if line >= 0:
   _mark_line(source, line)
  _draw_board(garden)
- _draw_output(garden)
+ _draw_diagnostics(garden)
 
 func _discard_check() -> void:
  checked_source = null
  checked_route.clear()
  _close_review()
  review_button.hide()
- _draw_output(garden)
+ _draw_diagnostics(garden)
 
 func _draw_review(value: float) -> void:
  var replaying_best := best_panel.visible
@@ -472,7 +508,7 @@ func _draw_review(value: float) -> void:
  else:
   editor.clear_executing_lines()
  _draw_board(preview, blocked)
- _draw_output(route.preview, "Best run output" if replaying_best else "Check output", preview.turn)
+ _draw_diagnostics(route.preview, "Best run" if replaying_best else "Check", preview.turn, route.variable_history[count])
 
 func _prepare_program() -> bool:
  if best_panel.visible:
@@ -604,7 +640,7 @@ func _draw() -> void:
  _draw_lessons(active)
  if not review_controls.visible:
   _draw_board(garden)
-  _draw_output(garden)
+  _draw_diagnostics(garden)
  if is_instance_valid(world):
   world.show_garden(garden)
 
@@ -629,16 +665,36 @@ func _draw_lessons(active: bool) -> void:
  next_lesson_button.visible = progress.solved.has(Programs.GARDENS[puzzle].id) and progress.next_lesson(lilies) >= 0
  next_lesson_button.disabled = active
 
-func _draw_output(view: Programs, title := "Program output", through_turn := -1) -> void:
+func _draw_diagnostics(view: Programs, context := "Program", through_turn := -1, snapshot: Variant = null) -> void:
  var lines := PackedStringArray()
  for entry: Dictionary in view.output:
   if through_turn < 0 or entry.turn <= through_turn:
    lines.append("Line %d · %s" % [entry.line + 1, entry.text])
  output_panel.visible = not lines.is_empty()
- output_title.text = title
+ output_title.text = context + " output"
  var transcript := "\n".join(lines)
  if output_text.text != transcript:
   output_text.text = transcript
+ _show_variables(view.variables if snapshot == null else snapshot, context)
+
+func _show_variables(values: Dictionary, context: String) -> void:
+ displayed_variables = values
+ variables_title.text = context + " variables"
+ _refresh_variables()
+
+func _refresh_variables() -> void:
+ variables_button.visible = best_python if best_panel.visible else python_mode
+ variables_panel.visible = variables_button.visible and variables_button.button_pressed
+ if not variables_panel.visible:
+  return
+ var names := displayed_variables.keys()
+ names.sort()
+ var lines := PackedStringArray()
+ for variable: String in names:
+  lines.append("%s = %s" % [variable, Programs.python_value_text(displayed_variables[variable])])
+ var content := "\n".join(lines) if not lines.is_empty() else "No variables assigned"
+ if variables_text.text != content:
+  variables_text.text = content
 
 func _draw_board(view: Programs, blocked := false) -> void:
  var harvest := "Harvested %d" % view.harvested if view.practice else "Lilies %d / %d" % [view.harvested, view.plants.size()]
@@ -682,6 +738,10 @@ func _input(event: InputEvent) -> void:
    get_viewport().set_input_as_handled()
   elif event.ctrl_pressed and event.keycode == KEY_PAGEDOWN and next_lesson_button.visible:
    _continue_lessons()
+   get_viewport().set_input_as_handled()
+  elif event.keycode == KEY_F7 and variables_button.visible:
+   variables_button.set_pressed_no_signal(not variables_button.button_pressed)
+   _refresh_variables()
    get_viewport().set_input_as_handled()
   elif best_panel.visible:
    return

@@ -230,6 +230,8 @@ Use Python `print("Tank ready", has_water())` to show messages and sensor readin
 
 Save a numeric reading or a Boolean in a Python variable, such as `start = column()` or `had_water = has_water()`. Outside function bodies, assign values with `=` and update counters with `+=` or `-=`. A function can read a variable after it has been assigned. Run and Check each start with fresh variables, and Resume keeps the current values.
 
+Press **F7** or choose **Variables** to inspect the current Python values. **Check** shows the final simulated values. In **Review** and **Best program**, move the action slider to see which values the program had at each point. The initial position includes assignments made before Pondbot's first action.
+
 ```python
 start = column()
 hops = 0
