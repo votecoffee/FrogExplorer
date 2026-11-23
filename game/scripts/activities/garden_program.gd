@@ -321,6 +321,8 @@ var turn := 0
 var harvested := 0
 var starting_turn := 0
 var starting_harvest := 0
+var run_water_used := 0
+var run_fills := 0
 var harvest_target := DEFAULT_HARVEST_TARGET
 var runtime_error := ""
 var runtime_error_line := -1
@@ -715,6 +717,8 @@ func load_puzzle(index: int, has_reservoir := false, has_reach_tool := false, ha
 func reset_program() -> void:
  starting_turn = turn
  starting_harvest = harvested
+ run_water_used = 0
+ run_fills = 0
  runtime_error = ""
  runtime_error_line = -1
  loop_entries.clear()
@@ -723,6 +727,12 @@ func reset_program() -> void:
  local_frames.clear()
  variable_revision = 0
  module_revision = 0
+
+func run_harvest_count() -> int:
+ return harvested - starting_harvest
+
+func run_action_count() -> int:
+ return turn - starting_turn
 
 func inspect_variables() -> Dictionary:
  var visible_values := variables.duplicate()
@@ -752,6 +762,8 @@ func copy_board() -> RefCounted:
  copy.harvested = harvested
  copy.starting_turn = starting_turn
  copy.starting_harvest = starting_harvest
+ copy.run_water_used = run_water_used
+ copy.run_fills = run_fills
  copy.harvest_target = harvest_target
  return copy
 
@@ -982,9 +994,9 @@ func _read_number(operand: String) -> int:
   "column":
    return cell.x
   "harvest_count":
-   return harvested - starting_harvest
+   return run_harvest_count()
   "action_count":
-   return turn - starting_turn
+   return run_action_count()
   "harvest_target":
    return harvest_target if practice else plants.size()
   _:
@@ -1118,6 +1130,7 @@ func step(action: Dictionary) -> String:
    if tile(cell) != "~":
     return "Fill at the spring."
    tank = water_capacity
+   run_fills += 1
   "plant":
    if plant.get("planted", true):
     return "Plant on a prepared empty bed."
@@ -1131,6 +1144,7 @@ func step(action: Dictionary) -> String:
    if tank == 0:
     return "The tank is empty. Visit the spring."
    tank -= 1
+   run_water_used += 1
    plant.need -= 1
    if plant.need == 0:
     plant.ready = turn + (4 if plot == LOTUS_BED else 2)

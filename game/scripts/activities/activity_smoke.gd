@@ -901,14 +901,23 @@ func check_nursery_target(popup) -> void:
 
  target_input.text = "24"
  popup.check_button.pressed.emit()
- check("Harvested 24 in 97 actions" in popup.status.text and popup.garden.turn == 0 and popup.progress.nursery_balance() == starting_balance, "Check applies a typed target and previews the unchanged draft")
+ check("Harvested 24 in 97 actions · Target 24 met · Water used 30 · Fills 5" in popup.status.text and popup.garden.turn == 0 and popup.progress.nursery_balance() == starting_balance, "Check applies a typed target and reports its harvest and water costs")
+ popup.review_button.pressed.emit()
+ popup.review_slider.value = 18
+ var has_refill: bool = "Water used 6 · Fills 2" in popup.review_position.text
+ popup.review_slider.value = 0
+ check(has_refill and "Water used 0 · Fills 0" in popup.review_position.text and popup.garden.turn == 0, "Review shows water and refill totals at the selected action")
  target_input.text = "16"
  press_key(KEY_ENTER, true)
  popup.nursery_target.value = 8
  check(popup.running and not popup.nursery_target.editable and int(popup.nursery_target.value) == 16 and popup.garden.harvest_target == 16, "An active run keeps its original target")
  for action in 76:
   popup._process(.25)
- check(popup.steps.is_empty() and popup.nursery_target.editable and popup.garden.turn == 76 and popup.garden.harvested == 16 and popup.progress.nursery_balance() == starting_balance + 16, "The live program stops at the chosen harvest target")
+ check(popup.steps.is_empty() and popup.nursery_target.editable and popup.garden.turn == 76 and popup.garden.harvested == 16 and popup.progress.nursery_balance() == starting_balance + 16 and "Harvested 16 in 76 actions · Target 16 met · Water used 24 · Fills 4" in popup.status.text, "The live run reports its goal, harvest and water costs")
+ press_key(KEY_ENTER, true)
+ for action in 42:
+  popup._process(.25)
+ check(popup.steps.is_empty() and popup.garden.turn == 118 and popup.garden.harvested == 32 and popup.progress.nursery_balance() == starting_balance + 32 and "Harvested 16 in 42 actions · Target 16 met · Water used 12 · Fills 2" in popup.status.text, "A second run reports only its own work on the established nursery")
 
  popup.chooser.item_selected.emit(marsh)
  var starts_with_default: bool = int(popup.nursery_target.value) == 32
@@ -925,6 +934,29 @@ func check_nursery_target(popup) -> void:
  popup.source.text = "print(harvest_target())\nfill()\n"
  popup.check_button.pressed.emit()
  check(not popup.nursery_target_row.visible and popup.output_text.text.ends_with(" · 2"), "Scored lessons report their required harvest instead of showing a nursery field")
+
+func check_nursery_reports(popup) -> void:
+ popup.chooser.item_selected.emit(Program.GARDENS.find(Program.LOTUS_MARSH))
+ var balance: int = popup.progress.nursery_balance()
+ popup.source.text = "fill()\nfill()\nhop(north)\nplant(east)\nwater(east)\nwater(east)\nwater(east)\n"
+ popup.check_button.pressed.emit()
+ var partial_summary := "Harvested 0 in 6 actions · 8 short of 8 · Water used 2 · Fills 2"
+ check("Check · Line 7 · This plot does not need water." in popup.status.text and partial_summary in popup.status.text, "A blocked Check reports completed actions and counts a top-up")
+ popup.review_button.pressed.emit()
+ popup.review_slider.value = 6
+ check("Blocked" in popup.review_position.text and "Water used 2 · Fills 2" in popup.review_position.text and popup.garden.tank == 0 and popup.progress.nursery_balance() == balance, "The blocked preview keeps its water totals off the live board")
+
+ press_key(KEY_ENTER, true)
+ for action in 7:
+  popup._process(.25)
+ check(popup.steps.is_empty() and popup.garden.turn == 6 and popup.garden.tank == 4 and partial_summary in popup.status.text, "A live command error reports the same partial water use as Check")
+ popup.source.text = "wait()\nwait()\nwait()\ngather(east)\nwhile True:\n    wait()\n"
+ press_key(KEY_ENTER, true)
+ for action in 4:
+  popup._process(.25)
+ var shows_progress: bool = "3 / 8 lilies this run" in popup.status.text
+ popup.stop_button.pressed.emit()
+ check(shows_progress and popup.progress.nursery_balance() == balance + 3 and popup.status.text == "Stopped · Harvested 3 in 4 actions · 5 short of 8 · Water used 0 · Fills 0", "Stopping reports the current run's lotus reward without counting earlier fills")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)
@@ -1772,6 +1804,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   check_nursery_speed(popup)
   await check_run_counters(popup, hook_route)
   await check_nursery_target(popup)
+  check_nursery_reports(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

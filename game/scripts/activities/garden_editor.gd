@@ -477,9 +477,13 @@ func _set_nursery_target(value: float) -> void:
  status.text = "Harvest target · %d lilies" % garden.harvest_target
 
 func _stop() -> void:
+ var show_summary := garden.practice and not steps.is_empty()
  _clear_program()
  source.clear_executing_lines()
- status.text = "Stopped. Run or Step continues from the current garden." if garden.practice else "Stopped. Run or Step starts from a fresh board."
+ if show_summary:
+  status.text = "Stopped · " + _nursery_summary(garden)
+ else:
+  status.text = "Stopped. Run or Step continues from the current garden." if garden.practice else "Stopped. Run or Step starts from a fresh board."
  _draw()
 
 func _compile(text: String, python: bool) -> Dictionary:
@@ -507,13 +511,9 @@ func _check_code() -> void:
  var preview: Programs = checked_route.preview
  var line: int = checked_route.line
  if line >= 0:
-  _line_error("Check · Line %d · %s" % [line + 1, checked_route.error], line)
+  _line_error("Check · Line %d · %s" % [line + 1, checked_route.error], line, preview)
  elif preview.practice:
-  var initial: Programs = checked_route.initial
-  var actions_count: int = checked_route.actions.size()
-  var unit := "action" if actions_count == 1 else "actions"
-  var harvest := "Check · Harvested %d in %d %s" % [preview.harvested - initial.harvested, actions_count, unit]
-  status.text = harvest + (" · Preview limit" if checked_route.limited else "")
+  status.text = "Check · " + _nursery_summary(preview) + (" · Preview limit" if checked_route.limited else "")
  elif preview.is_complete():
   var over: int = preview.turn - Programs.GARDENS[puzzle].target
   var target := "meets target" if over <= 0 else "%d over target" % over
@@ -617,6 +617,8 @@ func _draw_review(value: float) -> void:
   _mark_line(editor, traced[count - 1].line)
  else:
   editor.clear_executing_lines()
+ if preview.practice:
+  review_position.text += "\n" + _water_summary(preview)
  _draw_board(preview, blocked)
  _draw_diagnostics(route.preview, "Best run" if replaying_best else "Check", preview.turn, route.variable_history[count])
 
@@ -661,8 +663,10 @@ func _step() -> void:
 func _show_progress() -> void:
  var next: Dictionary = steps[offset]
  status.text = "%s · %d actions · next line %d" % [
-  "Running" if running else "Paused", garden.turn, next.line + 1,
+  "Running" if running else "Paused", garden.run_action_count(), next.line + 1,
  ]
+ if garden.practice:
+  status.text += " · %d / %d lilies this run" % [garden.run_harvest_count(), garden.harvest_target]
 
 func _mark_line(editor: CodeEdit, line: int) -> void:
  var marked := clampi(line, 0, editor.get_line_count() - 1)
@@ -670,8 +674,10 @@ func _mark_line(editor: CodeEdit, line: int) -> void:
  editor.set_line_as_executing(marked, true)
  editor.set_caret_line(marked)
 
-func _line_error(message: String, line: int) -> void:
+func _line_error(message: String, line: int, report: Programs = null) -> void:
  status.text = message
+ if report != null and report.practice:
+  status.text += "\n" + _nursery_summary(report)
  _mark_line(source, line)
  source.grab_focus()
 
@@ -688,8 +694,9 @@ func _process(delta: float) -> void:
  if breakpoint_offset != offset and source.is_line_breakpointed(action.line):
   running = false
   breakpoint_offset = offset
-  var unit := "action" if garden.turn == 1 else "actions"
-  status.text = "Breakpoint · line %d · %d %s" % [action.line + 1, garden.turn, unit]
+  var actions_count := garden.run_action_count()
+  var unit := "action" if actions_count == 1 else "actions"
+  status.text = "Breakpoint · line %d · %d %s" % [action.line + 1, actions_count, unit]
   _mark_line(source, action.line)
   _draw()
   return
@@ -702,7 +709,7 @@ func _advance() -> void:
  var error: String = garden.step(action)
  if not error.is_empty():
   _clear_program()
-  _line_error("Line %d · %s" % [action.line + 1, error], action.line)
+  _line_error("Line %d · %s" % [action.line + 1, error], action.line, garden)
  else:
   _mark_line(source, action.line)
   var harvest := garden.harvested - before
@@ -730,11 +737,23 @@ func _finish_incomplete() -> void:
  _clear_program()
  if not garden.runtime_error.is_empty():
   var line: int = garden.runtime_error_line
-  _line_error("Line %d · %s" % [line + 1, garden.runtime_error], line)
+  _line_error("Line %d · %s" % [line + 1, garden.runtime_error], line, garden)
  elif garden.practice:
-  status.text = "Program ended · Harvested %d" % garden.harvested
+  status.text = "Program ended · " + _nursery_summary(garden)
  else:
   status.text = "Program ended · %d lilies remain." % (garden.plants.size() - garden.harvested)
+
+func _water_summary(view: Programs) -> String:
+ return "Water used %d · Fills %d" % [view.run_water_used, view.run_fills]
+
+func _nursery_summary(view: Programs) -> String:
+ var count := view.run_harvest_count()
+ var actions_count := view.run_action_count()
+ var unit := "action" if actions_count == 1 else "actions"
+ var harvest := "Harvested %d in %d %s" % [count, actions_count, unit]
+ var shortfall := view.harvest_target - count
+ var target := "Target %d met" % view.harvest_target if shortfall <= 0 else "%d short of %d" % [shortfall, view.harvest_target]
+ return "%s · %s · %s" % [harvest, target, _water_summary(view)]
 
 func _draw() -> void:
  var item: Dictionary = Programs.GARDENS[puzzle]
