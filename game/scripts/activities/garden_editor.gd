@@ -4,6 +4,7 @@ signal dismissed
 const Programs = preload("res://scripts/activities/garden_program.gd")
 const Progress = preload("res://scripts/activities/activity_progress.gd")
 const RUN_INTERVAL := .23
+const COMPARISON_BOARD_KEY := "Gold outline · Tile differs between drafts"
 const CLASSIC_GUIDE := "hop north / east / south / west\nfill     plant     water     wait     gather\nrepeat N … end     # comment\nroutine NAME heading · call NAME east\nif / while CONDITION … end\nelse · not · and · or · break · continue\nLook ahead with clear east or lily north\nF9 toggles a breakpoint"
 const PYTHON_GUIDE := "hop(east)    fill()    water()\nplant()       wait()       gather()\nfor bed in range(2):\nif water_level() < tank_capacity():\nwhile clear(east):\ndef walk(heading, steps: int):\nstart = column()    print(start)\nTab indents · Shift+Tab unindents\nF9 toggles a breakpoint"
 var hud: ExplorerHUD
@@ -23,7 +24,9 @@ var comparison_timeline: HBoxContainer
 var comparison_slider: HSlider
 var comparison_position: Label
 var comparison_difference_button: Button
-var comparison_first_difference := -1
+var comparison_previous_difference_button: Button
+var comparison_next_difference_button: Button
+var comparison_differences: Array[int] = []
 var comparison_current_route: Dictionary = {}
 var comparison_other_route: Dictionary = {}
 var comparison_current: Label
@@ -587,8 +590,12 @@ func _add_draft_comparison(parent: Container) -> void:
  comparison_slider.tooltip_text = "Drag or use Left and Right to review both drafts at the same action."
  comparison_slider.value_changed.connect(_show_comparison_step)
  comparison_timeline.add_child(comparison_slider)
- comparison_difference_button = _button(comparison_timeline, "First difference", _jump_to_comparison_difference)
+ comparison_difference_button = _button(comparison_timeline, "First difference", func(): _jump_to_comparison_difference(0))
  comparison_difference_button.tooltip_text = "Compare board commands, directions, and points where either draft stops."
+ comparison_previous_difference_button = _button(comparison_timeline, "Previous", func(): _jump_to_adjacent_comparison_difference(false))
+ comparison_previous_difference_button.tooltip_text = "Previous difference · Page Up when the slider is focused"
+ comparison_next_difference_button = _button(comparison_timeline, "Next", func(): _jump_to_adjacent_comparison_difference(true))
+ comparison_next_difference_button.tooltip_text = "Next difference · Page Down when the slider is focused"
  var results := GridContainer.new()
  results.columns = 2
  results.add_theme_constant_override("h_separation", 18)
@@ -601,7 +608,7 @@ func _add_draft_comparison(parent: Container) -> void:
   results.add_child(label)
  comparison_current_board = _board_grid(results)
  comparison_other_board = _board_grid(results)
- comparison_board_key = hud.label("Gold outline · Tile differs between drafts", 13, Color("#e8c879"))
+ comparison_board_key = hud.label(COMPARISON_BOARD_KEY, 13, Color("#e8c879"))
  comparison_panel.add_child(comparison_board_key)
  comparison_panel.hide()
 
@@ -642,44 +649,65 @@ func _compare_drafts(index: int) -> void:
  comparison_slider.max_value = total
  comparison_slider.set_value_no_signal(total)
  comparison_timeline.visible = total > 0
- _update_comparison_difference()
+ _update_comparison_differences()
  _show_comparison_step(total)
 
-func _update_comparison_difference() -> void:
+func _update_comparison_differences() -> void:
  var both_compiled := comparison_current_route.has("actions") and comparison_other_route.has("actions")
- comparison_difference_button.visible = both_compiled
- comparison_first_difference = _find_comparison_difference(comparison_current_route, comparison_other_route) if both_compiled else -1
- comparison_difference_button.disabled = comparison_first_difference < 0
- if comparison_first_difference == 0:
-  comparison_difference_button.text = "First difference · Start"
- elif comparison_first_difference > 0:
-  comparison_difference_button.text = "First difference · %d" % comparison_first_difference
+ if both_compiled:
+  comparison_differences = _find_comparison_differences(comparison_current_route, comparison_other_route)
  else:
+  comparison_differences.clear()
+ comparison_difference_button.visible = both_compiled
+ comparison_difference_button.disabled = comparison_differences.is_empty()
+ comparison_previous_difference_button.visible = comparison_differences.size() > 1
+ comparison_next_difference_button.visible = comparison_previous_difference_button.visible
+ if comparison_differences.is_empty():
   comparison_difference_button.text = "No preview difference"
+ elif comparison_differences[0] == 0:
+  comparison_difference_button.text = "First difference · Start"
+ else:
+  comparison_difference_button.text = "First difference · %d" % comparison_differences[0]
 
-func _find_comparison_difference(current: Dictionary, other: Dictionary) -> int:
+func _find_comparison_differences(current: Dictionary, other: Dictionary) -> Array[int]:
  var current_actions: Array = current.actions
  var other_actions: Array = other.actions
  var shared_steps := mini(current_actions.size(), other_actions.size())
- # Both traces use the same starting board. Matching resolved commands keep its state equal.
+ var differences: Array[int] = []
  for index in shared_steps:
   var left: Dictionary = current_actions[index]
   var right: Dictionary = other_actions[index]
   if left.command != right.command or left.get("direction", "") != right.get("direction", ""):
-   return index + 1
- if _comparison_interruption(current, shared_steps) != _comparison_interruption(other, shared_steps):
-  return shared_steps
- return shared_steps + 1 if current_actions.size() != other_actions.size() else -1
+   differences.append(index + 1)
+ var different_end := _comparison_interruption(current, shared_steps) != _comparison_interruption(other, shared_steps)
+ var different_lengths := current_actions.size() != other_actions.size()
+ # The slider shows an interruption at the last completed action.
+ if different_end:
+  if differences.is_empty() or differences[-1] != shared_steps:
+   differences.append(shared_steps)
+ elif different_lengths:
+  differences.append(shared_steps + 1)
+ if different_lengths:
+  var longer := current if current_actions.size() > other_actions.size() else other
+  var length: int = longer.actions.size()
+  if differences[-1] < length and not _comparison_interruption(longer, length).is_empty():
+   differences.append(length)
+ return differences
 
 func _comparison_interruption(route: Dictionary, index: int) -> String:
  if _comparison_blocked(route, index):
   return route.error
  return "Preview limit" if index == route.actions.size() and route.get("limited", false) else ""
 
-func _jump_to_comparison_difference() -> void:
- if comparison_first_difference >= 0:
-  comparison_slider.value = comparison_first_difference
+func _jump_to_comparison_difference(position: int) -> void:
+ if position >= 0 and position < comparison_differences.size():
+  comparison_slider.value = comparison_differences[position]
   comparison_slider.grab_focus()
+
+func _jump_to_adjacent_comparison_difference(forward: bool) -> void:
+ var index := roundi(comparison_slider.value)
+ var position := comparison_differences.bsearch(index, not forward)
+ _jump_to_comparison_difference(position if forward else position - 1)
 
 func _trace_draft(text: String) -> Dictionary:
  var result := _compile(text, python_mode)
@@ -697,6 +725,13 @@ func _show_comparison_step(value: float) -> void:
  _draw_grid(comparison_current_board, current, _comparison_blocked(comparison_current_route, index), other, Vector2(61, 36))
  _draw_grid(comparison_other_board, other, _comparison_blocked(comparison_other_route, index), current, Vector2(61, 36))
  comparison_board_key.visible = current != null and other != null
+ var before := comparison_differences.bsearch(index)
+ var after := comparison_differences.bsearch(index, false)
+ comparison_previous_difference_button.disabled = before == 0
+ comparison_next_difference_button.disabled = after == comparison_differences.size()
+ comparison_board_key.text = COMPARISON_BOARD_KEY
+ if before < after:
+  comparison_board_key.text += "    ·    Difference %d of %d" % [after, comparison_differences.size()]
 
 func _comparison_board_at(route: Dictionary, index: int) -> Programs:
  return _board_after_actions(route, mini(index, route.actions.size())) if route.has("actions") else null
@@ -735,7 +770,7 @@ func _close_draft_comparison() -> void:
   comparison_panel.hide()
   comparison_current_route.clear()
   comparison_other_route.clear()
-  comparison_first_difference = -1
+  comparison_differences.clear()
   _draw_grid(comparison_current_board, null)
   _draw_grid(comparison_other_board, null)
   compare_drafts_button.text = "Compare drafts"
@@ -1296,6 +1331,9 @@ func _input(event: InputEvent) -> void:
    get_viewport().set_input_as_handled()
   elif event.ctrl_pressed and event.keycode == KEY_PAGEDOWN and next_lesson_button.visible:
    _continue_lessons()
+   get_viewport().set_input_as_handled()
+  elif comparison_slider.has_focus() and not comparison_differences.is_empty() and event.get_modifiers_mask() == 0 and event.keycode in [KEY_PAGEUP, KEY_PAGEDOWN]:
+   _jump_to_adjacent_comparison_difference(event.keycode == KEY_PAGEDOWN)
    get_viewport().set_input_as_handled()
   elif event.keycode == KEY_F7 and variables_button.visible:
    variables_button.set_pressed_no_signal(not variables_button.button_pressed)

@@ -1161,9 +1161,9 @@ func check_draft_comparison(popup) -> void:
  popup.stop_button.pressed.emit()
 
  var ring: int = Program.GARDENS.find(Program.STONE_RING_NURSERY)
- var ring_copy: Dictionary = popup.progress.create_draft_copy(Program.STONE_RING_NURSERY.id, "fill()\nhop(east)\nwait()\n", true)
+ var ring_copy: Dictionary = popup.progress.create_draft_copy(Program.STONE_RING_NURSERY.id, "fill()\nhop(east)\nhop(west)\nwait()\nhop(east)\nwait()\n", true)
  popup.chooser.item_selected.emit(ring)
- popup.source.text = "fill()\nhop(north)\nwait()\n"
+ popup.source.text = "fill()\nhop(north)\nhop(south)\nwait()\nhop(north)\nwait()\n"
  popup.compare_drafts_button.pressed.emit()
  await frames(2)
  var current_rect := current_board.get_global_rect()
@@ -1175,12 +1175,28 @@ func check_draft_comparison(popup) -> void:
 
  popup.comparison_difference_button.pressed.emit()
  check(popup.comparison_slider.value == 2 and "hop north" in popup.comparison_current.text and "hop east" in popup.comparison_other.text, "The first difference skips a shared fill and finds the first different direction")
+ var slider: HSlider = popup.comparison_slider
+ var previous: Button = popup.comparison_previous_difference_button
+ var next: Button = popup.comparison_next_difference_button
+ press_key(KEY_PAGEUP)
+ check(slider.value == 2 and previous.visible and previous.disabled and not next.disabled, "Previous stops at the first difference")
+ press_key(KEY_PAGEDOWN)
+ check(slider.value == 3 and "Difference 2 of 3" in popup.comparison_board_key.text and "●" in current_board.get_child(15).get_child(0).text and "●" in other_board.get_child(15).get_child(0).text, "Page Down finds different return commands that bring both frogs back to the spring")
+ press_key(KEY_PAGEDOWN)
+ press_key(KEY_PAGEDOWN)
+ check(slider.value == 5 and next.disabled and not previous.disabled and "Difference 3 of 3" in popup.comparison_board_key.text, "Page Down skips the shared action and stops at the final direction difference")
+ previous.grab_focus()
+ press_key(KEY_ENTER)
+ check(slider.value == 3 and slider.has_focus(), "The Previous button works from the keyboard and returns focus to the slider")
+ slider.value = 4
+ next.pressed.emit()
+ check(slider.value == 5 and next.disabled and not previous.disabled, "Next starts from the current slider position")
 
 func check_comparison_stopping_points(popup) -> void:
  var id := "first_bloom"
  var shared := "fill()\nhop(east)\n"
  var current := shared + "wait()\n"
- var programs := ["print(4)\n" + current, shared, shared + "fill()\n", "gather()\n"]
+ var programs := ["print(4)\n" + current, shared, shared + "fill()\n", "gather()\n", current + "wait()\nwait()\nfill()\n"]
  var keys: Array[String] = []
  for program: String in programs:
   var copy: Dictionary = popup.progress.create_draft_copy(id, program, true)
@@ -1210,6 +1226,11 @@ func check_comparison_stopping_points(popup) -> void:
    3:
     difference.pressed.emit()
     check(slider.value == 0 and difference.text == "First difference · Start" and "Blocked · Line 1" in popup.comparison_other.text and "Start" in popup.comparison_current.text, "The first difference can occur before either draft completes an action")
+   4:
+    difference.pressed.emit()
+    check(slider.value == 4 and "Finished" in popup.comparison_current.text and "Line 4 · wait" in popup.comparison_other.text and "Difference 1 of 2" in popup.comparison_board_key.text, "The longer route first diverges by continuing after the shorter route")
+    press_key(KEY_PAGEDOWN)
+    check(slider.value == 5 and "Blocked · Line 6 · Fill at the spring." in popup.comparison_other.text and "Difference 2 of 2" in popup.comparison_board_key.text, "A later blocked command remains a separate difference")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)
