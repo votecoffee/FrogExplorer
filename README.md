@@ -194,7 +194,7 @@ Open Places with **N / R3** to select these single-player destinations. Random t
 | --- | --- |
 | Kingfisher Circuit | Board the convertible and drive two timed laps. The first start-line crossing starts the clock. Drive through each gate in order. |
 | Cloudring Course | Launch a helium balloon and fly through eight rings in order. The next ring glows gold. Use the right stick or I/K and J/L for altitude and strafe. |
-| Lily Code Garden | Type Python in a popup editor and program Pondbot to water and gather lilies across fifteen grid puzzles and two renewable nurseries. |
+| Lily Code Garden | Type Python in a popup editor and program Pondbot to water and gather lilies across fifteen grid puzzles and three renewable nurseries. |
 
 Press **F5 / A** again to restart a race. The course shows your current time and saved personal best. After your first timed finish, the HUD compares each gate or ring to your fastest run with recorded splits. Existing personal best times carry over. Use **H** or Places to return to the pond.
 
@@ -226,9 +226,9 @@ In **Nursery beds**, sow a lily on a prepared brown bed with `plant()`. Test for
 
 Each live harvest in a nursery adds one nursery lily to your saved balance. When Pondbot is stopped in Open nursery, spend **12 nursery lilies** to unlock **Willow nursery**. It has five renewable seedbeds and a gap in the south row. Extend the starter to tend both banks and keep earning lilies. Lesson unlocks use the lilies from first clears of scored puzzles.
 
-After unlocking Willow nursery, spend **24 nursery lilies** on the reservoir upgrade. The next fill gives Pondbot six doses in either renewable nursery. In Willow nursery, move `fill()` ahead of the two bank sweeps to tend all five beds on one fill. Scored lessons use a three-dose tank.
+After unlocking Willow nursery, spend **24 nursery lilies** on the reservoir upgrade. The next fill gives Pondbot six doses in every nursery. In Willow nursery, move `fill()` ahead of the two bank sweeps to tend all five beds on one fill. Scored lessons use a three-dose tank.
 
-After fitting the reservoir, spend **32 nursery lilies** on the reach tool. It lets Pondbot plant or water an adjacent bed in either nursery. A lily watered before a hop can ripen during the hop. Use `has_reach_tool()` to check availability in Python. Classic Pondbot uses commands such as `plant east` and `water east`.
+After fitting the reservoir, spend **32 nursery lilies** on the reach tool. It lets Pondbot plant or water an adjacent bed in the nurseries. A lily watered before a hop can ripen during the hop. Use `has_reach_tool()` to check availability in Python. Classic Pondbot uses commands such as `plant east` and `water east`.
 
 ```python
 if has_reach_tool() and empty_bed(east) and has_water():
@@ -237,6 +237,8 @@ if has_reach_tool() and empty_bed(east) and has_water():
     hop(east)
     gather()
 ```
+
+Spend **40 nursery lilies** after buying the reach tool to unlock **Lotus marsh**. Its purple lotus beds need two water doses and ripen three actions after their final watering. A ripe lotus adds three nursery lilies to your balance. Tend the neighboring lily while the lotus ripens. The starter shows one pair, and a six-dose fill can cover both pairs for eight nursery lilies per circuit.
 
 Use Python `print("Tank ready", has_water())` to show messages and sensor readings with their source line numbers. **Program output** shows the live run. **Check output** shows readings from the simulated board, and **Review** reveals those messages as you move through the actions. Printing costs no actions, and each view retains the latest 32 messages.
 

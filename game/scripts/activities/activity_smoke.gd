@@ -418,7 +418,12 @@ func check_nursery_storage() -> void:
  var reach := second.buy_nursery_upgrade(Progress.REACH_TOOL_MARKER)
  var reach_again := first.buy_nursery_upgrade(Progress.REACH_TOOL_MARKER)
  reopened.load_from(path)
- check(saved and reach == OK and reach_again == OK and reopened.nursery_balance() == 0 and reopened.has_nursery_upgrade(Progress.REACH_TOOL_MARKER) and reopened.next_nursery_upgrade().is_empty(), "The reach tool persists and charges its price once across sessions")
+ check(saved and reach == OK and reach_again == OK and reopened.nursery_balance() == 0 and reopened.has_nursery_upgrade(Progress.REACH_TOOL_MARKER) and reopened.next_nursery_upgrade() == Progress.LOTUS_MARSH_MARKER, "The reach tool persists and charges its price once across sessions")
+ saved = first.record_nursery_harvest(Progress.LOTUS_MARSH_COST + 3) == OK and saved
+ var marsh := second.buy_nursery_upgrade(Progress.LOTUS_MARSH_MARKER)
+ var marsh_again := first.buy_nursery_upgrade(Progress.LOTUS_MARSH_MARKER)
+ reopened.load_from(path)
+ check(saved and marsh == OK and marsh_again == OK and reopened.nursery_balance() == 3 and reopened.lesson_available(Program.LOTUS_MARSH, 0) and reopened.next_nursery_upgrade().is_empty(), "Lotus marsh and a multi-lily harvest persist across sessions with one purchase")
 
 func check_willow_nursery(popup, open_nursery: int) -> void:
  var willow := Program.GARDENS.find(Program.WILLOW_NURSERY)
@@ -484,7 +489,7 @@ func check_nursery_reservoir(popup, open_nursery: int) -> void:
  popup.check_button.pressed.emit()
  check(popup.garden.water_capacity == 3 and popup.output_text.text.ends_with(" · 3 3") and "Water 0 / 3" in popup.info.text, "Scored lessons use the original capacity in the live board and Check")
 
-func check_reach_tool(popup) -> void:
+func check_reach_tool(popup) -> String:
  var willow := Program.GARDENS.find(Program.WILLOW_NURSERY)
  popup.chooser.item_selected.emit(willow)
  popup.source.text = "print(has_reach_tool())\nplant(east)\n"
@@ -501,7 +506,7 @@ func check_reach_tool(popup) -> void:
  popup.stop_button.pressed.emit()
  var before: Vector2i = popup.garden.cell
  popup.nursery_upgrade_button.pressed.emit()
- check(popup.garden.reach_tool and popup.garden.cell == before and popup.garden.water_capacity == 6 and popup.progress.nursery_balance() == 0 and not popup.nursery_upgrade_button.visible, "Fitting the reach tool spends the saved lilies and preserves the reservoir")
+ check(popup.garden.reach_tool and popup.garden.cell == before and popup.garden.water_capacity == 6 and popup.progress.nursery_balance() == 0 and popup.nursery_upgrade_button.disabled and "Unlock Lotus marsh" in popup.nursery_upgrade_button.text, "Fitting the reach tool preserves the reservoir and reveals Lotus marsh")
  popup._reset()
  popup.source.text = "fill()\nwater(east)\n"
  popup.check_button.pressed.emit()
@@ -547,6 +552,70 @@ print(has_reach_tool(), water_level())
  popup.source.text = "print(has_reach_tool())\nwater(east)\n"
  popup.check_button.pressed.emit()
  check(popup.output_text.text.ends_with(" · False") and "requires the reach tool" in popup.status.text and popup.garden.turn == 0, "Scored lessons report their own tool availability")
+ return route
+
+func check_lotus_marsh(popup, reach_route: String) -> void:
+ var willow := Program.GARDENS.find(Program.WILLOW_NURSERY)
+ var marsh := Program.GARDENS.find(Program.LOTUS_MARSH)
+ popup.chooser.item_selected.emit(willow)
+ popup.chooser.item_selected.emit(marsh)
+ check(popup.puzzle == willow and popup.chooser.is_item_disabled(marsh) and "40 nursery lilies" in popup.chooser.get_item_text(marsh), "Lotus marsh stays locked until its purchase")
+ popup.source.text = reach_route.get_slice("\nfill()\n", 0) + "\nwhile True:\n    fill()\n    sweep(north, south)\n    sweep(south, north)\n"
+ press_key(KEY_ENTER, true)
+ for action in Program.MAX_STEPS:
+  if not popup.running or popup.progress.nursery_balance() >= Progress.LOTUS_MARSH_COST:
+   break
+  popup._process(.25)
+ check(popup.running and popup.progress.nursery_balance() == Progress.LOTUS_MARSH_COST and popup.nursery_upgrade_button.disabled, "The Willow reach route funds Lotus marsh through live harvests")
+ popup.stop_button.pressed.emit()
+ popup.nursery_upgrade_button.pressed.emit()
+ check(popup.puzzle == marsh and not popup.chooser.is_item_disabled(marsh) and popup.progress.nursery_balance() == 0 and not popup.nursery_upgrade_button.visible and popup.garden.water_capacity == 6 and popup.garden.reach_tool and popup.garden.plants.size() == 4, "The purchase opens four renewable beds with both nursery tools")
+
+ popup.check_button.pressed.emit()
+ check("Harvested 4 in 11 actions" in popup.status.text and popup.garden.turn == 0 and popup.progress.nursery_balance() == 0, "The Python starter tends one pair for four lilies without spending live water or crediting the balance")
+ popup.language.item_selected.emit(1)
+ popup.check_button.pressed.emit()
+ check("Harvested 4 in 11 actions" in popup.status.text, "The Classic starter also tends a lotus and its neighbor")
+ popup.language.item_selected.emit(0)
+ popup.source.text = "fill()\nhop(north)\nplant(east)\nwater(east)\nwater(east)\nhop(east)\ngather()\n"
+ popup.check_button.pressed.emit()
+ check("give it three more actions" in popup.status.text and popup.checked_route.actions.size() == 6 and popup.checked_route.preview.plant_status(Vector2i(1, 0)) == "Growing", "An early lotus harvest fails while it is still growing")
+
+ var route := """def tend_ahead(heading):
+    if empty_bed(heading):
+        plant(heading)
+    while thirsty(heading):
+        water(heading)
+
+def harvest_pair(approach, neighbor):
+    tend_ahead(approach)
+    hop(approach)
+    tend_ahead(neighbor)
+    gather()
+    hop(neighbor)
+    gather()
+
+fill()
+hop(north)
+harvest_pair(east, east)
+hop(south)
+harvest_pair(south, west)
+hop(west)
+hop(north)
+print(water_level())
+"""
+ popup.source.text = route
+ popup.check_button.pressed.emit()
+ check("Harvested 8 in 23 actions" in popup.status.text and popup.output_text.text.ends_with(" · 0") and popup.progress.nursery_balance() == 0, "Check predicts eight lilies on six doses and no idle actions")
+ popup.review_button.pressed.emit()
+ popup.review_slider.value = 4
+ check("Lotus\nThirsty ×1" == popup.board.get_child(1).get_child(0).text, "Review shows one more dose is needed after the first watering")
+ popup.review_slider.value = 8
+ check("● Lotus\nRipe" == popup.board.get_child(1).get_child(0).text and popup.garden.turn == 0 and popup.garden.plant_status(Vector2i(1, 0)) == Program.EMPTY_BED, "Review shows the lotus ripen while the neighboring lily is watered")
+ await finish_by_steps(popup, route)
+ check(popup.garden.turn == 23 and popup.garden.harvested == 8 and popup.progress.nursery_balance() == 8 and popup.garden.cell == Vector2i(0, 1) and popup.garden.tank == 0, "A live circuit pays eight nursery lilies and returns to the spring")
+ await finish_by_steps(popup, route)
+ check(popup.garden.turn == 46 and popup.garden.harvested == 16 and popup.progress.nursery_balance() == 16, "The same program replants and harvests both lotus beds again")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)
@@ -1387,7 +1456,8 @@ if not (3 <= water_level() <= 7) and column() > row():
   await check_value_parameters(popup)
   check_willow_nursery(popup, open_nursery)
   await check_nursery_reservoir(popup, open_nursery)
-  await check_reach_tool(popup)
+  var reach_route: String = await check_reach_tool(popup)
+  await check_lotus_marsh(popup, reach_route)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

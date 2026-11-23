@@ -347,6 +347,9 @@ func _buy_nursery_upgrade() -> void:
  if upgrade == Progress.WILLOW_MARKER:
   _choose(Programs.GARDENS.find(Programs.WILLOW_NURSERY))
   status.text = "Willow nursery unlocked. Run or Step to tend the new beds."
+ elif upgrade == Progress.LOTUS_MARSH_MARKER:
+  _choose(Programs.GARDENS.find(Programs.LOTUS_MARSH))
+  status.text = "Lotus marsh unlocked. Tend a neighboring lily while the lotus ripens."
  else:
   _apply_nursery_tools()
   if upgrade == Progress.RESERVOIR_MARKER:
@@ -630,7 +633,8 @@ func _advance() -> void:
   _line_error("Line %d · %s" % [action.line + 1, error], action.line)
  else:
   _mark_line(source, action.line)
-  if garden.practice and garden.harvested > before and progress.record_nursery_harvest() != OK:
+  var harvest := garden.harvested - before
+  if garden.practice and harvest > 0 and progress.record_nursery_harvest(harvest) != OK:
    hud.toast("Could not save the nursery harvest.")
   if garden.is_complete():
    var completed_program := submitted_program
@@ -682,6 +686,8 @@ func _draw() -> void:
     label = "Unlock Willow nursery"
    Progress.RESERVOIR_MARKER:
     label = "Upgrade reservoir"
+   Progress.LOTUS_MARSH_MARKER:
+    label = "Unlock Lotus marsh"
   nursery_upgrade_button.text = "%s · %d lilies" % [label, cost]
   nursery_upgrade_button.disabled = active or balance < cost
  best_button.visible = score.visible and progress.garden_best_programs.has(item.id)
@@ -707,8 +713,9 @@ func _draw_lessons(active: bool) -> void:
   var item: Dictionary = Programs.GARDENS[index]
   var available := progress.lesson_available(item, lilies)
   var label: String = item.name
-  if not available and item.id == Programs.WILLOW_NURSERY.id:
-   label += " · %d nursery lilies" % Progress.WILLOW_COST
+  var purchase: String = Progress.NURSERY_UNLOCKS.get(item.id, "")
+  if not available and not purchase.is_empty():
+   label += " · %d nursery lilies" % Progress.NURSERY_UPGRADE_COSTS[purchase]
   elif not available:
    var threshold: int = item.unlock_lilies
    next_unlock = threshold if next_unlock == 0 else mini(next_unlock, threshold)
@@ -770,6 +777,8 @@ func _draw_board(view: Programs, blocked := false) -> void:
    var style := StyleBoxFlat.new()
    if cell == view.cell:
     style.bg_color = Color("#784b30") if blocked else Color("#1f5950")
+   elif tile == Programs.LOTUS_BED:
+    style.bg_color = Color("#513c62")
    elif tile == "B":
     style.bg_color = Color("#694f35")
    else:
@@ -777,9 +786,11 @@ func _draw_board(view: Programs, blocked := false) -> void:
    style.set_corner_radius_all(6)
    card.add_theme_stylebox_override("panel", style)
    card.custom_minimum_size = Vector2(67, 44)
-   var icon := "● " if cell == view.cell else ""
+   var heading := "● " if cell == view.cell else ""
+   if tile == Programs.LOTUS_BED:
+    heading += "Lotus"
    var caption := plant if not plant.is_empty() else "Spring" if tile == "~" else "#" if tile == "#" else "·"
-   var label: Label = hud.label(icon + "\n" + caption if not icon.is_empty() else caption, 12)
+   var label: Label = hud.label(heading + "\n" + caption if not heading.is_empty() else caption, 12)
    label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
    card.add_child(label)
    board.add_child(card)

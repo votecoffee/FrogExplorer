@@ -187,12 +187,54 @@ hop(east)
 tend()
 """,
 }
-const GARDENS := PUZZLES + [OPEN_NURSERY, WILLOW_NURSERY]
+const LOTUS_MARSH := {
+ "id":"lotus_marsh", "name":"Lotus marsh", "practice":true,
+ "rows":[".XB.","~...",".BX."],
+ "hint":"Lotus beds need two doses and ripen three actions after the final watering. Tend a neighboring lily while you wait. Each ripe lotus earns three nursery lilies.",
+ "draft":"""# Tend a lotus and its neighbor. Extend the route to the south bank.
+routine tend_ahead heading
+  if empty_bed heading
+    plant heading
+  end
+  while thirsty heading and has_water
+    water heading
+  end
+end
+
+fill
+hop north
+call tend_ahead east
+hop east
+call tend_ahead east
+gather
+hop east
+gather
+""",
+ "python_draft":"""# Tend a lotus and its neighbor. Extend the route to the south bank.
+def tend_ahead(heading):
+    if empty_bed(heading):
+        plant(heading)
+    while thirsty(heading) and has_water():
+        water(heading)
+
+fill()
+hop(north)
+tend_ahead(east)
+hop(east)
+tend_ahead(east)
+gather()
+hop(east)
+gather()
+""",
+}
+const GARDENS := PUZZLES + [OPEN_NURSERY, WILLOW_NURSERY, LOTUS_MARSH]
 const DIRECTIONS = {"north":Vector2i(0,-1), "east":Vector2i(1,0), "south":Vector2i(0,1), "west":Vector2i(-1,0)}
 const CONDITIONS := ["always", "spring", "has_water", "empty_bed", "lily", "thirsty", "growing", "ripe", "has_reach_tool"]
 const NUMERIC_SENSORS := ["water_level", "tank_capacity", "row", "column"]
 const COMPARISONS := ["<", "<=", "==", "!=", ">=", ">"]
-const PLOT_DOSES := {"B":0, "L":1, "H":2}
+const LOTUS_BED := "X"
+const SEEDBEDS := ["B", LOTUS_BED]
+const PLOT_DOSES := {"B":1, "L":1, "H":2, LOTUS_BED:2}
 const EMPTY_BED := "Empty bed"
 const CAPACITY = 3
 const RESERVOIR_CAPACITY := 6
@@ -601,7 +643,8 @@ func load_puzzle(index: int, has_reservoir := false, has_reach_tool := false) ->
    if plot == "~":
     cell = location
    elif PLOT_DOSES.has(plot):
-    plants[location] = {"need":PLOT_DOSES[plot], "ready":-1, "harvested":false, "planted":plot != "B"}
+    var planted := plot not in SEEDBEDS
+    plants[location] = {"need":PLOT_DOSES[plot] if planted else 0, "ready":-1, "harvested":false, "planted":planted}
 
 func reset_program() -> void:
  runtime_error = ""
@@ -980,6 +1023,7 @@ func step(action: Dictionary) -> String:
    return "Tending a neighboring bed requires the reach tool."
   target += DIRECTIONS[direction]
  var plant: Dictionary = plants.get(target, {})
+ var plot := tile(target)
  match action.command:
   "hop":
    var next: Vector2i = cell + DIRECTIONS[action.direction]
@@ -994,7 +1038,7 @@ func step(action: Dictionary) -> String:
    if plant.get("planted", true):
     return "Plant on a prepared empty bed."
    plant.planted = true
-   plant.need = 1
+   plant.need = PLOT_DOSES[plot]
   "water":
    if not plant.get("planted", true):
     return "Plant this bed before watering it."
@@ -1005,15 +1049,17 @@ func step(action: Dictionary) -> String:
    tank -= 1
    plant.need -= 1
    if plant.need == 0:
-    plant.ready = turn + 2
+    plant.ready = turn + (4 if plot == LOTUS_BED else 2)
   "gather":
    if plant_status(cell) != "Ripe":
+    if plot == LOTUS_BED:
+     return "Gather a ripe lotus. After its final watering, give it three more actions."
     return "Gather a ripe lily. A freshly watered lily needs one more turn."
-   if practice and tile(cell) == "B":
+   if practice and plot in SEEDBEDS:
     plant.planted = false
     plant.ready = -1
    else:
     plant.harvested = true
-   harvested += 1
+   harvested += 3 if plot == LOTUS_BED else 1
  turn += 1
  return ""

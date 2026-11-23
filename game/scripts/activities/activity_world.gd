@@ -199,6 +199,7 @@ func show_garden(garden) -> void:
   child.queue_free()
  var foliage: StandardMaterial3D = material("leaf", Color("#69a541"))
  var ripe: StandardMaterial3D = material("ripe", Color("#ffbfdf"))
+ var ripe_lotus: StandardMaterial3D = material("ripe_lotus", Color("#c18be9"))
  var sphere := SphereMesh.new()
  sphere.radial_segments = 12
  sphere.rings = 6
@@ -210,11 +211,14 @@ func show_garden(garden) -> void:
    var soil := Color("#507e98") if tile == "~" else Color("#a3a9a1") if tile == "#" else Color("#674d37")
    if tile == "B":
     soil = Color("#8e6941")
+   elif tile == Gardens.LOTUS_BED:
+    soil = Color("#725386")
    _box(at + Vector3.UP * .08, Vector3(1.23, .16, 1.23), material("plot_" + tile, soil), 0, false, garden_root)
    var status: String = garden.plant_status(cell)
    if status not in ["", "Gathered", Gardens.EMPTY_BED]:
     mesh_instance(sphere, foliage, at + Vector3.UP * .23, Vector3(.52, .19, .52), garden_root)
     if status == "Ripe":
-     mesh_instance(sphere, ripe, at + Vector3.UP * .41, Vector3(.38, .24, .38), garden_root)
+     var bloom := ripe_lotus if tile == Gardens.LOTUS_BED else ripe
+     mesh_instance(sphere, bloom, at + Vector3.UP * .41, Vector3(.38, .24, .38), garden_root)
    if garden.cell == cell:
     mesh_instance(sphere, material("pond_bot", Color("#ffd370")), at + Vector3.UP * .64, Vector3(.50, .43, .50), garden_root)

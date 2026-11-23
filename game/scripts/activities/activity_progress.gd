@@ -11,9 +11,13 @@ const RESERVOIR_COST := 24
 const RESERVOIR_MARKER := "nursery-reservoir-unlocked"
 const REACH_TOOL_COST := 32
 const REACH_TOOL_MARKER := "nursery-reach-tool-unlocked"
+const LOTUS_MARSH_COST := 40
+const LOTUS_MARSH_MARKER := "nursery-lotus-marsh-unlocked"
 const NURSERY_UPGRADE_COSTS := {
  WILLOW_MARKER:WILLOW_COST, RESERVOIR_MARKER:RESERVOIR_COST, REACH_TOOL_MARKER:REACH_TOOL_COST,
+ LOTUS_MARSH_MARKER:LOTUS_MARSH_COST,
 }
+const NURSERY_UNLOCKS := {Programs.WILLOW_NURSERY.id:WILLOW_MARKER, Programs.LOTUS_MARSH.id:LOTUS_MARSH_MARKER}
 const NURSERY_TALLY_PREFIX := "nursery-yield-"
 const NURSERY_TALLY_SUFFIX := ".txt"
 
@@ -142,8 +146,9 @@ func earned_lilies() -> int:
 
 func lesson_available(puzzle: Dictionary, lilies: int) -> bool:
  var id: String = puzzle.id
- if id == Programs.WILLOW_NURSERY.id:
-  return has_nursery_upgrade(WILLOW_MARKER)
+ var upgrade: String = NURSERY_UNLOCKS.get(id, "")
+ if not upgrade.is_empty():
+  return has_nursery_upgrade(upgrade)
  return lilies >= int(puzzle.get("unlock_lilies", 0)) or solved.has(id) or drafts.has(id) or python_drafts.has(id)
 
 func nursery_balance() -> int:
@@ -161,11 +166,11 @@ func next_nursery_upgrade() -> String:
    return upgrade
  return ""
 
-func record_nursery_harvest() -> Error:
- nursery_harvested += 1
+func record_nursery_harvest(yield_lilies := 1) -> Error:
+ nursery_harvested += yield_lilies
  if folder.is_empty():
   return OK
- session_harvests += 1
+ session_harvests += yield_lilies
  if nursery_tally.is_empty():
   # Each game session writes its own cumulative harvests.
   var key := "%d-%d-%d" % [roundi(Time.get_unix_time_from_system() * 1000), OS.get_process_id(), Time.get_ticks_usec()]
