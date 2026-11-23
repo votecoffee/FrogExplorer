@@ -1208,11 +1208,7 @@ func check_comparison_stopping_points(popup) -> void:
  var difference: Button = popup.comparison_difference_button
  var slider: HSlider = popup.comparison_slider
  for test in keys.size():
-  for index in choice.item_count:
-   if choice.get_item_metadata(index) == keys[test]:
-    choice.select(index)
-    choice.item_selected.emit(index)
-    break
+  select_comparison_copy(choice, keys[test])
   match test:
    0:
     check(difference.visible and difference.disabled and difference.text == "No preview difference" and "Line 4 · wait" in popup.comparison_other.text, "Equivalent board actions match even with different Python output and line numbers")
@@ -1231,6 +1227,54 @@ func check_comparison_stopping_points(popup) -> void:
     check(slider.value == 4 and "Finished" in popup.comparison_current.text and "Line 4 · wait" in popup.comparison_other.text and "Difference 1 of 2" in popup.comparison_board_key.text, "The longer route first diverges by continuing after the shorter route")
     press_key(KEY_PAGEDOWN)
     check(slider.value == 5 and "Blocked · Line 6 · Fill at the spring." in popup.comparison_other.text and "Difference 2 of 2" in popup.comparison_board_key.text, "A later blocked command remains a separate difference")
+
+func select_comparison_copy(choice: OptionButton, key: String) -> void:
+ for index in choice.item_count:
+  if choice.get_item_metadata(index) == key:
+   choice.select(index)
+   choice.item_selected.emit(index)
+   return
+
+func check_comparison_python_details(popup) -> void:
+ var id: String = Program.OPEN_NURSERY.id
+ var nursery := Program.GARDENS.find(Program.OPEN_NURSERY)
+ popup.chooser.item_selected.emit(nursery)
+ await finish_by_steps(popup, "marker = 99\nwait()\nprint('live', marker)\n")
+ var main_source := "count = 2\nprint('Current start', count)\nwait()\ncount += 1\nprint('Current end', count)\n"
+ var other_source := "count = 10\nprint('Other start', count)\nday = 0\nwhile day < 35:\n    wait()\n    count += 1\n    day += 1\n    print('Other action', count)\n"
+ var other_draft: Dictionary = popup.progress.create_draft_copy(id, other_source, true)
+ var bad_draft: Dictionary = popup.progress.create_draft_copy(id, "fill(east)\n", true)
+ popup._refresh_draft_choice()
+ popup.source.text = main_source
+ popup.compare_drafts_button.pressed.emit()
+ var slider: HSlider = popup.comparison_slider
+ var chooser: OptionButton = popup.comparison_choice
+ var view: OptionButton = popup.comparison_view
+ var current: RichTextLabel = popup.comparison_current_details
+ var other: RichTextLabel = popup.comparison_other_details
+ select_comparison_copy(chooser, other_draft.key)
+ check(other_draft.error == OK and bad_draft.error == OK and view.visible and view.selected == 0 and popup.comparison_current_board.visible and slider.value == 35 and popup.garden.turn == 1, "Python comparison starts on the boards using the active nursery")
+ slider.value = 0
+ view.select(1)
+ view.item_selected.emit(1)
+ check(slider.value == 0 and current.visible and other.visible and not popup.comparison_current_board.visible and current.text == "count = 2" and other.text == "count = 10\nday = 0", "Variables shows both sets of assignments before the first board action")
+ slider.grab_focus()
+ press_key(KEY_RIGHT)
+ check(slider.value == 1 and current.text == "count = 3" and other.text == "count = 11\nday = 1", "Keyboard stepping shows variable values after the first action")
+ view.select(2)
+ view.item_selected.emit(2)
+ check(slider.value == 1 and current.text == "Line 2 · Current start 2\nLine 5 · Current end 3" and other.text == "Line 2 · Other start 10\nLine 8 · Other action 11", "Print output shows both transcripts at the selected action")
+ slider.value = 35
+ check(current.text.ends_with("Current end 3") and other.text.split("\n").size() == Program.MAX_OUTPUT_MESSAGES and "Other start" not in other.text and other.text.ends_with("Other action 45"), "The shorter transcript holds as the longer route fills its output buffer")
+ slider.value = 0
+ check(current.text == "Line 2 · Current start 2" and other.text == "Line 2 · Other start 10", "Rewinding recovers early output after the final buffer rolls over")
+ select_comparison_copy(chooser, bad_draft.key)
+ check(view.selected == 2 and other.text == "Preview unavailable" and "Check the arguments for fill()" in popup.comparison_other.text and current.text.ends_with("Current end 3"), "A compile failure clears that draft's details while the other output remains available")
+ view.select(0)
+ view.item_selected.emit(0)
+ check(popup.comparison_current_board.visible and not current.is_visible_in_tree() and popup.source.text == main_source and popup.garden.turn == 1 and popup.garden.variables == {"marker":99} and popup.output_text.text == "Line 3 · live 99", "Switching views preserves the editable draft and the live Python state")
+ press_key(KEY_ESCAPE)
+ check(popup.visible and not popup.comparison_panel.visible and current.text.is_empty() and other.text.is_empty(), "Closing the comparison clears both Python detail panels")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)
@@ -2082,6 +2126,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   check_nursery_bests(popup)
   await check_draft_comparison(popup)
   check_comparison_stopping_points(popup)
+  await check_comparison_python_details(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

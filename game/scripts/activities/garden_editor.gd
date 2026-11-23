@@ -5,6 +5,7 @@ const Programs = preload("res://scripts/activities/garden_program.gd")
 const Progress = preload("res://scripts/activities/activity_progress.gd")
 const RUN_INTERVAL := .23
 const COMPARISON_BOARD_KEY := "Gold outline · Tile differs between drafts"
+enum ComparisonView { BOARDS, VARIABLES, PRINT_OUTPUT }
 const CLASSIC_GUIDE := "hop north / east / south / west\nfill     plant     water     wait     gather\nrepeat N … end     # comment\nroutine NAME heading · call NAME east\nif / while CONDITION … end\nelse · not · and · or · break · continue\nLook ahead with clear east or lily north\nF9 toggles a breakpoint"
 const PYTHON_GUIDE := "hop(east)    fill()    water()\nplant()       wait()       gather()\nfor bed in range(2):\nif water_level() < tank_capacity():\nwhile clear(east):\ndef walk(heading, steps: int):\nstart = column()    print(start)\nTab indents · Shift+Tab unindents\nF9 toggles a breakpoint"
 var hud: ExplorerHUD
@@ -34,6 +35,9 @@ var comparison_other: Label
 var comparison_current_board: GridContainer
 var comparison_other_board: GridContainer
 var comparison_board_key: Label
+var comparison_view: OptionButton
+var comparison_current_details: RichTextLabel
+var comparison_other_details: RichTextLabel
 var comparison_source := ""
 var rename_draft_button: Button
 var draft_name_edit: LineEdit
@@ -608,9 +612,34 @@ func _add_draft_comparison(parent: Container) -> void:
   results.add_child(label)
  comparison_current_board = _board_grid(results)
  comparison_other_board = _board_grid(results)
+ comparison_current_details = _comparison_details_box(results)
+ comparison_other_details = _comparison_details_box(results)
+ var footer := HBoxContainer.new()
+ comparison_panel.add_child(footer)
  comparison_board_key = hud.label(COMPARISON_BOARD_KEY, 13, Color("#e8c879"))
- comparison_panel.add_child(comparison_board_key)
+ comparison_board_key.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ footer.add_child(comparison_board_key)
+ comparison_view = OptionButton.new()
+ comparison_view.add_item("Boards", ComparisonView.BOARDS)
+ comparison_view.add_item("Variables", ComparisonView.VARIABLES)
+ comparison_view.add_item("Print output", ComparisonView.PRINT_OUTPUT)
+ comparison_view.tooltip_text = "Choose what to compare at this action."
+ comparison_view.item_selected.connect(func(_index: int): _show_comparison_step(comparison_slider.value))
+ footer.add_child(comparison_view)
  comparison_panel.hide()
+
+func _comparison_details_box(parent: Container) -> RichTextLabel:
+ var panel := PanelContainer.new()
+ panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ parent.add_child(panel)
+ var details := RichTextLabel.new()
+ details.custom_minimum_size.y = 144
+ details.selection_enabled = true
+ details.focus_mode = Control.FOCUS_ALL
+ details.add_theme_font_size_override("normal_font_size", 14)
+ panel.add_child(details)
+ panel.hide()
+ return details
 
 func _toggle_draft_comparison() -> void:
  if comparison_panel.visible:
@@ -628,6 +657,8 @@ func _toggle_draft_comparison() -> void:
   comparison_choice.add_item(draft_choice.get_item_text(index))
   comparison_choice.set_item_metadata(comparison_choice.item_count - 1, draft_choice.get_item_metadata(index))
  comparison_choice.select(0)
+ comparison_view.select(ComparisonView.BOARDS)
+ comparison_view.visible = python_mode
  comparison_context.text = "Starting board · Live nursery" if garden.practice else "Starting board · Fresh lesson"
  comparison_source = source.text
  comparison_current_route = _trace_draft(comparison_source)
@@ -711,7 +742,7 @@ func _jump_to_adjacent_comparison_difference(forward: bool) -> void:
 
 func _trace_draft(text: String) -> Dictionary:
  var result := _compile(text, python_mode)
- return result if result.has("error") else _trace(result.steps)
+ return result if result.has("error") else _trace(result.steps, false, Programs.MAX_STEPS, python_mode)
 
 func _show_comparison_step(value: float) -> void:
  if not comparison_panel.visible:
@@ -722,16 +753,42 @@ func _show_comparison_step(value: float) -> void:
  var other := _comparison_board_at(comparison_other_route, index)
  comparison_current.text = draft_choice.get_item_text(draft_choice.selected) + "\n" + _comparison_snapshot(comparison_current_route, index, current)
  comparison_other.text = comparison_choice.get_item_text(comparison_choice.selected) + "\n" + _comparison_snapshot(comparison_other_route, index, other)
- _draw_grid(comparison_current_board, current, _comparison_blocked(comparison_current_route, index), other, Vector2(61, 36))
- _draw_grid(comparison_other_board, other, _comparison_blocked(comparison_other_route, index), current, Vector2(61, 36))
- comparison_board_key.visible = current != null and other != null
+ var view := comparison_view.get_selected_id()
+ var show_boards := view == ComparisonView.BOARDS
+ comparison_current_board.visible = show_boards
+ comparison_other_board.visible = show_boards
+ if show_boards:
+  _draw_grid(comparison_current_board, current, _comparison_blocked(comparison_current_route, index), other, Vector2(61, 36))
+  _draw_grid(comparison_other_board, other, _comparison_blocked(comparison_other_route, index), current, Vector2(61, 36))
+ _show_comparison_details(comparison_current_details, comparison_current_route, index, view)
+ _show_comparison_details(comparison_other_details, comparison_other_route, index, view)
  var before := comparison_differences.bsearch(index)
  var after := comparison_differences.bsearch(index, false)
  comparison_previous_difference_button.disabled = before == 0
  comparison_next_difference_button.disabled = after == comparison_differences.size()
- comparison_board_key.text = COMPARISON_BOARD_KEY
+ var show_key := show_boards and current != null and other != null
+ comparison_board_key.text = COMPARISON_BOARD_KEY if show_key else ""
  if before < after:
-  comparison_board_key.text += "    ·    Difference %d of %d" % [after, comparison_differences.size()]
+  var difference := "Difference %d of %d" % [after, comparison_differences.size()]
+  comparison_board_key.text += ("    ·    " if show_key else "") + difference
+ comparison_board_key.visible = not comparison_board_key.text.is_empty()
+
+func _show_comparison_details(details: RichTextLabel, route: Dictionary, index: int, view: int) -> void:
+ var panel := details.get_parent() as PanelContainer
+ panel.visible = view != ComparisonView.BOARDS
+ if not panel.visible:
+  return
+ var text := "Preview unavailable"
+ if route.has("actions"):
+  var count := mini(index, route.actions.size())
+  if view == ComparisonView.VARIABLES:
+   text = _format_program_variables(route.variable_history[count])
+  else:
+   text = _format_program_output(route.output_history[count])
+   if text.is_empty():
+    text = "No print output"
+ if details.text != text:
+  details.text = text
 
 func _comparison_board_at(route: Dictionary, index: int) -> Programs:
  return _board_after_actions(route, mini(index, route.actions.size())) if route.has("actions") else null
@@ -773,6 +830,8 @@ func _close_draft_comparison() -> void:
   comparison_differences.clear()
   _draw_grid(comparison_current_board, null)
   _draw_grid(comparison_other_board, null)
+  comparison_current_details.text = ""
+  comparison_other_details.text = ""
   compare_drafts_button.text = "Compare drafts"
 
 func _draft_source(key: String) -> String:
@@ -896,7 +955,7 @@ func _check_code() -> void:
  if not checked_route.actions.is_empty() or line >= 0:
   review_button.show()
 
-func _trace(commands: Array, fresh_board := false, practice_limit := Programs.MAX_STEPS) -> Dictionary:
+func _trace(commands: Array, fresh_board := false, practice_limit := Programs.MAX_STEPS, capture_output := false) -> Dictionary:
  var initial := Programs.new()
  if not garden.practice:
   initial.load_puzzle(puzzle)
@@ -911,12 +970,15 @@ func _trace(commands: Array, fresh_board := false, practice_limit := Programs.MA
  var index := preview.next_action_index(commands, 0)
  # Review position zero includes assignments before the first board action.
  var variable_history: Array[Dictionary] = [preview.inspect_variables()]
+ var output_history: Array[Array] = []
+ if capture_output:
+  output_history.append(preview.output.duplicate())
  while index < commands.size() and (not preview.practice or traced.size() < practice_limit):
   var action: Dictionary = commands[index]
   var error := preview.step(action)
   if not error.is_empty():
    return {"actions":traced, "initial":initial, "preview":preview, "line":action.line,
-           "error":error, "variable_history":variable_history}
+           "error":error, "variable_history":variable_history, "output_history":output_history}
   traced.append(action)
   var complete := preview.is_complete()
   var revision := preview.variable_revision
@@ -924,11 +986,13 @@ func _trace(commands: Array, fresh_board := false, practice_limit := Programs.MA
    index = preview.next_action_index(commands, index + 1)
   var values: Dictionary = variable_history.back() if preview.variable_revision == revision else preview.inspect_variables()
   variable_history.append(values)
+  if capture_output:
+   output_history.append(preview.output.duplicate())
   if complete:
    break
  return {"actions":traced, "initial":initial, "preview":preview, "line":preview.runtime_error_line,
          "error":preview.runtime_error, "limited":preview.practice and index < commands.size(),
-         "variable_history":variable_history}
+         "variable_history":variable_history, "output_history":output_history}
 
 func _toggle_review() -> void:
  if best_panel.visible:
@@ -1233,14 +1297,17 @@ func _draw_lessons(active: bool) -> void:
  next_lesson_button.visible = progress.solved.has(Programs.GARDENS[puzzle].id) and progress.next_lesson(lilies) >= 0
  next_lesson_button.disabled = active
 
-func _draw_diagnostics(view: Programs, context := "Program", through_turn := -1, snapshot: Variant = null) -> void:
+func _format_program_output(entries: Array, through_turn := -1) -> String:
  var lines := PackedStringArray()
- for entry: Dictionary in view.output:
+ for entry: Dictionary in entries:
   if through_turn < 0 or entry.turn <= through_turn:
    lines.append("Line %d · %s" % [entry.line + 1, entry.text])
- output_panel.visible = not lines.is_empty()
+ return "\n".join(lines)
+
+func _draw_diagnostics(view: Programs, context := "Program", through_turn := -1, snapshot: Variant = null) -> void:
+ var transcript := _format_program_output(view.output, through_turn)
+ output_panel.visible = not transcript.is_empty()
  output_title.text = context + " output"
- var transcript := "\n".join(lines)
  if output_text.text != transcript:
   output_text.text = transcript
  _show_variables(view.inspect_variables() if snapshot == null else snapshot, context)
@@ -1255,14 +1322,17 @@ func _refresh_variables() -> void:
  variables_panel.visible = variables_button.visible and variables_button.button_pressed
  if not variables_panel.visible:
   return
- var names := displayed_variables.keys()
+ var content := _format_program_variables(displayed_variables)
+ if variables_text.text != content:
+  variables_text.text = content
+
+func _format_program_variables(values: Dictionary) -> String:
+ var names := values.keys()
  names.sort()
  var lines := PackedStringArray()
  for variable: String in names:
-  lines.append("%s = %s" % [variable, Programs.python_value_text(displayed_variables[variable])])
- var content := "\n".join(lines) if not lines.is_empty() else "No variables assigned"
- if variables_text.text != content:
-  variables_text.text = content
+  lines.append("%s = %s" % [variable, Programs.python_value_text(values[variable])])
+ return "\n".join(lines) if not lines.is_empty() else "No variables assigned"
 
 func _board_grid(parent: Container) -> GridContainer:
  var grid := GridContainer.new()
