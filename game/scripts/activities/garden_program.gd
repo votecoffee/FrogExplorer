@@ -16,6 +16,56 @@ const PUZZLES = [
  {"id":"compass_banks", "name":"Compass banks", "unlock_lilies":18, "rows":["L####","..~..","####H"], "target":17, "hint":"The spring is between two mirrored paths. After the west sweep, return east to the spring. Call sweep again with east along the bank, south toward the lily, and north back to the path.", "draft":"# Sweep west, then reuse the routine with different directions\nroutine tend_bed toward back\n  hop toward\n  while thirsty and has_water\n    water\n  end\n  wait\n  gather\n  hop back\nend\nroutine sweep along branch return_path\n  while clear along and has_water\n    hop along\n    if lily branch\n      call tend_bed branch return_path\n    end\n  end\nend\n\nfill\ncall sweep west north south\n", "python_draft":"# Sweep west, then reuse the routine with different directions\ndef tend_bed(toward, back):\n    hop(toward)\n    while thirsty() and has_water():\n        water()\n    wait()\n    gather()\n    hop(back)\ndef sweep(along, branch, return_path):\n    while clear(along) and has_water():\n        hop(along)\n        if lily(branch):\n            tend_bed(branch, return_path)\n\nfill()\nsweep(west, north, south)\n"},
  {"id":"low_water_row", "name":"Low water row", "unlock_lilies":18, "rows":["~LLHL"], "target":25, "hint":"The first sweep runs out of water at the double lily. Return to the spring, refill, and sweep again. The routine skips plots you already gathered.", "draft":"# Leave the row to refill when a plot still needs water\nroutine sweep\n  while clear east\n    hop east\n    if not lily\n      continue\n    end\n    while thirsty and has_water\n      water\n    end\n    if thirsty\n      break\n    end\n    wait\n    gather\n  end\nend\n\nfill\ncall sweep\n", "python_draft":"# Leave the row to refill when a plot still needs water\ndef sweep():\n    while clear(east):\n        hop(east)\n        if not lily():\n            continue\n        while thirsty() and has_water():\n            water()\n        if thirsty():\n            break\n        wait()\n        gather()\n\nfill()\nsweep()\n"},
  {"id":"nursery_beds", "name":"Nursery beds", "unlock_lilies":26, "rows":["~B.BL"], "target":16, "hint":"Plant the brown seedbeds, then water and gather their lilies. The starter tends the first bed. Keep moving east and reuse tend to handle a blank path, another seedbed, and a lily already planted.", "draft":"# Tend the first bed, then reuse the routine along the row\nroutine tend\n  if empty_bed\n    plant\n  end\n  if lily\n    water\n    wait\n    gather\n  end\nend\n\nfill\nhop east\ncall tend\n", "python_draft":"# Tend the first bed, then reuse the function along the row\ndef tend():\n    if empty_bed():\n        plant()\n    if lily():\n        water()\n        wait()\n        gather()\n\nfill()\nhop(east)\ntend()\n"},
+ {
+  "id":"switchback_beds", "name":"Switchback beds", "unlock_lilies":26, "target":36,
+  "rows":["#L##H", "#.##.", "..~..", ".##.#", "H##L#"],
+  "hint":"The lilies are two hops off the causeway. The west stops branch north then south. Return to the spring, refill, and mirror that pattern on the east side.",
+  "draft":"""# Tend the two west stops
+routine tend_spur toward back
+  repeat 2
+    hop toward
+  end
+  while thirsty
+    water
+  end
+  wait
+  gather
+  repeat 2
+    hop back
+  end
+end
+
+fill
+hop west
+call tend_spur north south
+hop west
+call tend_spur south north
+
+# Return to the spring and plan the two east stops
+""",
+  "python_draft":"""# Reuse this route from each stop on the causeway
+def tend_spur(toward, back):
+    for _ in range(2):
+        hop(toward)
+    while thirsty():
+        water()
+    wait()
+    gather()
+    for _ in range(2):
+        hop(back)
+
+spring_column = column()
+fill()
+for stop in range(1, 3):
+    hop(west)
+    if stop == 1:
+        tend_spur(north, south)
+    else:
+        tend_spur(south, north)
+
+# Return to spring_column and mirror the sweep on the east side
+""",
+ },
 ]
 const OPEN_NURSERY := {
  "id":"open_nursery", "name":"Open nursery", "unlock_lilies":26, "practice":true,

@@ -194,7 +194,7 @@ Open Places with **N / R3** to select these single-player destinations. Random t
 | --- | --- |
 | Kingfisher Circuit | Board the convertible and drive two timed laps. The first start-line crossing starts the clock. Drive through each gate in order. |
 | Cloudring Course | Launch a helium balloon and fly through eight rings in order. The next ring glows gold. Use the right stick or I/K and J/L for altitude and strafe. |
-| Lily Code Garden | Type Python in a popup editor and program Pondbot to water and gather lilies across fourteen grid puzzles. |
+| Lily Code Garden | Type Python in a popup editor and program Pondbot to water and gather lilies across fifteen grid puzzles and a practice nursery. |
 
 Press **F5 / A** again to restart a race. The course shows your current time and saved personal best. After your first timed finish, the HUD compares each gate or ring to your fastest run with recorded splits. Existing personal best times carry over. Use **H** or Places to return to the pond.
 
@@ -219,6 +219,8 @@ Lily Code Garden uses Python 3.10 or newer to parse the garden language. The sup
 Use `hop(east)` to move one tile. The game provides `north`, `east`, `south`, and `west` as direction values. Use `has_water()` to check the tank. The tile tests `spring()`, `lily()`, `thirsty()`, `growing()`, and `ripe()` inspect the current tile by default. Pass a direction to inspect the neighboring tile, as in `lily(north)`. Use `clear(east)` before hopping into an unfamiliar tile. Combine tests with `not`, `and`, `or`, and parentheses.
 
 In **Nursery beds**, sow a lily on a prepared brown bed with `plant()`. Test for a bed with `empty_bed()` or look ahead with `empty_bed(east)`. A new lily needs water before it can grow. The harvest target includes both seedbeds and lilies already planted.
+
+**Switchback beds** opens at 26 earned lilies. Use the stop number in a `for` loop to choose which way to turn off the causeway. The Python starter tends the two west beds and remembers the spring column. Plan a refill and the mirrored east sweep to harvest all four lilies. The action target is 36.
 
 **Open nursery** is a practice board that opens at 26 earned lilies. Harvested beds can be planted again. Its starter program uses `while True` to tend two rows until you pause or stop it. New runs start from the current position and crops. **Reset board** clears the nursery and returns Pondbot to the spring. **Check** previews up to 256 actions on a copy of the live board. Nursery harvests are counted on the practice board. Lesson unlocks come from first clears of the scored puzzles.
 

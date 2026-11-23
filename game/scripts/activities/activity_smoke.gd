@@ -140,6 +140,37 @@ print(lap, offset, limit)
  check(popup.checked_route.get("line", -1) == 0 and "at most 16 iterations" in popup.status.text and popup.garden.turn == 6, "Counted loops preserve the 16-iteration limit")
  popup._reset()
 
+func check_switchback_beds(popup, index: int) -> void:
+ var earned: int = popup.progress.earned_lilies()
+ popup.chooser.item_selected.emit(index)
+ check(popup.puzzle == index and not popup.chooser.is_item_disabled(index) and popup.board.columns == 5 and popup.board.get_child_count() == 25 and popup.garden.cell == Vector2i(2, 2), "Switchback beds opens with a five-by-five board and a central spring")
+ var starter: String = popup.source.text
+ popup.check_button.pressed.emit()
+ check("2 of 4 lilies harvested in 18 actions" in popup.status.text and popup.garden.turn == 0 and popup.progress.earned_lilies() == earned, "The starter uses the stop number to reach the two west beds")
+
+ var full_route := starter + """while column() < spring_column:
+    hop(east)
+fill()
+for stop in range(1, 3):
+    hop(east)
+    if stop == 1:
+        tend_spur(south, north)
+    else:
+        tend_spur(north, south)
+"""
+ popup.source.text = full_route
+ popup.check_button.pressed.emit()
+ check("36 actions to harvest all 4 lilies" in popup.status.text and "meets target" in popup.status.text and popup.garden.turn == 0, "Check predicts the full mirrored route at its target")
+ popup.review_button.pressed.emit()
+ popup.review_slider.value = 21
+ check("Preview · 21 / 36 actions" == popup.review_position.text and "Water 3 / 3" in popup.info.text and "Lilies 2 / 4" in popup.info.text and popup.garden.harvested == 0, "Review shows the refill between sweeps without changing the live board")
+
+ await finish_by_steps(popup, full_route)
+ check(popup.garden.turn == 36 and popup.garden.harvested == 4 and popup.progress.earned_lilies() == earned + 4 and popup.progress.garden_best_python.get("switchback_beds", false), "Completing Switchback beds earns four lilies and saves the Python best")
+ popup.best_button.pressed.emit()
+ popup.review_slider.value = popup.review_slider.max_value
+ check(popup.best_source.text == full_route and "Best run · 36 / 36 actions" == popup.review_position.text and "Lilies 4 / 4" in popup.info.text, "Best program replays the saved switchback route")
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -316,6 +347,8 @@ func run(game) -> void:
  var compass_solution: String = Program.PUZZLES[11].draft + "while not spring\n  hop east\nend\ncall sweep east south north\n"
  var low_water_solution: String = Program.PUZZLES[12].draft + "while not spring\n  hop west\nend\nfill\ncall sweep\n"
  var nursery_sweep: String = Program.PUZZLES[13].draft + "while clear east\n  hop east\n  call tend\nend\n"
+ var switchback := Program.PUZZLES.size() - 1
+ var switchback_solution: String = Program.PUZZLES[switchback].draft + "while not spring\n  hop east\nend\nfill\nhop east\ncall tend_spur south north\nhop east\ncall tend_spur north south\n"
  var solutions := [
   "fill\nrepeat 2\nhop east\nwater\nwait\ngather\nend",
   "fill\nhop east\nhop east\nwater\nwait\ngather\nhop south\nhop east\nwater\nwait\ngather\nhop west\nhop south\nwater\nwait\ngather",
@@ -331,6 +364,7 @@ func run(game) -> void:
   compass_solution,
   low_water_solution,
   nursery_sweep,
+  switchback_solution,
  ]
  check(solutions.size() == Program.PUZZLES.size(), "Every garden has a smoke-test solution")
  for index in solutions.size():
@@ -365,7 +399,7 @@ func run(game) -> void:
   var popup = game.activities.garden
   check(popup.visible and game.pilot.paused and popup.source.has_focus(), "The garden popup owns keyboard focus and pauses movement")
   check("Target · 9 actions" in popup.score.text and "Personal best · —" in popup.score.text and not popup.best_button.visible, "A fresh board displays its target and an empty personal best")
-  check(popup.puzzle == 0 and popup.lesson_status.text == "Lilies earned · 0   Next unlock · 2" and not popup.chooser.is_item_disabled(2) and popup.chooser.is_item_disabled(3) and popup.chooser.is_item_disabled(10) and popup.chooser.is_item_disabled(open_nursery), "A new garden opens the first lesson and shows the next lily milestone")
+  check(popup.puzzle == 0 and popup.lesson_status.text == "Lilies earned · 0   Next unlock · 2" and not popup.chooser.is_item_disabled(2) and popup.chooser.is_item_disabled(3) and popup.chooser.is_item_disabled(10) and popup.chooser.is_item_disabled(switchback) and popup.chooser.is_item_disabled(open_nursery), "A new garden opens the first lesson and shows the next lily milestone")
   popup.chooser.item_selected.emit(3)
   check(popup.puzzle == 0 and popup.chooser.selected == 0, "A locked lesson cannot replace the current draft")
   popup.progress.drafts["compass_banks"] = "fill\n"
@@ -865,6 +899,7 @@ func run(game) -> void:
   check("Best run · 16 / 16 actions" == popup.review_position.text and "Lilies 3 / 3" in popup.info.text, "Best program replays planting and harvesting")
   check(popup.output_panel.visible and popup.output_title.text == "Best run output" and "Line 1 · Ready True" in popup.output_text.text, "Best program replays Python output from the recorded draft")
 
+  await check_switchback_beds(popup, switchback)
   var earned_for_practice: int = popup.progress.earned_lilies()
   popup.chooser.item_selected.emit(open_nursery)
   var practice_start: String = popup.source.text
