@@ -201,13 +201,19 @@ static func compile(source: String, case_sensitive := false, details: Dictionary
     return _error(index, "Use routine NAME with letters, digits, or underscores. Start the name with a letter or underscore.")
    if routines.has(words[1]):
     return _error(index, "Routine %s is already defined." % words[1])
+   var value_parameters: Dictionary = detail.get("value_parameters", {})
+   var direction_parameters := PackedStringArray()
    for parameter in words.slice(2):
     if not parameter.is_valid_ascii_identifier() or DIRECTIONS.has(parameter) or parameter in ["not", "and", "or"]:
      return _error(index, "Use a parameter name like heading or return_path.")
     if parameter in parameters:
      return _error(index, "Parameter %s is already listed." % parameter)
     parameters.append(parameter)
-   blocks.append({"steps":[], "routine":words[1], "line":index, "local_scope":detail.get("local_scope", false)})
+    if not value_parameters.has(parameter):
+     direction_parameters.append(parameter)
+   blocks.append({"steps":[], "routine":words[1], "line":index, "local_scope":detail.get("local_scope", false),
+                  "parameters":parameters, "value_parameters":value_parameters})
+   parameters = direction_parameters
    continue
   if command in ["repeat", "if", "while"] or (command == "for" and detail.has("range")):
    var block_limit := 6 if blocks.size() > 1 and blocks[1].has("routine") else 5
@@ -248,7 +254,8 @@ static func compile(source: String, case_sensitive := false, details: Dictionary
     if inner.steps.is_empty():
      return _error(inner.line, "Add at least one action to this routine.")
     var returns_value := _resolve_returns(inner.steps)
-    routines[inner.routine] = {"steps":inner.steps, "parameters":parameters, "scope":inner.local_scope or returns_value}
+    routines[inner.routine] = {"steps":inner.steps, "parameters":inner.parameters,
+                              "value_parameters":inner.value_parameters, "scope":inner.local_scope or returns_value}
     parameters = PackedStringArray()
     continue
    var outer: Array = blocks.back().steps
@@ -299,19 +306,29 @@ static func compile(source: String, case_sensitive := false, details: Dictionary
    var arguments := words.slice(2)
    if arguments.size() != targets.size():
     var unit := "argument" if targets.size() == 1 else "arguments"
-    return _error(index, "Routine %s expects %d direction %s." % [words[1], targets.size(), unit])
+    var kind := " direction" if routine.value_parameters.is_empty() else ""
+    return _error(index, "Routine %s expects %d%s %s." % [words[1], targets.size(), kind, unit])
    var capture: Dictionary = detail.get("capture", {})
    var keeps_scope: bool = routine.scope or not capture.is_empty()
    if steps.size() + routine.steps.size() + 2 * int(keeps_scope) > MAX_STEPS:
     return _error(index, "This call expands the program beyond 256 instructions.")
    var bindings: Dictionary = {}
+   var value_args: Dictionary = detail.get("value_args", {})
+   var inputs: Array[Dictionary] = []
    for argument_index in arguments.size():
+    var parameter := targets[argument_index]
+    if routine.value_parameters.has(parameter):
+     var key := str(argument_index)
+     if not value_args.has(key):
+      return _error(index, "Supply a value for parameter %s." % parameter)
+     inputs.append({"name":parameter, "kind":routine.value_parameters[parameter], "value":value_args[key]})
+     continue
     var argument := arguments[argument_index]
     if not _is_direction(argument, parameters):
-     return _error(index, "Argument %s needs a compass direction or a routine parameter." % targets[argument_index])
-    bindings[targets[argument_index]] = argument
+     return _error(index, "Argument %s needs a compass direction or a routine parameter." % parameter)
+    bindings[parameter] = argument
    if keeps_scope:
-    steps.append({"enter_scope":words[1], "line":index})
+    steps.append({"enter_scope":words[1], "inputs":inputs, "line":index})
    steps.append_array(_bind_directions(routine.steps, bindings))
    if keeps_scope:
     steps.append({"leave_scope":true, "capture":capture, "line":index})
@@ -441,6 +458,9 @@ static func _bind_directions(instructions: Array, bindings: Dictionary) -> Array
     _bind_expression(value, bindings)
   elif instruction.has("range"):
    _bind_expression(instruction.range, bindings)
+  elif instruction.has("inputs"):
+   for input: Dictionary in instruction.inputs:
+    _bind_expression(input.value, bindings)
   elif instruction.has("value"):
    _bind_expression(instruction.value, bindings)
   expanded.append(instruction)
@@ -608,7 +628,12 @@ func next_action_index(instructions: Array, first: int) -> int:
    index = end
    continue
   if instruction.has("enter_scope"):
-   local_frames.append({"function":instruction.enter_scope, "locals":{}, "revision":0})
+   # Evaluate each argument in the caller's scope before exposing the new locals.
+   var locals := _call_values(instruction.inputs)
+   if not runtime_error.is_empty():
+    runtime_error_line = instruction.line
+    break
+   local_frames.append({"function":instruction.enter_scope, "locals":locals, "revision":0})
    variable_revision += 1
    index += 1
    continue
@@ -678,6 +703,20 @@ func next_action_index(instructions: Array, first: int) -> int:
     loop_entries.erase(index)
   index += 1 if passes else 1 + int(instruction.skip)
  return index if runtime_error.is_empty() else instructions.size()
+
+func _call_values(inputs: Array) -> Dictionary:
+ var locals: Dictionary = {}
+ for input: Dictionary in inputs:
+  var value: Variant = _expression_value(input.value)
+  if value == null:
+   return {}
+  var is_flag: bool = input.kind == "bool"
+  if typeof(value) != (TYPE_BOOL if is_flag else TYPE_INT):
+   var expected := "True or False" if is_flag else "a whole number"
+   runtime_error = "Argument '%s' needs %s." % [input.name, expected]
+   return {}
+  locals[input.name] = value
+ return locals
 
 func _variable_store(local: bool) -> Dictionary:
  return local_frames.back().locals if local else variables

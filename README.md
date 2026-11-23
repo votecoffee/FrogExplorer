@@ -245,6 +245,19 @@ Use `for bed in range(2):` to count from zero or `for bed in range(2, 0, -1):` t
 
 Define reusable functions above their first call. Functions can accept direction parameters, as in `def seek(heading):` with `hop(heading)` inside. `seek(north)` then uses north for that call. Use a bare `return` to end a function early and resume just after its call. The Python starter in **Low water row** uses it to end a sweep when the tank runs dry.
 
+Use `int` for whole-number parameters and `bool` for parameters that accept `True` or `False`. Leave direction parameters unannotated. A call evaluates its inputs before running the function, so the same route can take a different direction, count, or sensor result each time.
+
+```python
+def walk(heading, count: int):
+    for _ in range(count):
+        if not clear(heading):
+            return
+        hop(heading)
+
+walk(east, 2)
+walk(west, 1)
+```
+
 To use a function's result, return a whole number or a Boolean and assign the call to a variable. A call used in an assignment must return a value on the path it takes. Here, `ready` stores the reading from `clear(east)`.
 
 ```python

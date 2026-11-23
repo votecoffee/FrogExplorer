@@ -14,6 +14,7 @@ DIRECTIONS = {"north", "east", "south", "west"}
 # Older Python drafts could define these two names as routines.
 RESERVED_NAMES = (ACTIONS | SENSORS | DIRECTIONS | {"range"}) - {"plant", "empty_bed"}
 VARIABLE_RESERVED_NAMES = ACTIONS | SENSORS | NUMERIC_SENSORS | DIRECTIONS | {"print", "range", "_"}
+VALUE_TYPES = {"int", "bool"}
 MAX_SOURCE = 8192
 MIN_VALUE = -(2 ** 31)
 MAX_VALUE = 2 ** 31 - 1
@@ -132,19 +133,36 @@ def print_value(node, routines, parameters, local_names):
 def lower(source):
     lines = []
     locations = []
-    routines = set()
+    routines = {}
     details = {}
 
     def emit(text, line):
         lines.append(text)
         locations.append(line - 1)
 
-    def emit_call(command, args, line):
-        emit(" ".join(["call", command, *(direction(arg) for arg in args)]), line)
-
     def block(statements, parameters, local_names):
         def lower_value(node):
             return expression(node, routines, parameters, local_names)
+
+        def emit_call(command, args, line, capture=None):
+            kinds = routines.get(command, [])
+            words = ["call", command]
+            value_args = {}
+            for index, arg in enumerate(args):
+                if index < len(kinds) and kinds[index] in VALUE_TYPES:
+                    # Keep one word per positional argument for the direction binder.
+                    words.append("_")
+                    value_args[str(index)] = lower_value(arg)
+                else:
+                    words.append(direction(arg))
+            detail = {}
+            if value_args:
+                detail["value_args"] = value_args
+            if capture is not None:
+                detail["capture"] = capture
+            if detail:
+                details[str(len(lines))] = detail
+            emit(" ".join(words), line)
 
         def target_name(node):
             token = variable_name(node, routine_names)
@@ -177,8 +195,7 @@ def lower(source):
                     called = value.func.id
                     if called in routines or called in routine_names - SENSORS - NUMERIC_SENSORS:
                         command, args = arguments(value)
-                        details[str(len(lines))] = {"capture": {"name": token, "local": token in local_names}}
-                        emit_call(command, args, node.lineno)
+                        emit_call(command, args, node.lineno, {"name": token, "local": token in local_names})
                         continue
                 if isinstance(node, ast.AugAssign):
                     value = ast.copy_location(ast.BinOp(targets[0], node.op, value), node)
@@ -190,21 +207,32 @@ def lower(source):
             elif isinstance(node, ast.FunctionDef):
                 args = node.args
                 if (node.decorator_list or node.returns or getattr(node, "type_params", []) or
-                    args.posonlyargs or args.vararg or args.kwonlyargs or args.kwarg or args.defaults or
-                    any(arg.annotation for arg in args.args)):
-                    raise GardenError(node, "Use a simple def with optional direction parameters.")
+                    args.posonlyargs or args.vararg or args.kwonlyargs or args.kwarg or args.defaults):
+                    raise GardenError(node, "Use a simple def with positional parameters.")
                 routine = name(node.name, node)
                 if routine in RESERVED_NAMES:
                     raise GardenError(node, "Choose a different name for this garden function.")
-                routines.add(routine)
                 names = [name(arg.arg, arg) for arg in args.args]
+                value_parameters = {}
+                for arg, token in zip(args.args, names):
+                    if arg.annotation is None:
+                        continue
+                    if not isinstance(arg.annotation, ast.Name) or arg.annotation.id not in VALUE_TYPES:
+                        raise GardenError(arg, "Use int or bool for value parameters. Leave directions unannotated.")
+                    if token in VARIABLE_RESERVED_NAMES or token in routine_names:
+                        raise GardenError(arg, "Choose a parameter name distinct from garden commands and functions.")
+                    value_parameters[token] = arg.annotation.id
+                routines[routine] = [value_parameters.get(token, "direction") for token in names]
                 # A name assigned anywhere in a function is local throughout that function.
                 assigned = {item.id for item in ast.walk(node) if isinstance(item, ast.Name)
                             and isinstance(item.ctx, ast.Store) and item.id != "_"}
+                assigned.update(value_parameters)
                 if assigned:
                     details[str(len(lines))] = {"local_scope": True}
+                if value_parameters:
+                    details[str(len(lines))]["value_parameters"] = value_parameters
                 emit(" ".join(["routine", routine, *names]), node.lineno)
-                block(node.body, set(names), assigned)
+                block(node.body, set(names) - value_parameters.keys(), assigned)
                 emit("end", node.end_lineno)
             elif isinstance(node, (ast.If, ast.While)):
                 keyword = "if" if isinstance(node, ast.If) else "while"

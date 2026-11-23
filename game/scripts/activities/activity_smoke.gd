@@ -299,6 +299,49 @@ print(second, third, column())
  popup._reset()
  press_key(KEY_F7)
 
+func check_value_parameters(popup) -> void:
+ press_key(KEY_F7)
+ var route := """def walk(heading, count: int, allowed: bool):
+    moved = 0
+    if not allowed:
+        return moved
+    for _ in range(count):
+        if not clear(heading):
+            return moved
+        hop(heading)
+        moved += 1
+    return moved
+def plan(heading, count: int):
+    got = walk(heading, count + 1, clear(heading))
+    return got
+seed = column() + 1
+eastbound = plan(east, seed)
+westbound = walk(west, eastbound - 1, clear(west))
+skipped = walk(north, 1, False)
+print(eastbound, westbound, skipped, column())
+"""
+ var expected := "Line 18 · 2 1 0 1"
+ popup.source.text = route
+ popup.check_button.pressed.emit()
+ check(popup.checked_route.actions.size() == 3 and popup.output_text.text == expected and popup.garden.turn == 0, "Check predicts a route that passes readings, counts, and directions through nested calls")
+ popup.review_button.pressed.emit()
+ check(popup.variables_text.text == "plan() · count = 1\nseed = 1\nwalk() · allowed = True\nwalk() · count = 2\nwalk() · moved = 0", "Review shows the caller and callee's independent parameter values")
+ popup.review_slider.value = 2
+ check(popup.variables_text.text == "eastbound = 2\nseed = 1\nwalk() · allowed = True\nwalk() · count = 1\nwalk() · moved = 0" and popup.garden.turn == 0, "The next call receives the previous call's result and its own direction reading")
+ await finish_by_steps(popup, route)
+ check(popup.garden.turn == 3 and popup.garden.cell == Vector2i(1, 1) and popup.garden.local_frames.is_empty() and popup.output_text.text == expected, "Live input parameters produce the same route and result as Check")
+
+ await finish_by_steps(popup, "def probe(heading, start: int):\n    hop(heading)\n    return start\nwas = probe(west, column())\nprint(was, column())\n")
+ check(popup.garden.turn == 4 and popup.output_text.text == "Line 5 · 1 0", "A numeric argument captures the reading before the function moves Pondbot")
+ popup.source.text = "def scout(heading, count: int):\n    hop(heading)\nscout(east, True)\n"
+ popup.check_button.pressed.emit()
+ check(popup.checked_route.get("line", -1) == 2 and "Argument 'count' needs a whole number" in popup.status.text and popup.checked_route.actions.is_empty(), "An integer parameter reports a Boolean argument at the call before it moves")
+ popup.source.text = "def scout(allowed: bool, heading):\n    hop(heading)\nscout(1, east)\n"
+ popup.check_button.pressed.emit()
+ check(popup.checked_route.get("line", -1) == 2 and "Argument 'allowed' needs True or False" in popup.status.text and popup.checked_route.actions.is_empty(), "A Boolean parameter reports a numeric argument at the call")
+ popup._reset()
+ press_key(KEY_F7)
+
 func check_switchback_beds(popup, index: int) -> void:
  var earned: int = popup.progress.earned_lilies()
  popup.chooser.item_selected.emit(index)
@@ -1170,6 +1213,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   check_function_locals(popup)
   check_python_returns(popup)
   await check_function_results(popup)
+  await check_value_parameters(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

@@ -164,6 +164,25 @@ print()
         })
         self.assertEqual(result["details"]["7"], {"capture": {"name": "seen", "local": False}})
 
+    def test_typed_value_arguments_keep_their_positions_among_directions(self):
+        source = ("def report(Count: int, Heading, ready: bool):\n"
+                  "    print(Count, Heading, ready)\nreport(column() + 1, east, spring())\n")
+        result = LOWER(source)
+        self.assertEqual(result["source"], "routine report Count Heading ready\ndiagnostic\nend\ncall report _ east _")
+        self.assertEqual(result["details"]["0"], {
+            "local_scope": True, "value_parameters": {"Count": "int", "ready": "bool"},
+        })
+        self.assertEqual(result["details"]["1"]["output"], [
+            {"op": "variable", "name": "Count", "local": True},
+            {"op": "direction", "direction": "Heading"},
+            {"op": "variable", "name": "ready", "local": True},
+        ])
+        self.assertEqual(result["details"]["3"]["value_args"], {
+            "0": {"op": "+", "args": [{"op": "sensor", "name": "column", "direction": ""},
+                                      {"op": "literal", "value": 1}]},
+            "2": {"op": "sensor", "name": "spring", "direction": ""},
+        })
+
     def test_unsupported_syntax_is_rejected_at_its_source_line(self):
         for source, line in [
             ("fill()\nimport math\n", 1),
@@ -187,6 +206,8 @@ print()
             ("water_level = 1\n", 0),
             ("turns = 2\ndef turns():\n    wait()\n", 0),
             ("def survey(heading):\n    heading = row()\n", 1),
+            ("def survey(heading: str):\n    hop(heading)\n", 0),
+            ("def survey(water_level: int):\n    wait()\n", 0),
             ("def survey():\n    global position\n", 1),
             ("def survey():\n    return 'east'\n", 1),
             ("def survey():\n    return 1\nprint(survey())\n", 2),

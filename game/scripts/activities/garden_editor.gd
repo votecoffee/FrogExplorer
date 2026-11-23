@@ -4,7 +4,7 @@ signal dismissed
 const Programs = preload("res://scripts/activities/garden_program.gd")
 const Progress = preload("res://scripts/activities/activity_progress.gd")
 const CLASSIC_GUIDE := "hop north / east / south / west\nfill     plant     water     wait     gather\nrepeat N … end     # comment\nroutine NAME heading · call NAME east\nif / while CONDITION … end\nelse · not · and · or · break · continue\nLook ahead with clear east or lily north\nF9 toggles a breakpoint"
-const PYTHON_GUIDE := "hop(east)    fill()    water()\nplant()       wait()       gather()\nfor bed in range(2):\nif water_level() >= 2:\nwhile clear(east):\ndef tend(heading):    tend(east)\nstart = column()    print(start)\nTab indents · Shift+Tab unindents\nF9 toggles a breakpoint"
+const PYTHON_GUIDE := "hop(east)    fill()    water()\nplant()       wait()       gather()\nfor bed in range(2):\nif water_level() >= 2:\nwhile clear(east):\ndef walk(heading, steps: int):\nstart = column()    print(start)\nTab indents · Shift+Tab unindents\nF9 toggles a breakpoint"
 var hud: ExplorerHUD
 var garden := Programs.new()
 var world: ExplorerActivityWorld
@@ -203,7 +203,7 @@ func _code_edit() -> CodeEdit:
 
 func _color_code(editor: CodeEdit, python: bool) -> void:
  var ink := CodeHighlighter.new()
- var structural := ["for", "in", "range", "def", "elif", "print", "return"] if python else ["repeat", "routine", "call", "end"]
+ var structural := ["for", "in", "range", "def", "elif", "print", "return", "int", "bool"] if python else ["repeat", "routine", "call", "end"]
  for word in ["hop", "fill", "plant", "water", "wait", "gather", "if", "else", "while", "not", "and", "or", "clear", "break", "continue"] + structural + Programs.CONDITIONS + Programs.NUMERIC_SENSORS:
   ink.add_keyword_color(word, Color("#8bd5bc"))
  ink.add_color_region("#", "", Color("#a5ad99"), true)
