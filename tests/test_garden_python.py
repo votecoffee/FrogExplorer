@@ -201,6 +201,17 @@ print()
         old_draft = "def has_reach_tool():\n    wait()\nhas_reach_tool()\n"
         self.assertEqual(LOWER(old_draft)["source"], "routine has_reach_tool\nwait\nend\ncall has_reach_tool")
 
+    def test_harvest_hook_lowers_directional_gather_and_preserves_existing_names(self):
+        result = LOWER("def collect(heading):\n    gather(heading)\ncollect(north)\ngather()\n"
+                       "print(has_harvest_hook())\n")
+        self.assertEqual(result["source"], "routine collect heading\ngather heading\nend\n"
+                         "call collect north\ngather\ndiagnostic")
+        self.assertEqual(result["details"]["5"]["output"], [
+            {"op": "sensor", "name": "has_harvest_hook", "direction": ""},
+        ])
+        old_draft = "def has_harvest_hook():\n    wait()\nhas_harvest_hook()\n"
+        self.assertEqual(LOWER(old_draft)["source"], "routine has_harvest_hook\nwait\nend\ncall has_harvest_hook")
+
     def test_unsupported_syntax_is_rejected_at_its_source_line(self):
         for source, line in [
             ("fill()\nimport math\n", 1),
@@ -215,6 +226,8 @@ print()
             ("fill()\nprint(plant())\n", 1),
             ("print(has_water(east))\n", 0),
             ("print(has_reach_tool(east))\n", 0),
+            ("print(has_harvest_hook(east))\n", 0),
+            ("gather(north, east)\n", 0),
             ("plant(north, east)\n", 0),
             ("print(1 * 2)\n", 0),
             ("fill()\nif row(east) > 0:\n    wait()\n", 1),

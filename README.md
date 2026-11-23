@@ -240,6 +240,33 @@ if has_reach_tool() and empty_bed(east) and has_water():
 
 Spend **40 nursery lilies** after buying the reach tool to unlock **Lotus marsh**. Its purple lotus beds need two water doses and ripen three actions after their final watering. A ripe lotus adds three nursery lilies to your balance. Tend the neighboring lily while the lotus ripens. The starter shows one pair, and a six-dose fill can cover both pairs for eight nursery lilies per circuit.
 
+After opening Lotus marsh, spend **56 nursery lilies** on the harvest hook. Use `gather(direction)` from the neighboring tile when a crop is ripe. Check ownership with `has_harvest_hook()` in Python. Classic Pondbot uses commands such as `gather north`.
+
+In Willow nursery, the center path gives Pondbot access to both banks. Tend each bed on the way out and gather on the way back. The same route also works in Lotus marsh.
+
+```python
+def tend(heading):
+    if empty_bed(heading):
+        plant(heading)
+    while thirsty(heading):
+        water(heading)
+
+def collect(heading):
+    if ripe(heading):
+        gather(heading)
+
+fill()
+for _ in range(3):
+    hop(east)
+    tend(north)
+    tend(south)
+
+for _ in range(3):
+    collect(north)
+    collect(south)
+    hop(west)
+```
+
 Use Python `print("Tank ready", has_water())` to show messages and sensor readings with their source line numbers. **Program output** shows the live run. **Check output** shows readings from the simulated board, and **Review** reveals those messages as you move through the actions. Printing costs no actions, and each view retains the latest 32 messages.
 
 `water_level()` returns the remaining doses and `tank_capacity()` returns the tank's limit. `column()` counts from the left edge and `row()` counts from the top, both starting at zero. Print the readings with `print(column(), row(), water_level())` or compare them in a route. For example, use `while column() < 2 and clear(east):` with an indented `hop(east)` to move toward column 2. Use `spring() and water_level() < tank_capacity()` in an `if` before filling. Classic Pondbot uses comparisons such as `if water_level < tank_capacity`.

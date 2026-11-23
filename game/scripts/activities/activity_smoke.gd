@@ -423,7 +423,12 @@ func check_nursery_storage() -> void:
  var marsh := second.buy_nursery_upgrade(Progress.LOTUS_MARSH_MARKER)
  var marsh_again := first.buy_nursery_upgrade(Progress.LOTUS_MARSH_MARKER)
  reopened.load_from(path)
- check(saved and marsh == OK and marsh_again == OK and reopened.nursery_balance() == 3 and reopened.lesson_available(Program.LOTUS_MARSH, 0) and reopened.next_nursery_upgrade().is_empty(), "Lotus marsh and a multi-lily harvest persist across sessions with one purchase")
+ check(saved and marsh == OK and marsh_again == OK and reopened.nursery_balance() == 3 and reopened.lesson_available(Program.LOTUS_MARSH, 0) and reopened.next_nursery_upgrade() == Progress.HARVEST_HOOK_MARKER, "Lotus marsh and a multi-lily harvest persist across sessions with one purchase")
+ saved = first.record_nursery_harvest(Progress.HARVEST_HOOK_COST) == OK and saved
+ var hook := second.buy_nursery_upgrade(Progress.HARVEST_HOOK_MARKER)
+ var hook_again := first.buy_nursery_upgrade(Progress.HARVEST_HOOK_MARKER)
+ reopened.load_from(path)
+ check(saved and hook == OK and hook_again == OK and reopened.nursery_balance() == 3 and reopened.has_nursery_upgrade(Progress.HARVEST_HOOK_MARKER) and reopened.next_nursery_upgrade().is_empty(), "The harvest hook persists and costs its price once across sessions")
 
 func check_willow_nursery(popup, open_nursery: int) -> void:
  var willow := Program.GARDENS.find(Program.WILLOW_NURSERY)
@@ -554,7 +559,7 @@ print(has_reach_tool(), water_level())
  check(popup.output_text.text.ends_with(" · False") and "requires the reach tool" in popup.status.text and popup.garden.turn == 0, "Scored lessons report their own tool availability")
  return route
 
-func check_lotus_marsh(popup, reach_route: String) -> void:
+func check_lotus_marsh(popup, reach_route: String) -> String:
  var willow := Program.GARDENS.find(Program.WILLOW_NURSERY)
  var marsh := Program.GARDENS.find(Program.LOTUS_MARSH)
  popup.chooser.item_selected.emit(willow)
@@ -569,7 +574,7 @@ func check_lotus_marsh(popup, reach_route: String) -> void:
  check(popup.running and popup.progress.nursery_balance() == Progress.LOTUS_MARSH_COST and popup.nursery_upgrade_button.disabled, "The Willow reach route funds Lotus marsh through live harvests")
  popup.stop_button.pressed.emit()
  popup.nursery_upgrade_button.pressed.emit()
- check(popup.puzzle == marsh and not popup.chooser.is_item_disabled(marsh) and popup.progress.nursery_balance() == 0 and not popup.nursery_upgrade_button.visible and popup.garden.water_capacity == 6 and popup.garden.reach_tool and popup.garden.plants.size() == 4, "The purchase opens four renewable beds with both nursery tools")
+ check(popup.puzzle == marsh and not popup.chooser.is_item_disabled(marsh) and popup.progress.nursery_balance() == 0 and popup.nursery_upgrade_button.disabled and "Buy harvest hook" in popup.nursery_upgrade_button.text and popup.garden.water_capacity == 6 and popup.garden.reach_tool and popup.garden.plants.size() == 4, "Lotus marsh opens four renewable beds and offers the harvest hook")
 
  popup.check_button.pressed.emit()
  check("Harvested 4 in 11 actions" in popup.status.text and popup.garden.turn == 0 and popup.progress.nursery_balance() == 0, "The Python starter tends one pair for four lilies without spending live water or crediting the balance")
@@ -616,6 +621,83 @@ print(water_level())
  check(popup.garden.turn == 23 and popup.garden.harvested == 8 and popup.progress.nursery_balance() == 8 and popup.garden.cell == Vector2i(0, 1) and popup.garden.tank == 0, "A live circuit pays eight nursery lilies and returns to the spring")
  await finish_by_steps(popup, route)
  check(popup.garden.turn == 46 and popup.garden.harvested == 16 and popup.progress.nursery_balance() == 16, "The same program replants and harvests both lotus beds again")
+ return route
+
+func check_harvest_hook(popup, lotus_route: String) -> void:
+ popup.source.text = "print(has_harvest_hook())\ngather(north)\n"
+ popup.check_button.pressed.emit()
+ check(popup.output_text.text.ends_with(" · False") and "requires the harvest hook" in popup.status.text and popup.checked_route.actions.is_empty(), "Directional gathering waits for the harvest hook")
+ var helpers := lotus_route.get_slice("\nfill()\n", 0)
+ var circuit := "fill()\n" + lotus_route.get_slice("\nfill()\n", 1).get_slice("\nprint(", 0)
+ popup.source.text = helpers + "\nwhile True:\n" + circuit.indent("    ")
+ press_key(KEY_ENTER, true)
+ for action in Program.MAX_STEPS:
+  if not popup.running or popup.progress.nursery_balance() >= Progress.HARVEST_HOOK_COST:
+   break
+  popup._process(.25)
+ check(popup.running and popup.progress.nursery_balance() == Progress.HARVEST_HOOK_COST and popup.nursery_upgrade_button.disabled, "Live Lotus marsh circuits fund the harvest hook")
+ popup.stop_button.pressed.emit()
+ var prior_cell: Vector2i = popup.garden.cell
+ var prior_turn: int = popup.garden.turn
+ var prior_tank: int = popup.garden.tank
+ var prior_plants: Dictionary = popup.garden.plants.duplicate(true)
+ popup.source.text = "print(has_harvest_hook())\ngather(north)\n"
+ popup.check_button.pressed.emit()
+ popup.nursery_upgrade_button.pressed.emit()
+ check(popup.garden.harvest_hook and popup.garden.reach_tool and popup.garden.water_capacity == 6 and popup.garden.cell == prior_cell and popup.garden.turn == prior_turn and popup.garden.tank == prior_tank and popup.garden.plants == prior_plants and popup.progress.nursery_balance() == 0 and not popup.review_button.visible, "Buying the hook preserves the live board and clears the locked preview")
+
+ popup.chooser.item_selected.emit(Program.GARDENS.find(Program.WILLOW_NURSERY))
+ popup.source.text = "fill()\nhop(east)\nplant(north)\nwater(north)\ngather(north)\n"
+ popup.check_button.pressed.emit()
+ check("Gather a ripe lily" in popup.status.text and popup.checked_route.preview.harvested == 0 and popup.checked_route.preview.turn == 4 and popup.checked_route.preview.cell == Vector2i(1, 1) and popup.garden.turn == 0, "A directional harvest cannot gather a growing lily or advance the board")
+
+ var route := """def tend(heading):
+    if empty_bed(heading):
+        plant(heading)
+    while thirsty(heading):
+        water(heading)
+
+def collect(heading):
+    if ripe(heading):
+        gather(heading)
+
+fill()
+for _ in range(3):
+    hop(east)
+    tend(north)
+    tend(south)
+
+for _ in range(3):
+    collect(north)
+    collect(south)
+    hop(west)
+print(has_harvest_hook(), water_level())
+"""
+ popup.source.text = route
+ popup.check_button.pressed.emit()
+ check("Harvested 5 in 22 actions" in popup.status.text and popup.output_text.text.ends_with(" · True 1") and popup.progress.nursery_balance() == 0, "Check predicts five lilies from Willow's center path in 22 actions")
+ popup.review_button.pressed.emit()
+ popup.review_slider.value = 16
+ check("Empty bed" == popup.board.get_child(3).get_child(0).text and "Empty bed" == popup.board.get_child(11).get_child(0).text and "●" in popup.board.get_child(7).get_child(0).text and popup.garden.turn == 0, "Review shows both adjacent beds emptied while Pondbot stays on the path")
+ await finish_by_steps(popup, route)
+ check(popup.garden.turn == 22 and popup.garden.harvested == 5 and popup.progress.nursery_balance() == 5 and popup.garden.cell == Vector2i(0, 1) and popup.garden.tank == 1, "The live Willow route pays five lilies and returns to the spring")
+
+ popup.language.item_selected.emit(1)
+ popup.source.text = "fill\nhop east\nplant north\nwater north\nwait\ngather north\n"
+ popup.check_button.pressed.emit()
+ check("Harvested 1 in 6 actions" in popup.status.text and popup.checked_route.preview.cell == Vector2i(1, 1) and popup.progress.nursery_balance() == 5, "Classic Pondbot can gather from a neighboring bed")
+ popup.language.item_selected.emit(0)
+ popup.chooser.item_selected.emit(Program.GARDENS.find(Program.LOTUS_MARSH))
+ popup.source.text = route
+ popup.check_button.pressed.emit()
+ check("Harvested 8 in 21 actions" in popup.status.text and popup.output_text.text.ends_with(" · True 0"), "The same center path route forecasts eight lilies in Lotus marsh")
+ await finish_by_steps(popup, route)
+ check(popup.garden.turn == 21 and popup.garden.harvested == 8 and popup.progress.nursery_balance() == 13 and popup.garden.cell == Vector2i(0, 1), "The hook collects the full live lotus reward from the path")
+
+ popup.chooser.item_selected.emit(0)
+ popup.source.text = "print(has_harvest_hook())\ngather(east)\n"
+ popup.check_button.pressed.emit()
+ check(popup.output_text.text.ends_with(" · False") and "requires the harvest hook" in popup.status.text and popup.garden.turn == 0, "Scored lessons retain their original gather behavior")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)
@@ -1457,7 +1539,8 @@ if not (3 <= water_level() <= 7) and column() > row():
   check_willow_nursery(popup, open_nursery)
   await check_nursery_reservoir(popup, open_nursery)
   var reach_route: String = await check_reach_tool(popup)
-  await check_lotus_marsh(popup, reach_route)
+  var lotus_route: String = await check_lotus_marsh(popup, reach_route)
+  await check_harvest_hook(popup, lotus_route)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

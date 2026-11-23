@@ -229,9 +229,10 @@ gather()
 }
 const GARDENS := PUZZLES + [OPEN_NURSERY, WILLOW_NURSERY, LOTUS_MARSH]
 const DIRECTIONS = {"north":Vector2i(0,-1), "east":Vector2i(1,0), "south":Vector2i(0,1), "west":Vector2i(-1,0)}
-const CONDITIONS := ["always", "spring", "has_water", "empty_bed", "lily", "thirsty", "growing", "ripe", "has_reach_tool"]
+const CONDITIONS := ["always", "spring", "has_water", "empty_bed", "lily", "thirsty", "growing", "ripe", "has_reach_tool", "has_harvest_hook"]
 const NUMERIC_SENSORS := ["water_level", "tank_capacity", "row", "column"]
 const COMPARISONS := ["<", "<=", "==", "!=", ">=", ">"]
+const NEIGHBOR_ACTIONS := ["plant", "water", "gather"]
 const LOTUS_BED := "X"
 const SEEDBEDS := ["B", LOTUS_BED]
 const PLOT_DOSES := {"B":1, "L":1, "H":2, LOTUS_BED:2}
@@ -254,6 +255,7 @@ var cell := Vector2i.ZERO
 var tank := 0
 var water_capacity := CAPACITY
 var reach_tool := false
+var harvest_hook := false
 var turn := 0
 var harvested := 0
 var runtime_error := ""
@@ -427,7 +429,7 @@ static func compile(source: String, case_sensitive := false, details: Dictionary
    if words.size() != 2 or not _is_direction(words[1], parameters):
     return _error(index, "Use hop with north, east, south, west, or a routine parameter.")
    instruction.direction = words[1]
-  elif command in ["plant", "water"] and words.size() == 2:
+  elif command in NEIGHBOR_ACTIONS and words.size() == 2:
    if not _is_direction(words[1], parameters):
     return _error(index, "Use a compass direction or a routine parameter with %s." % command)
    instruction.direction = words[1]
@@ -595,8 +597,8 @@ static func _parse_condition(words: PackedStringArray, parameters: PackedStringA
    elif index < words.size() and _is_direction(words[index], parameters):
     if condition == "has_water":
      return {"error":"Use has_water without a direction. It checks Pondbot's tank."}
-    if condition == "has_reach_tool":
-     return {"error":"Use has_reach_tool without a direction."}
+    if condition in ["has_reach_tool", "has_harvest_hook"]:
+     return {"error":"Use %s without a direction." % condition}
     if condition == "always":
      return {"error":"Use always without a direction."}
     direction = words[index]
@@ -626,13 +628,13 @@ static func puzzle_lilies(puzzle: Dictionary) -> int:
    total += row.count(plot)
  return total
 
-func load_puzzle(index: int, has_reservoir := false, has_reach_tool := false) -> void:
+func load_puzzle(index: int, has_reservoir := false, has_reach_tool := false, has_harvest_hook := false) -> void:
  var item: Dictionary = GARDENS[index]
  rows = item.rows
  practice = item.get("practice", false)
  plants.clear()
  tank = 0
- configure_nursery_tools(has_reservoir, has_reach_tool)
+ configure_nursery_tools(has_reservoir, has_reach_tool, has_harvest_hook)
  turn = 0
  harvested = 0
  reset_program()
@@ -664,9 +666,10 @@ func inspect_variables() -> Dictionary:
    visible_values[label] = frame.locals[variable]
  return visible_values
 
-func configure_nursery_tools(has_reservoir: bool, has_reach_tool: bool) -> void:
+func configure_nursery_tools(has_reservoir: bool, has_reach_tool: bool, has_harvest_hook: bool) -> void:
  water_capacity = RESERVOIR_CAPACITY if practice and has_reservoir else CAPACITY
  reach_tool = practice and has_reach_tool
+ harvest_hook = practice and has_harvest_hook
  tank = mini(tank, water_capacity)
 
 func copy_board() -> RefCounted:
@@ -678,6 +681,7 @@ func copy_board() -> RefCounted:
  copy.tank = tank
  copy.water_capacity = water_capacity
  copy.reach_tool = reach_tool
+ copy.harvest_hook = harvest_hook
  copy.turn = turn
  copy.harvested = harvested
  return copy
@@ -1001,6 +1005,8 @@ func _meets_condition(condition: String, direction: String) -> bool:
    return tank > 0
   "has_reach_tool":
    return reach_tool
+  "has_harvest_hook":
+   return harvest_hook
   "empty_bed":
    return not plants.get(location, {}).get("planted", true)
   "lily":
@@ -1018,8 +1024,11 @@ func _meets_condition(condition: String, direction: String) -> bool:
 func step(action: Dictionary) -> String:
  var target := cell
  var direction: String = action.get("direction", "")
- if action.command in ["plant", "water"] and not direction.is_empty():
-  if not reach_tool:
+ if action.command in NEIGHBOR_ACTIONS and not direction.is_empty():
+  if action.command == "gather":
+   if not harvest_hook:
+    return "Gathering from a neighboring bed requires the harvest hook."
+  elif not reach_tool:
    return "Tending a neighboring bed requires the reach tool."
   target += DIRECTIONS[direction]
  var plant: Dictionary = plants.get(target, {})
@@ -1051,7 +1060,7 @@ func step(action: Dictionary) -> String:
    if plant.need == 0:
     plant.ready = turn + (4 if plot == LOTUS_BED else 2)
   "gather":
-   if plant_status(cell) != "Ripe":
+   if plant_status(target) != "Ripe":
     if plot == LOTUS_BED:
      return "Gather a ripe lotus. After its final watering, give it three more actions."
     return "Gather a ripe lily. A freshly watered lily needs one more turn."

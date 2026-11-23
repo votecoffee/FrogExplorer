@@ -354,16 +354,20 @@ func _buy_nursery_upgrade() -> void:
   _apply_nursery_tools()
   if upgrade == Progress.RESERVOIR_MARKER:
    status.text = "Reservoir fitted. Fill at the spring for six doses."
-  else:
+  elif upgrade == Progress.REACH_TOOL_MARKER:
    status.text = "Reach tool fitted. Use plant(east) or water(east) on a neighboring bed."
+  else:
+   status.text = "Harvest hook fitted. Use gather(east) on a neighboring ripe bed."
   _draw()
 
 func _apply_nursery_tools() -> void:
  var previous_capacity := garden.water_capacity
  var previous_reach := garden.reach_tool
+ var previous_hook := garden.harvest_hook
  garden.configure_nursery_tools(progress.has_nursery_upgrade(Progress.RESERVOIR_MARKER),
-                               progress.has_nursery_upgrade(Progress.REACH_TOOL_MARKER))
- if previous_capacity != garden.water_capacity or previous_reach != garden.reach_tool:
+                               progress.has_nursery_upgrade(Progress.REACH_TOOL_MARKER),
+                               progress.has_nursery_upgrade(Progress.HARVEST_HOOK_MARKER))
+ if previous_capacity != garden.water_capacity or previous_reach != garden.reach_tool or previous_hook != garden.harvest_hook:
   _discard_check()
 
 func _select_language(index: int) -> void:
@@ -405,7 +409,8 @@ func _reset() -> void:
  _clear_program()
  source.clear_executing_lines()
  garden.load_puzzle(puzzle, progress.has_nursery_upgrade(Progress.RESERVOIR_MARKER),
-                    progress.has_nursery_upgrade(Progress.REACH_TOOL_MARKER))
+                    progress.has_nursery_upgrade(Progress.REACH_TOOL_MARKER),
+                    progress.has_nursery_upgrade(Progress.HARVEST_HOOK_MARKER))
  status.text = "Run or Step tends the current nursery." if garden.practice else "Harvest every lily. Run or Step starts from a fresh board."
  _draw()
 
@@ -688,6 +693,8 @@ func _draw() -> void:
     label = "Upgrade reservoir"
    Progress.LOTUS_MARSH_MARKER:
     label = "Unlock Lotus marsh"
+   Progress.HARVEST_HOOK_MARKER:
+    label = "Buy harvest hook"
   nursery_upgrade_button.text = "%s · %d lilies" % [label, cost]
   nursery_upgrade_button.disabled = active or balance < cost
  best_button.visible = score.visible and progress.garden_best_programs.has(item.id)
