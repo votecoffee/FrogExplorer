@@ -229,10 +229,7 @@ func enter_place(next: ExplorerActivityWorld) -> void:
 func open() -> void:
  if progress.refresh_nursery() != OK:
   hud.toast("Could not save nursery progress.")
- var previous_capacity := garden.water_capacity
- garden.configure_reservoir(progress.has_nursery_upgrade(Progress.RESERVOIR_MARKER))
- if previous_capacity != garden.water_capacity:
-  _discard_check()
+ _apply_nursery_tools()
  show()
  _draw()
  source.grab_focus()
@@ -351,10 +348,20 @@ func _buy_nursery_upgrade() -> void:
   _choose(Programs.GARDENS.find(Programs.WILLOW_NURSERY))
   status.text = "Willow nursery unlocked. Run or Step to tend the new beds."
  else:
-  garden.configure_reservoir(true)
-  _discard_check()
-  status.text = "Reservoir fitted. Fill at the spring for six doses."
+  _apply_nursery_tools()
+  if upgrade == Progress.RESERVOIR_MARKER:
+   status.text = "Reservoir fitted. Fill at the spring for six doses."
+  else:
+   status.text = "Reach tool fitted. Use plant(east) or water(east) on a neighboring bed."
   _draw()
+
+func _apply_nursery_tools() -> void:
+ var previous_capacity := garden.water_capacity
+ var previous_reach := garden.reach_tool
+ garden.configure_nursery_tools(progress.has_nursery_upgrade(Progress.RESERVOIR_MARKER),
+                               progress.has_nursery_upgrade(Progress.REACH_TOOL_MARKER))
+ if previous_capacity != garden.water_capacity or previous_reach != garden.reach_tool:
+  _discard_check()
 
 func _select_language(index: int) -> void:
  if not steps.is_empty():
@@ -394,7 +401,8 @@ func _reset() -> void:
  _discard_check()
  _clear_program()
  source.clear_executing_lines()
- garden.load_puzzle(puzzle, progress.has_nursery_upgrade(Progress.RESERVOIR_MARKER))
+ garden.load_puzzle(puzzle, progress.has_nursery_upgrade(Progress.RESERVOIR_MARKER),
+                    progress.has_nursery_upgrade(Progress.REACH_TOOL_MARKER))
  status.text = "Run or Step tends the current nursery." if garden.practice else "Harvest every lily. Run or Step starts from a fresh board."
  _draw()
 
@@ -668,7 +676,12 @@ func _draw() -> void:
  nursery_upgrade_button.visible = garden.practice and not upgrade.is_empty()
  if nursery_upgrade_button.visible:
   var cost: int = Progress.NURSERY_UPGRADE_COSTS[upgrade]
-  var label := "Unlock Willow nursery" if upgrade == Progress.WILLOW_MARKER else "Upgrade reservoir"
+  var label := "Buy reach tool"
+  match upgrade:
+   Progress.WILLOW_MARKER:
+    label = "Unlock Willow nursery"
+   Progress.RESERVOIR_MARKER:
+    label = "Upgrade reservoir"
   nursery_upgrade_button.text = "%s · %d lilies" % [label, cost]
   nursery_upgrade_button.disabled = active or balance < cost
  best_button.visible = score.visible and progress.garden_best_programs.has(item.id)

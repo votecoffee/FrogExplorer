@@ -191,6 +191,16 @@ print()
             {"op": "sensor", "name": "tank_capacity", "direction": ""},
         ])
 
+    def test_reach_commands_lower_direction_parameters_and_tool_readings(self):
+        result = LOWER("def tend(Heading):\n    plant(Heading)\n    water(Heading)\ntend(east)\nprint(has_reach_tool())\n")
+        self.assertEqual(result["source"], "routine tend Heading\nplant Heading\nwater Heading\nend\n"
+                         "call tend east\ndiagnostic")
+        self.assertEqual(result["details"]["5"]["output"], [
+            {"op": "sensor", "name": "has_reach_tool", "direction": ""},
+        ])
+        old_draft = "def has_reach_tool():\n    wait()\nhas_reach_tool()\n"
+        self.assertEqual(LOWER(old_draft)["source"], "routine has_reach_tool\nwait\nend\ncall has_reach_tool")
+
     def test_unsupported_syntax_is_rejected_at_its_source_line(self):
         for source, line in [
             ("fill()\nimport math\n", 1),
@@ -204,6 +214,8 @@ print()
             ("fill()\nif spring()\n    wait()\n", 1),
             ("fill()\nprint(plant())\n", 1),
             ("print(has_water(east))\n", 0),
+            ("print(has_reach_tool(east))\n", 0),
+            ("plant(north, east)\n", 0),
             ("print(1 * 2)\n", 0),
             ("fill()\nif row(east) > 0:\n    wait()\n", 1),
             ("if water_level() is 3:\n    wait()\n", 0),

@@ -413,6 +413,12 @@ func check_nursery_storage() -> void:
  var reservoir_again := first.buy_nursery_upgrade(Progress.RESERVOIR_MARKER)
  reopened.load_from(path)
  check(saved and reservoir == OK and reservoir_again == OK and reopened.nursery_balance() == 1 and reopened.has_nursery_upgrade(Progress.RESERVOIR_MARKER) and reopened.lesson_available(Program.WILLOW_NURSERY, 0), "Both upgrades and the remaining balance persist and are charged once per profile")
+ for bloom in Progress.REACH_TOOL_COST - 1:
+  saved = first.record_nursery_harvest() == OK and saved
+ var reach := second.buy_nursery_upgrade(Progress.REACH_TOOL_MARKER)
+ var reach_again := first.buy_nursery_upgrade(Progress.REACH_TOOL_MARKER)
+ reopened.load_from(path)
+ check(saved and reach == OK and reach_again == OK and reopened.nursery_balance() == 0 and reopened.has_nursery_upgrade(Progress.REACH_TOOL_MARKER) and reopened.next_nursery_upgrade().is_empty(), "The reach tool persists and charges its price once across sessions")
 
 func check_willow_nursery(popup, open_nursery: int) -> void:
  var willow := Program.GARDENS.find(Program.WILLOW_NURSERY)
@@ -459,7 +465,7 @@ func check_nursery_reservoir(popup, open_nursery: int) -> void:
  var previous_cell: Vector2i = popup.garden.cell
  var previous_plants: Dictionary = popup.garden.plants.duplicate(true)
  popup.nursery_upgrade_button.pressed.emit()
- check(popup.garden.water_capacity == 6 and popup.garden.tank == previous_tank and popup.garden.cell == previous_cell and popup.garden.plants == previous_plants and popup.progress.nursery_balance() == 0 and not popup.nursery_upgrade_button.visible, "Fitting the reservoir spends the saved lilies and preserves the current crops, position, and water")
+ check(popup.garden.water_capacity == 6 and popup.garden.tank == previous_tank and popup.garden.cell == previous_cell and popup.garden.plants == previous_plants and popup.progress.nursery_balance() == 0 and "Buy reach tool" in popup.nursery_upgrade_button.text and popup.nursery_upgrade_button.disabled, "Fitting the reservoir preserves the board and reveals the reach tool upgrade")
  popup._reset()
  var one_fill := bank_sweep.get_slice("# Find the spring", 0).replace("    fill()\n", "")
  one_fill += "fill()\ntend_row(north, south)\ntend_row(south, north)\nprint(tank_capacity(), water_level())\n"
@@ -477,6 +483,70 @@ func check_nursery_reservoir(popup, open_nursery: int) -> void:
  popup.source.text = "fill()\nprint(tank_capacity(), water_level())\n"
  popup.check_button.pressed.emit()
  check(popup.garden.water_capacity == 3 and popup.output_text.text.ends_with(" · 3 3") and "Water 0 / 3" in popup.info.text, "Scored lessons use the original capacity in the live board and Check")
+
+func check_reach_tool(popup) -> void:
+ var willow := Program.GARDENS.find(Program.WILLOW_NURSERY)
+ popup.chooser.item_selected.emit(willow)
+ popup.source.text = "print(has_reach_tool())\nplant(east)\n"
+ popup.check_button.pressed.emit()
+ check(popup.output_text.text.ends_with(" · False") and "requires the reach tool" in popup.status.text and popup.checked_route.actions.is_empty(), "Directional planting waits for the nursery upgrade")
+
+ popup.source.text = Program.OPEN_NURSERY.python_draft.replace("range(2)", "range(3)")
+ press_key(KEY_ENTER, true)
+ for action in Program.MAX_STEPS:
+  if not popup.running or popup.progress.nursery_balance() >= Progress.REACH_TOOL_COST:
+   break
+  popup._process(.25)
+ check(popup.running and popup.progress.nursery_balance() == Progress.REACH_TOOL_COST and popup.nursery_upgrade_button.disabled, "Willow automation funds the reach tool")
+ popup.stop_button.pressed.emit()
+ var before: Vector2i = popup.garden.cell
+ popup.nursery_upgrade_button.pressed.emit()
+ check(popup.garden.reach_tool and popup.garden.cell == before and popup.garden.water_capacity == 6 and popup.progress.nursery_balance() == 0 and not popup.nursery_upgrade_button.visible, "Fitting the reach tool spends the saved lilies and preserves the reservoir")
+ popup._reset()
+ popup.source.text = "fill()\nwater(east)\n"
+ popup.check_button.pressed.emit()
+ check("This plot does not need water." in popup.status.text and popup.checked_route.preview.tank == 6, "Watering a path with the reach tool spends no water")
+
+ var route := """def tend_ahead(heading):
+    if empty_bed(heading):
+        plant(heading)
+    if thirsty(heading):
+        water(heading)
+    hop(heading)
+    if ripe():
+        gather()
+
+def sweep(toward, back):
+    hop(toward)
+    for _ in range(3):
+        tend_ahead(east)
+    for _ in range(3):
+        hop(west)
+    hop(back)
+
+fill()
+sweep(north, south)
+sweep(south, north)
+print(has_reach_tool(), water_level())
+"""
+ popup.source.text = route
+ popup.check_button.pressed.emit()
+ check("Harvested 5 in 32 actions" in popup.status.text and popup.output_text.text.ends_with(" · True 1") and popup.garden.turn == 0 and popup.progress.nursery_balance() == 0, "Check predicts all five beds in 32 actions with the reach tool")
+ popup.review_button.pressed.emit()
+ popup.review_slider.value = 4
+ check("Growing" in popup.board.get_child(1).get_child(0).text and "●" in popup.board.get_child(0).get_child(0).text and popup.garden.turn == 0, "Review shows the adjacent lily growing before Pondbot enters its bed")
+ await finish_by_steps(popup, route)
+ check(popup.garden.turn == 32 and popup.garden.harvested == 5 and popup.garden.tank == 1 and popup.progress.nursery_balance() == 5, "The live reach route earns all five lilies with one dose left")
+
+ popup.language.item_selected.emit(1)
+ popup.source.text = "fill\nhop north\nplant east\nwater east\nhop east\ngather\n"
+ popup.check_button.pressed.emit()
+ check("Harvested 1 in 6 actions" in popup.status.text and popup.progress.nursery_balance() == 5, "Classic Pondbot can preview planting and watering a neighboring bed")
+ popup.language.item_selected.emit(0)
+ popup.chooser.item_selected.emit(0)
+ popup.source.text = "print(has_reach_tool())\nwater(east)\n"
+ popup.check_button.pressed.emit()
+ check(popup.output_text.text.ends_with(" · False") and "requires the reach tool" in popup.status.text and popup.garden.turn == 0, "Scored lessons report their own tool availability")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)
@@ -1317,6 +1387,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   await check_value_parameters(popup)
   check_willow_nursery(popup, open_nursery)
   await check_nursery_reservoir(popup, open_nursery)
+  await check_reach_tool(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

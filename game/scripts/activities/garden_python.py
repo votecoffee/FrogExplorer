@@ -7,14 +7,15 @@ import sys
 
 
 ACTIONS = {"fill", "hop", "plant", "water", "wait", "gather"}
-SENSORS = {"clear", "spring", "has_water", "empty_bed", "lily", "thirsty", "growing", "ripe"}
+SENSORS = {"clear", "spring", "has_water", "empty_bed", "lily", "thirsty", "growing", "ripe", "has_reach_tool"}
 NUMERIC_SENSORS = {"water_level", "tank_capacity", "row", "column"}
 COMPARISONS = {ast.Lt: "<", ast.LtE: "<=", ast.Eq: "==", ast.NotEq: "!=", ast.GtE: ">=", ast.Gt: ">"}
 DIRECTIONS = {"north", "east", "south", "west"}
-# Older Python drafts could define these two names as routines.
-RESERVED_NAMES = (ACTIONS | SENSORS | DIRECTIONS | {"range"}) - {"plant", "empty_bed"}
-# Existing drafts may already use tank_capacity as a variable name.
-VARIABLE_RESERVED_NAMES = ACTIONS | SENSORS | (NUMERIC_SENSORS - {"tank_capacity"}) | DIRECTIONS | {"print", "range", "_"}
+# Preserve names available to older drafts before these commands and readings were added.
+RESERVED_NAMES = (ACTIONS | SENSORS | DIRECTIONS | {"range"}) - {"plant", "empty_bed", "has_reach_tool"}
+VARIABLE_RESERVED_NAMES = (ACTIONS | SENSORS | NUMERIC_SENSORS | DIRECTIONS | {"print", "range", "_"}) - {
+    "tank_capacity", "has_reach_tool",
+}
 VALUE_TYPES = {"int", "bool"}
 MAX_SOURCE = 8192
 MIN_VALUE = -(2 ** 31)
@@ -60,7 +61,7 @@ def sensor_call(node):
         raise GardenError(node, "Use a garden test such as empty_bed(north) or has_water().")
     if sensor in NUMERIC_SENSORS and args:
         raise GardenError(node, f"Use {sensor}() without arguments.")
-    if len(args) > 1 or (sensor == "clear" and not args) or (sensor == "has_water" and args):
+    if len(args) > 1 or (sensor == "clear" and not args) or (sensor in {"has_water", "has_reach_tool"} and args):
         raise GardenError(node, "Check the direction arguments for this garden test.")
     return sensor, direction(args[0]) if args else ""
 
@@ -181,7 +182,8 @@ def lower(source):
                     emit("diagnostic", node.lineno)
                     continue
                 if command in ACTIONS and command not in routines:
-                    if len(args) != int(command == "hop"):
+                    counts = (0, 1) if command in {"plant", "water"} else (int(command == "hop"),)
+                    if len(args) not in counts:
                         raise GardenError(node, f"Check the arguments for {command}().")
                     emit(" ".join([command, *(direction(arg) for arg in args)]), node.lineno)
                 else:

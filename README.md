@@ -228,6 +228,16 @@ Each live harvest in a nursery adds one nursery lily to your saved balance. When
 
 After unlocking Willow nursery, spend **24 nursery lilies** on the reservoir upgrade. The next fill gives Pondbot six doses in either renewable nursery. In Willow nursery, move `fill()` ahead of the two bank sweeps to tend all five beds on one fill. Scored lessons use a three-dose tank.
 
+After fitting the reservoir, spend **32 nursery lilies** on the reach tool. It lets Pondbot plant or water an adjacent bed in either nursery. A lily watered before a hop can ripen during the hop. Use `has_reach_tool()` to check availability in Python. Classic Pondbot uses commands such as `plant east` and `water east`.
+
+```python
+if has_reach_tool() and empty_bed(east) and has_water():
+    plant(east)
+    water(east)
+    hop(east)
+    gather()
+```
+
 Use Python `print("Tank ready", has_water())` to show messages and sensor readings with their source line numbers. **Program output** shows the live run. **Check output** shows readings from the simulated board, and **Review** reveals those messages as you move through the actions. Printing costs no actions, and each view retains the latest 32 messages.
 
 `water_level()` returns the remaining doses and `tank_capacity()` returns the tank's limit. `column()` counts from the left edge and `row()` counts from the top, both starting at zero. Print the readings with `print(column(), row(), water_level())` or compare them in a route. For example, use `while column() < 2 and clear(east):` with an indented `hop(east)` to move toward column 2. Use `spring() and water_level() < tank_capacity()` in an `if` before filling. Classic Pondbot uses comparisons such as `if water_level < tank_capacity`.
