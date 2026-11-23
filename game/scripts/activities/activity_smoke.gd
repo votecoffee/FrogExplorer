@@ -393,35 +393,42 @@ func check_nursery_storage() -> void:
  recorded = first.complete_puzzle("first_bloom", 9, "fill()\n", true) == OK and recorded
  for bloom in 8:
   recorded = first.record_nursery_harvest() == OK and recorded
- check(recorded and first.unlock_willow_nursery() == ERR_UNAVAILABLE and first.nursery_balance() == 8, "An unaffordable nursery purchase leaves the saved harvest intact")
- for bloom in 6:
+ check(recorded and first.buy_nursery_upgrade(Progress.WILLOW_MARKER) == ERR_UNAVAILABLE and first.nursery_balance() == 8, "An unaffordable nursery purchase leaves the saved harvest intact")
+ for bloom in 16:
   recorded = second.record_nursery_harvest() == OK and recorded
  var restored := Progress.new()
  restored.load_from(path)
- check(recorded and restored.nursery_balance() == 14 and restored.earned_lilies() == 2 and restored.python_drafts.get("first_bloom") == "fill()\n", "Reloading combines harvests from two sessions and preserves lesson progress and drafts")
- var purchase := second.unlock_willow_nursery()
- var repeated := first.unlock_willow_nursery()
- check(purchase == OK and repeated == OK and first.nursery_balance() == 2 and second.nursery_balance() == 2 and first.willow_unlocked, "Two sessions see the same unlock and spend nursery lilies once")
- var saved := first.record_nursery_harvest()
+ check(recorded and restored.nursery_balance() == 24 and restored.earned_lilies() == 2 and restored.python_drafts.get("first_bloom") == "fill()\n", "Reloading combines harvests from two sessions and preserves lesson progress and drafts")
+ check(restored.buy_nursery_upgrade(Progress.RESERVOIR_MARKER) == ERR_UNAVAILABLE and restored.nursery_balance() == 24, "The reservoir upgrade opens after the Willow nursery purchase")
+ var purchase := second.buy_nursery_upgrade(Progress.WILLOW_MARKER)
+ var repeated := first.buy_nursery_upgrade(Progress.WILLOW_MARKER)
+ check(purchase == OK and repeated == OK and first.nursery_balance() == 12 and second.nursery_balance() == 12 and first.has_nursery_upgrade(Progress.WILLOW_MARKER), "Two sessions see the same unlock and spend nursery lilies once")
+ var saved := first.record_nursery_harvest() == OK
  var reopened := Progress.new()
  reopened.load_from(path)
- check(saved == OK and reopened.nursery_balance() == 3 and reopened.lesson_available(Program.WILLOW_NURSERY, 0), "The purchased nursery and additional harvests survive a restart")
+ check(saved and reopened.nursery_balance() == 13 and reopened.lesson_available(Program.WILLOW_NURSERY, 0), "The purchased nursery and additional harvests survive a restart")
+ for bloom in 12:
+  saved = first.record_nursery_harvest() == OK and saved
+ var reservoir := second.buy_nursery_upgrade(Progress.RESERVOIR_MARKER)
+ var reservoir_again := first.buy_nursery_upgrade(Progress.RESERVOIR_MARKER)
+ reopened.load_from(path)
+ check(saved and reservoir == OK and reservoir_again == OK and reopened.nursery_balance() == 1 and reopened.has_nursery_upgrade(Progress.RESERVOIR_MARKER) and reopened.lesson_available(Program.WILLOW_NURSERY, 0), "Both upgrades and the remaining balance persist and are charged once per profile")
 
 func check_willow_nursery(popup, open_nursery: int) -> void:
  var willow := Program.GARDENS.find(Program.WILLOW_NURSERY)
  var earned: int = popup.progress.earned_lilies()
  var balance: int = popup.progress.nursery_balance()
- check(balance > 0 and balance < Progress.WILLOW_COST and popup.expand_button.disabled and popup.chooser.is_item_disabled(willow), "Live harvests remain in the nursery balance and Willow nursery starts locked")
+ check(balance > 0 and balance < Progress.WILLOW_COST and popup.nursery_upgrade_button.disabled and popup.chooser.is_item_disabled(willow), "Live harvests remain in the nursery balance and Willow nursery starts locked")
  popup.source.text = Program.OPEN_NURSERY.python_draft
  press_key(KEY_ENTER, true)
  for action in Program.MAX_STEPS:
   if not popup.running or popup.progress.nursery_balance() >= Progress.WILLOW_COST:
    break
   popup._process(.25)
- check(popup.running and popup.progress.nursery_balance() == Progress.WILLOW_COST and popup.expand_button.disabled, "Continuous harvesting funds the expansion and purchase waits for Stop")
+ check(popup.running and popup.progress.nursery_balance() == Progress.WILLOW_COST and popup.nursery_upgrade_button.disabled, "Continuous harvesting funds the expansion and purchase waits for Stop")
  popup.stop_button.pressed.emit()
- popup.expand_button.pressed.emit()
- check(popup.puzzle == willow and popup.garden.practice and popup.garden.plants.size() == 5 and popup.progress.nursery_balance() == 0 and popup.progress.earned_lilies() == earned and not popup.expand_button.visible, "Buying Willow nursery opens five renewable beds and spends only its nursery cost")
+ popup.nursery_upgrade_button.pressed.emit()
+ check(popup.puzzle == willow and popup.garden.practice and popup.garden.plants.size() == 5 and popup.progress.nursery_balance() == 0 and popup.progress.earned_lilies() == earned and "Upgrade reservoir" in popup.nursery_upgrade_button.text, "Buying Willow nursery opens five renewable beds and shows the next upgrade")
  popup.check_button.pressed.emit()
  check("Harvested 1 in 7 actions" in popup.status.text and popup.progress.nursery_balance() == 0 and popup.garden.turn == 0, "Check forecasts the Willow starter without crediting its harvest")
 
@@ -435,6 +442,41 @@ func check_willow_nursery(popup, open_nursery: int) -> void:
  popup.stop_button.pressed.emit()
  popup.chooser.item_selected.emit(open_nursery)
  check(popup.puzzle == open_nursery and not popup.chooser.is_item_disabled(willow) and popup.progress.nursery_balance() == 5, "Both nurseries remain available and share their saved harvest balance")
+
+func check_nursery_reservoir(popup, open_nursery: int) -> void:
+ var willow := Program.GARDENS.find(Program.WILLOW_NURSERY)
+ popup.chooser.item_selected.emit(willow)
+ var bank_sweep: String = Program.OPEN_NURSERY.python_draft.replace("range(2)", "range(3)")
+ popup.source.text = bank_sweep
+ press_key(KEY_ENTER, true)
+ for action in Program.MAX_STEPS:
+  if not popup.running or popup.progress.nursery_balance() >= Progress.RESERVOIR_COST:
+   break
+  popup._process(.25)
+ check(popup.running and popup.garden.water_capacity == 3 and popup.progress.nursery_balance() == Progress.RESERVOIR_COST and popup.nursery_upgrade_button.disabled, "Willow harvests fund the reservoir while the active program keeps its original tank")
+ popup.stop_button.pressed.emit()
+ var previous_tank: int = popup.garden.tank
+ var previous_cell: Vector2i = popup.garden.cell
+ var previous_plants: Dictionary = popup.garden.plants.duplicate(true)
+ popup.nursery_upgrade_button.pressed.emit()
+ check(popup.garden.water_capacity == 6 and popup.garden.tank == previous_tank and popup.garden.cell == previous_cell and popup.garden.plants == previous_plants and popup.progress.nursery_balance() == 0 and not popup.nursery_upgrade_button.visible, "Fitting the reservoir spends the saved lilies and preserves the current crops, position, and water")
+ popup._reset()
+ var one_fill := bank_sweep.get_slice("# Find the spring", 0).replace("    fill()\n", "")
+ one_fill += "fill()\ntend_row(north, south)\ntend_row(south, north)\nprint(tank_capacity(), water_level())\n"
+ popup.source.text = one_fill
+ popup.check_button.pressed.emit()
+ check("Harvested 5 in 37 actions" in popup.status.text and popup.output_text.text.ends_with(" · 6 1") and popup.garden.tank == 0 and popup.progress.nursery_balance() == 0, "One fill covers five Willow beds in Check and the capacity sensor reports six")
+ popup.review_button.pressed.emit()
+ popup.review_slider.value = 1
+ check("Water 6 / 6" in popup.info.text and popup.garden.tank == 0, "Review shows the upgraded fill from the simulated board")
+ await finish_by_steps(popup, one_fill)
+ check(popup.garden.turn == 37 and popup.garden.harvested == 5 and popup.garden.tank == 1 and popup.progress.nursery_balance() == 5, "Running the single-fill route earns five lilies with one dose left")
+ popup.chooser.item_selected.emit(open_nursery)
+ check(popup.garden.water_capacity == 6 and "Water 0 / 6" in popup.info.text, "The saved reservoir applies to Open nursery too")
+ popup.chooser.item_selected.emit(0)
+ popup.source.text = "fill()\nprint(tank_capacity(), water_level())\n"
+ popup.check_button.pressed.emit()
+ check(popup.garden.water_capacity == 3 and popup.output_text.text.ends_with(" · 3 3") and "Water 0 / 3" in popup.info.text, "Scored lessons use the original capacity in the live board and Check")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)
@@ -1274,6 +1316,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   await check_function_results(popup)
   await check_value_parameters(popup)
   check_willow_nursery(popup, open_nursery)
+  await check_nursery_reservoir(popup, open_nursery)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

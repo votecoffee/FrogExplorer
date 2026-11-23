@@ -8,12 +8,13 @@ import sys
 
 ACTIONS = {"fill", "hop", "plant", "water", "wait", "gather"}
 SENSORS = {"clear", "spring", "has_water", "empty_bed", "lily", "thirsty", "growing", "ripe"}
-NUMERIC_SENSORS = {"water_level", "row", "column"}
+NUMERIC_SENSORS = {"water_level", "tank_capacity", "row", "column"}
 COMPARISONS = {ast.Lt: "<", ast.LtE: "<=", ast.Eq: "==", ast.NotEq: "!=", ast.GtE: ">=", ast.Gt: ">"}
 DIRECTIONS = {"north", "east", "south", "west"}
 # Older Python drafts could define these two names as routines.
 RESERVED_NAMES = (ACTIONS | SENSORS | DIRECTIONS | {"range"}) - {"plant", "empty_bed"}
-VARIABLE_RESERVED_NAMES = ACTIONS | SENSORS | NUMERIC_SENSORS | DIRECTIONS | {"print", "range", "_"}
+# Existing drafts may already use tank_capacity as a variable name.
+VARIABLE_RESERVED_NAMES = ACTIONS | SENSORS | (NUMERIC_SENSORS - {"tank_capacity"}) | DIRECTIONS | {"print", "range", "_"}
 VALUE_TYPES = {"int", "bool"}
 MAX_SOURCE = 8192
 MIN_VALUE = -(2 ** 31)

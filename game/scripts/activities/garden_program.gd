@@ -190,11 +190,12 @@ tend()
 const GARDENS := PUZZLES + [OPEN_NURSERY, WILLOW_NURSERY]
 const DIRECTIONS = {"north":Vector2i(0,-1), "east":Vector2i(1,0), "south":Vector2i(0,1), "west":Vector2i(-1,0)}
 const CONDITIONS := ["always", "spring", "has_water", "empty_bed", "lily", "thirsty", "growing", "ripe"]
-const NUMERIC_SENSORS := ["water_level", "row", "column"]
+const NUMERIC_SENSORS := ["water_level", "tank_capacity", "row", "column"]
 const COMPARISONS := ["<", "<=", "==", "!=", ">=", ">"]
 const PLOT_DOSES := {"B":0, "L":1, "H":2}
 const EMPTY_BED := "Empty bed"
 const CAPACITY = 3
+const RESERVOIR_CAPACITY := 6
 const MAX_STEPS = 256
 const MAX_WHILE_ITERATIONS := 16
 const MAX_FOR_ITERATIONS := 16
@@ -209,6 +210,7 @@ var plants: Dictionary = {}
 var practice := false
 var cell := Vector2i.ZERO
 var tank := 0
+var water_capacity := CAPACITY
 var turn := 0
 var harvested := 0
 var runtime_error := ""
@@ -575,12 +577,13 @@ static func puzzle_lilies(puzzle: Dictionary) -> int:
    total += row.count(plot)
  return total
 
-func load_puzzle(index: int) -> void:
+func load_puzzle(index: int, has_reservoir := false) -> void:
  var item: Dictionary = GARDENS[index]
  rows = item.rows
  practice = item.get("practice", false)
  plants.clear()
  tank = 0
+ configure_reservoir(has_reservoir)
  turn = 0
  harvested = 0
  reset_program()
@@ -611,6 +614,10 @@ func inspect_variables() -> Dictionary:
    visible_values[label] = frame.locals[variable]
  return visible_values
 
+func configure_reservoir(has_reservoir: bool) -> void:
+ water_capacity = RESERVOIR_CAPACITY if practice and has_reservoir else CAPACITY
+ tank = mini(tank, water_capacity)
+
 func copy_board() -> RefCounted:
  var copy = get_script().new()
  copy.rows = rows
@@ -618,6 +625,7 @@ func copy_board() -> RefCounted:
  copy.practice = practice
  copy.cell = cell
  copy.tank = tank
+ copy.water_capacity = water_capacity
  copy.turn = turn
  copy.harvested = harvested
  return copy
@@ -842,6 +850,8 @@ func _read_number(operand: String) -> int:
  match operand:
   "water_level":
    return tank
+  "tank_capacity":
+   return water_capacity
   "row":
    return cell.y
   "column":
@@ -962,7 +972,7 @@ func step(action: Dictionary) -> String:
   "fill":
    if tile(cell) != "~":
     return "Fill at the spring."
-   tank = CAPACITY
+   tank = water_capacity
   "plant":
    if plant.get("planted", true):
     return "Plant on a prepared empty bed."

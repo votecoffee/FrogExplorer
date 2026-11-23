@@ -4,7 +4,7 @@ signal dismissed
 const Programs = preload("res://scripts/activities/garden_program.gd")
 const Progress = preload("res://scripts/activities/activity_progress.gd")
 const CLASSIC_GUIDE := "hop north / east / south / west\nfill     plant     water     wait     gather\nrepeat N … end     # comment\nroutine NAME heading · call NAME east\nif / while CONDITION … end\nelse · not · and · or · break · continue\nLook ahead with clear east or lily north\nF9 toggles a breakpoint"
-const PYTHON_GUIDE := "hop(east)    fill()    water()\nplant()       wait()       gather()\nfor bed in range(2):\nif water_level() >= 2:\nwhile clear(east):\ndef walk(heading, steps: int):\nstart = column()    print(start)\nTab indents · Shift+Tab unindents\nF9 toggles a breakpoint"
+const PYTHON_GUIDE := "hop(east)    fill()    water()\nplant()       wait()       gather()\nfor bed in range(2):\nif water_level() < tank_capacity():\nwhile clear(east):\ndef walk(heading, steps: int):\nstart = column()    print(start)\nTab indents · Shift+Tab unindents\nF9 toggles a breakpoint"
 var hud: ExplorerHUD
 var garden := Programs.new()
 var world: ExplorerActivityWorld
@@ -31,7 +31,7 @@ var board: GridContainer
 var info: Label
 var score: Label
 var nursery_wallet: Label
-var expand_button: Button
+var nursery_upgrade_button: Button
 var hint: Label
 var guide: Label
 var chooser: OptionButton
@@ -166,7 +166,7 @@ func _ready() -> void:
  right.add_child(score)
  nursery_wallet = hud.label("", 15, Color("#b9dccc"))
  right.add_child(nursery_wallet)
- expand_button = _button(right, "Unlock Willow nursery · %d lilies" % Progress.WILLOW_COST, _unlock_willow_nursery)
+ nursery_upgrade_button = _button(right, "", _buy_nursery_upgrade)
  best_button = _button(right, "Best program", _toggle_best_program)
  review_button = _button(right, "Review", _toggle_review)
  review_button.hide()
@@ -229,6 +229,10 @@ func enter_place(next: ExplorerActivityWorld) -> void:
 func open() -> void:
  if progress.refresh_nursery() != OK:
   hud.toast("Could not save nursery progress.")
+ var previous_capacity := garden.water_capacity
+ garden.configure_reservoir(progress.has_nursery_upgrade(Progress.RESERVOIR_MARKER))
+ if previous_capacity != garden.water_capacity:
+  _discard_check()
  show()
  _draw()
  source.grab_focus()
@@ -333,15 +337,24 @@ func _continue_lessons() -> void:
   _choose(index)
   source.grab_focus()
 
-func _unlock_willow_nursery() -> void:
- if not steps.is_empty() or Programs.GARDENS[puzzle].id != Programs.OPEN_NURSERY.id:
+func _buy_nursery_upgrade() -> void:
+ if not steps.is_empty() or not garden.practice:
   return
- if progress.unlock_willow_nursery() != OK:
-  status.text = "Could not unlock Willow nursery."
+ var upgrade := progress.next_nursery_upgrade()
+ if upgrade.is_empty():
+  return
+ if progress.buy_nursery_upgrade(upgrade) != OK:
+  status.text = "Could not buy the nursery upgrade."
   _draw()
   return
- _choose(Programs.GARDENS.find(Programs.WILLOW_NURSERY))
- status.text = "Willow nursery unlocked. Run or Step to tend the new beds."
+ if upgrade == Progress.WILLOW_MARKER:
+  _choose(Programs.GARDENS.find(Programs.WILLOW_NURSERY))
+  status.text = "Willow nursery unlocked. Run or Step to tend the new beds."
+ else:
+  garden.configure_reservoir(true)
+  _discard_check()
+  status.text = "Reservoir fitted. Fill at the spring for six doses."
+  _draw()
 
 func _select_language(index: int) -> void:
  if not steps.is_empty():
@@ -381,7 +394,7 @@ func _reset() -> void:
  _discard_check()
  _clear_program()
  source.clear_executing_lines()
- garden.load_puzzle(puzzle)
+ garden.load_puzzle(puzzle, progress.has_nursery_upgrade(Progress.RESERVOIR_MARKER))
  status.text = "Run or Step tends the current nursery." if garden.practice else "Harvest every lily. Run or Step starts from a fresh board."
  _draw()
 
@@ -651,8 +664,13 @@ func _draw() -> void:
  var balance := progress.nursery_balance()
  nursery_wallet.visible = garden.practice
  nursery_wallet.text = "Nursery lilies · %d" % balance
- expand_button.visible = item.id == Programs.OPEN_NURSERY.id and not progress.willow_unlocked
- expand_button.disabled = active or balance < Progress.WILLOW_COST
+ var upgrade := progress.next_nursery_upgrade()
+ nursery_upgrade_button.visible = garden.practice and not upgrade.is_empty()
+ if nursery_upgrade_button.visible:
+  var cost: int = Progress.NURSERY_UPGRADE_COSTS[upgrade]
+  var label := "Unlock Willow nursery" if upgrade == Progress.WILLOW_MARKER else "Upgrade reservoir"
+  nursery_upgrade_button.text = "%s · %d lilies" % [label, cost]
+  nursery_upgrade_button.disabled = active or balance < cost
  best_button.visible = score.visible and progress.garden_best_programs.has(item.id)
  best_button.disabled = active
  check_button.disabled = active
@@ -725,7 +743,7 @@ func _refresh_variables() -> void:
 
 func _draw_board(view: Programs, blocked := false) -> void:
  var harvest := "Harvested %d" % view.harvested if view.practice else "Lilies %d / %d" % [view.harvested, view.plants.size()]
- info.text = "Water %d / %d    %s" % [view.tank, Programs.CAPACITY, harvest]
+ info.text = "Water %d / %d    %s" % [view.tank, view.water_capacity, harvest]
  for child in board.get_children():
   board.remove_child(child)
   child.queue_free()

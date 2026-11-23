@@ -7,6 +7,9 @@ const Programs = preload("res://scripts/activities/garden_program.gd")
 const COURSES := ["car_circuit", "balloon_rings"]
 const WILLOW_COST := 12
 const WILLOW_MARKER := "nursery-willow-unlocked"
+const RESERVOIR_COST := 24
+const RESERVOIR_MARKER := "nursery-reservoir-unlocked"
+const NURSERY_UPGRADE_COSTS := {WILLOW_MARKER:WILLOW_COST, RESERVOIR_MARKER:RESERVOIR_COST}
 const NURSERY_TALLY_PREFIX := "nursery-yield-"
 const NURSERY_TALLY_SUFFIX := ".txt"
 
@@ -18,7 +21,7 @@ var solved: Dictionary = {}
 var garden_best: Dictionary = {}
 var garden_best_programs: Dictionary = {}
 var garden_best_python: Dictionary = {}
-var willow_unlocked := false
+var nursery_upgrades: Dictionary = {}
 var nursery_harvested := 0
 var session_harvests := 0
 var nursery_tally := ""
@@ -30,7 +33,7 @@ func load_from(path: String) -> void:
  session_harvests = 0
  nursery_tally = ""
  nursery_harvested = 0
- willow_unlocked = false
+ nursery_upgrades.clear()
  if not DirAccess.dir_exists_absolute(folder):
   return
  var names := DirAccess.get_files_at(folder)
@@ -136,11 +139,23 @@ func earned_lilies() -> int:
 func lesson_available(puzzle: Dictionary, lilies: int) -> bool:
  var id: String = puzzle.id
  if id == Programs.WILLOW_NURSERY.id:
-  return willow_unlocked
+  return has_nursery_upgrade(WILLOW_MARKER)
  return lilies >= int(puzzle.get("unlock_lilies", 0)) or solved.has(id) or drafts.has(id) or python_drafts.has(id)
 
 func nursery_balance() -> int:
- return maxi(0, nursery_harvested - (WILLOW_COST if willow_unlocked else 0))
+ var spent := 0
+ for upgrade: String in nursery_upgrades:
+  spent += NURSERY_UPGRADE_COSTS[upgrade]
+ return maxi(0, nursery_harvested - spent)
+
+func has_nursery_upgrade(upgrade: String) -> bool:
+ return nursery_upgrades.has(upgrade)
+
+func next_nursery_upgrade() -> String:
+ for upgrade: String in NURSERY_UPGRADE_COSTS:
+  if not has_nursery_upgrade(upgrade):
+   return upgrade
+ return ""
 
 func record_nursery_harvest() -> Error:
  nursery_harvested += 1
@@ -162,23 +177,26 @@ func refresh_nursery() -> Error:
   _load_nursery(names)
  return error
 
-func unlock_willow_nursery() -> Error:
+func buy_nursery_upgrade(upgrade: String) -> Error:
  var error := refresh_nursery()
- if error != OK or willow_unlocked:
+ if error != OK or has_nursery_upgrade(upgrade):
   return error
- if nursery_balance() < WILLOW_COST:
+ if upgrade.is_empty() or upgrade != next_nursery_upgrade() or nursery_balance() < int(NURSERY_UPGRADE_COSTS[upgrade]):
   return ERR_UNAVAILABLE
  if not folder.is_empty():
   # The same marker charges the balance once, even across game instances.
-  var marker := folder.path_join(WILLOW_MARKER)
+  var marker := folder.path_join(upgrade)
   error = _write(marker, "unlocked")
   if error != OK and not FileAccess.file_exists(marker):
    return error
- willow_unlocked = true
+ nursery_upgrades[upgrade] = true
  return OK
 
 func _load_nursery(names: PackedStringArray) -> void:
- willow_unlocked = WILLOW_MARKER in names
+ nursery_upgrades.clear()
+ for upgrade: String in NURSERY_UPGRADE_COSTS:
+  if upgrade in names:
+   nursery_upgrades[upgrade] = true
  nursery_harvested = 0
  for name in names:
   if not name.begins_with(NURSERY_TALLY_PREFIX) or not name.ends_with(NURSERY_TALLY_SUFFIX):

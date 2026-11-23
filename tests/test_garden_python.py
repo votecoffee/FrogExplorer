@@ -183,6 +183,14 @@ print()
             "2": {"op": "sensor", "name": "spring", "direction": ""},
         })
 
+    def test_tank_capacity_reading_preserves_an_existing_variable_name(self):
+        result = LOWER("tank_capacity = 4\nprint(tank_capacity, tank_capacity())\n")
+        self.assertEqual(result["source"], "assign\ndiagnostic")
+        self.assertEqual(result["details"]["1"]["output"], [
+            {"op": "variable", "name": "tank_capacity"},
+            {"op": "sensor", "name": "tank_capacity", "direction": ""},
+        ])
+
     def test_unsupported_syntax_is_rejected_at_its_source_line(self):
         for source, line in [
             ("fill()\nimport math\n", 1),
