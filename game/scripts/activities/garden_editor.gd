@@ -22,6 +22,8 @@ var comparison_context: Label
 var comparison_timeline: HBoxContainer
 var comparison_slider: HSlider
 var comparison_position: Label
+var comparison_difference_button: Button
+var comparison_first_difference := -1
 var comparison_current_route: Dictionary = {}
 var comparison_other_route: Dictionary = {}
 var comparison_current: Label
@@ -585,6 +587,8 @@ func _add_draft_comparison(parent: Container) -> void:
  comparison_slider.tooltip_text = "Drag or use Left and Right to review both drafts at the same action."
  comparison_slider.value_changed.connect(_show_comparison_step)
  comparison_timeline.add_child(comparison_slider)
+ comparison_difference_button = _button(comparison_timeline, "First difference", _jump_to_comparison_difference)
+ comparison_difference_button.tooltip_text = "Compare board commands, directions, and points where either draft stops."
  var results := GridContainer.new()
  results.columns = 2
  results.add_theme_constant_override("h_separation", 18)
@@ -638,7 +642,44 @@ func _compare_drafts(index: int) -> void:
  comparison_slider.max_value = total
  comparison_slider.set_value_no_signal(total)
  comparison_timeline.visible = total > 0
+ _update_comparison_difference()
  _show_comparison_step(total)
+
+func _update_comparison_difference() -> void:
+ var both_compiled := comparison_current_route.has("actions") and comparison_other_route.has("actions")
+ comparison_difference_button.visible = both_compiled
+ comparison_first_difference = _find_comparison_difference(comparison_current_route, comparison_other_route) if both_compiled else -1
+ comparison_difference_button.disabled = comparison_first_difference < 0
+ if comparison_first_difference == 0:
+  comparison_difference_button.text = "First difference · Start"
+ elif comparison_first_difference > 0:
+  comparison_difference_button.text = "First difference · %d" % comparison_first_difference
+ else:
+  comparison_difference_button.text = "No preview difference"
+
+func _find_comparison_difference(current: Dictionary, other: Dictionary) -> int:
+ var current_actions: Array = current.actions
+ var other_actions: Array = other.actions
+ var shared_steps := mini(current_actions.size(), other_actions.size())
+ # Both traces use the same starting board. Matching resolved commands keep its state equal.
+ for index in shared_steps:
+  var left: Dictionary = current_actions[index]
+  var right: Dictionary = other_actions[index]
+  if left.command != right.command or left.get("direction", "") != right.get("direction", ""):
+   return index + 1
+ if _comparison_interruption(current, shared_steps) != _comparison_interruption(other, shared_steps):
+  return shared_steps
+ return shared_steps + 1 if current_actions.size() != other_actions.size() else -1
+
+func _comparison_interruption(route: Dictionary, index: int) -> String:
+ if _comparison_blocked(route, index):
+  return route.error
+ return "Preview limit" if index == route.actions.size() and route.get("limited", false) else ""
+
+func _jump_to_comparison_difference() -> void:
+ if comparison_first_difference >= 0:
+  comparison_slider.value = comparison_first_difference
+  comparison_slider.grab_focus()
 
 func _trace_draft(text: String) -> Dictionary:
  var result := _compile(text, python_mode)
@@ -694,6 +735,7 @@ func _close_draft_comparison() -> void:
   comparison_panel.hide()
   comparison_current_route.clear()
   comparison_other_route.clear()
+  comparison_first_difference = -1
   _draw_grid(comparison_current_board, null)
   _draw_grid(comparison_other_board, null)
   compare_drafts_button.text = "Compare drafts"

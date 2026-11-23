@@ -1124,6 +1124,9 @@ func check_draft_comparison(popup) -> void:
  var current_board: GridContainer = popup.comparison_current_board
  var other_board: GridContainer = popup.comparison_other_board
  check(current_board.columns == 3 and other_board.columns == 3 and current_board.get_child_count() == 9 and other_board.get_child_count() == 9 and popup.comparison_board_key.visible, "Both previews draw the nursery layout")
+ popup.comparison_difference_button.grab_focus()
+ press_key(KEY_ENTER)
+ check(popup.comparison_slider.value == 1 and popup.comparison_slider.has_focus() and "gather east" in popup.comparison_current.text and "Line 1 · wait" in popup.comparison_other.text, "Enter jumps to the first different command and returns focus to the slider")
  popup.comparison_slider.value = 0
  check("0 / 2 actions" in popup.comparison_position.text and "Start" in popup.comparison_current.text and "Start" in popup.comparison_other.text and "Row 0 · Column 0 · Tank 5 / 6" in popup.comparison_current.text and "Row 0 · Column 0 · Tank 5 / 6" in popup.comparison_other.text and "Harvested 0" in popup.comparison_current.text and "Harvested 0" in popup.comparison_other.text, "Both previews return to the same nursery state at action zero")
  check(current_board.get_child(1).get_child(0).text == "Ripe" and other_board.get_child(1).get_child(0).text == "Ripe" and current_board.get_child(1).get_theme_stylebox("panel").get_margin(SIDE_LEFT) == 0, "Both boards show the same ripe bed without a comparison outline at the start")
@@ -1152,15 +1155,15 @@ func check_draft_comparison(popup) -> void:
  popup.source.text = "fill()\n"
  popup.compare_drafts_button.pressed.emit()
  check(recorded.error == OK and popup.comparison_panel.visible and "Fresh lesson" in popup.comparison_context.text and "Harvested 0 of 2 in 1 action" in popup.comparison_current.text and "Check the arguments for fill()" in popup.comparison_other.text and popup.garden.turn == 0, "Lesson comparisons start fresh and report each draft's compile result")
- check(current_board.get_child_count() == 3 and other_board.get_child_count() == 0 and not popup.comparison_board_key.visible, "A draft that cannot compile has no board or stale outlines")
+ check(current_board.get_child_count() == 3 and other_board.get_child_count() == 0 and not popup.comparison_board_key.visible and not popup.comparison_difference_button.visible, "A draft that cannot compile has no board or first difference control")
  press_key(KEY_ENTER, true)
  check(not popup.comparison_panel.visible and popup.compare_drafts_button.disabled and popup.running, "Starting a run closes the comparison and locks it while the program runs")
  popup.stop_button.pressed.emit()
 
  var ring: int = Program.GARDENS.find(Program.STONE_RING_NURSERY)
- var ring_copy: Dictionary = popup.progress.create_draft_copy(Program.STONE_RING_NURSERY.id, "hop(east)\n", true)
+ var ring_copy: Dictionary = popup.progress.create_draft_copy(Program.STONE_RING_NURSERY.id, "fill()\nhop(east)\nwait()\n", true)
  popup.chooser.item_selected.emit(ring)
- popup.source.text = "wait()\n"
+ popup.source.text = "fill()\nhop(north)\nwait()\n"
  popup.compare_drafts_button.pressed.emit()
  await frames(2)
  var current_rect := current_board.get_global_rect()
@@ -1169,6 +1172,44 @@ func check_draft_comparison(popup) -> void:
  var right_column := popup.board as GridContainer
  var editor_fits: bool = popup.source.size.y >= 100 and get_viewport().get_visible_rect().encloses(popup.get_global_rect())
  check(ring_copy.error == OK and current_board.get_child_count() == 25 and other_board.get_child_count() == 25 and boards_aligned and other_rect.end.x <= right_column.get_global_rect().position.x and editor_fits, "Both five-by-five boards fit beside each other with room to edit Python")
+
+ popup.comparison_difference_button.pressed.emit()
+ check(popup.comparison_slider.value == 2 and "hop north" in popup.comparison_current.text and "hop east" in popup.comparison_other.text, "The first difference skips a shared fill and finds the first different direction")
+
+func check_comparison_stopping_points(popup) -> void:
+ var id := "first_bloom"
+ var shared := "fill()\nhop(east)\n"
+ var current := shared + "wait()\n"
+ var programs := ["print(4)\n" + current, shared, shared + "fill()\n", "gather()\n"]
+ var keys: Array[String] = []
+ for program: String in programs:
+  var copy: Dictionary = popup.progress.create_draft_copy(id, program, true)
+  keys.append(copy.key)
+ popup.chooser.item_selected.emit(0)
+ popup.source.text = current
+ popup.compare_drafts_button.pressed.emit()
+ var choice: OptionButton = popup.comparison_choice
+ var difference: Button = popup.comparison_difference_button
+ var slider: HSlider = popup.comparison_slider
+ for test in keys.size():
+  for index in choice.item_count:
+   if choice.get_item_metadata(index) == keys[test]:
+    choice.select(index)
+    choice.item_selected.emit(index)
+    break
+  match test:
+   0:
+    check(difference.visible and difference.disabled and difference.text == "No preview difference" and "Line 4 · wait" in popup.comparison_other.text, "Equivalent board actions match even with different Python output and line numbers")
+   1:
+    slider.value = 0
+    difference.pressed.emit()
+    check(slider.value == 3 and "Finished" in popup.comparison_other.text and "Line 3 · wait" in popup.comparison_current.text, "The first difference finds the next action after a shorter route finishes")
+   2:
+    difference.pressed.emit()
+    check(slider.value == 2 and "Blocked · Line 3 · Fill at the spring." in popup.comparison_other.text and "Line 2 · hop east" in popup.comparison_current.text, "A blocked command diverges at the last shared action")
+   3:
+    difference.pressed.emit()
+    check(slider.value == 0 and difference.text == "First difference · Start" and "Blocked · Line 1" in popup.comparison_other.text and "Start" in popup.comparison_current.text, "The first difference can occur before either draft completes an action")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)
@@ -2019,6 +2060,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   check_nursery_reports(popup)
   check_nursery_bests(popup)
   await check_draft_comparison(popup)
+  check_comparison_stopping_points(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
