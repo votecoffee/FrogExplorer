@@ -26,6 +26,9 @@ var comparison_current_route: Dictionary = {}
 var comparison_other_route: Dictionary = {}
 var comparison_current: Label
 var comparison_other: Label
+var comparison_current_board: GridContainer
+var comparison_other_board: GridContainer
+var comparison_board_key: Label
 var comparison_source := ""
 var rename_draft_button: Button
 var draft_name_edit: LineEdit
@@ -202,15 +205,25 @@ func _ready() -> void:
  variables_text.selection_enabled = true
  variables_stack.add_child(variables_text)
  variables_panel.hide()
- var right := VBoxContainer.new()
- right.custom_minimum_size.x = 285
- right.add_theme_constant_override("separation", 9)
- pair.add_child(right)
+ var sidebar := VBoxContainer.new()
+ sidebar.custom_minimum_size.x = 285
+ sidebar.add_theme_constant_override("separation", 9)
+ pair.add_child(sidebar)
  chooser = OptionButton.new()
  for item in Programs.GARDENS:
   chooser.add_item(item.name)
  chooser.item_selected.connect(_choose)
- right.add_child(chooser)
+ sidebar.add_child(chooser)
+ var sidebar_scroll := ScrollContainer.new()
+ sidebar_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+ sidebar_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+ sidebar_scroll.focus_mode = Control.FOCUS_ALL
+ sidebar_scroll.follow_focus = true
+ sidebar.add_child(sidebar_scroll)
+ var right := VBoxContainer.new()
+ right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ right.add_theme_constant_override("separation", 9)
+ sidebar_scroll.add_child(right)
  info = hud.label("", 17, Color("#b9dccc"))
  right.add_child(info)
  score = hud.label("", 15, Color("#b9dccc"))
@@ -246,10 +259,7 @@ func _ready() -> void:
  review_slider.value_changed.connect(_draw_review)
  review_controls.add_child(review_slider)
  review_controls.hide()
- board = GridContainer.new()
- board.add_theme_constant_override("h_separation", 3)
- board.add_theme_constant_override("v_separation", 3)
- right.add_child(board)
+ board = _board_grid(right)
  hint = hud.label("", 15)
  hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  right.add_child(hint)
@@ -575,8 +585,9 @@ func _add_draft_comparison(parent: Container) -> void:
  comparison_slider.tooltip_text = "Drag or use Left and Right to review both drafts at the same action."
  comparison_slider.value_changed.connect(_show_comparison_step)
  comparison_timeline.add_child(comparison_slider)
- var results := HBoxContainer.new()
- results.add_theme_constant_override("separation", 18)
+ var results := GridContainer.new()
+ results.columns = 2
+ results.add_theme_constant_override("h_separation", 18)
  comparison_panel.add_child(results)
  comparison_current = hud.label("", 14, Color("#b9dccc"))
  comparison_other = hud.label("", 14, Color("#b9dccc"))
@@ -584,6 +595,10 @@ func _add_draft_comparison(parent: Container) -> void:
   label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
   label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
   results.add_child(label)
+ comparison_current_board = _board_grid(results)
+ comparison_other_board = _board_grid(results)
+ comparison_board_key = hud.label("Gold outline · Tile differs between drafts", 13, Color("#e8c879"))
+ comparison_panel.add_child(comparison_board_key)
  comparison_panel.hide()
 
 func _toggle_draft_comparison() -> void:
@@ -619,6 +634,7 @@ func _compare_drafts(index: int) -> void:
  var current_actions: Array = comparison_current_route.get("actions", [])
  var other_actions: Array = comparison_other_route.get("actions", [])
  var total := maxi(current_actions.size(), other_actions.size())
+ comparison_slider.set_value_no_signal(0)
  comparison_slider.max_value = total
  comparison_slider.set_value_no_signal(total)
  comparison_timeline.visible = total > 0
@@ -633,16 +649,26 @@ func _show_comparison_step(value: float) -> void:
   return
  var index := roundi(value)
  comparison_position.text = "%d / %d actions" % [index, int(comparison_slider.max_value)]
- comparison_current.text = draft_choice.get_item_text(draft_choice.selected) + "\n" + _comparison_snapshot(comparison_current_route, index)
- comparison_other.text = comparison_choice.get_item_text(comparison_choice.selected) + "\n" + _comparison_snapshot(comparison_other_route, index)
+ var current := _comparison_board_at(comparison_current_route, index)
+ var other := _comparison_board_at(comparison_other_route, index)
+ comparison_current.text = draft_choice.get_item_text(draft_choice.selected) + "\n" + _comparison_snapshot(comparison_current_route, index, current)
+ comparison_other.text = comparison_choice.get_item_text(comparison_choice.selected) + "\n" + _comparison_snapshot(comparison_other_route, index, other)
+ _draw_grid(comparison_current_board, current, _comparison_blocked(comparison_current_route, index), other, Vector2(61, 36))
+ _draw_grid(comparison_other_board, other, _comparison_blocked(comparison_other_route, index), current, Vector2(61, 36))
+ comparison_board_key.visible = current != null and other != null
 
-func _comparison_snapshot(route: Dictionary, index: int) -> String:
- if not route.has("actions"):
+func _comparison_board_at(route: Dictionary, index: int) -> Programs:
+ return _board_after_actions(route, mini(index, route.actions.size())) if route.has("actions") else null
+
+func _comparison_blocked(route: Dictionary, index: int) -> bool:
+ return route.has("actions") and route.line >= 0 and index >= route.actions.size()
+
+func _comparison_snapshot(route: Dictionary, index: int, preview: Programs) -> String:
+ if preview == null:
   return route.error
  var traced: Array = route.actions
  var count := mini(index, traced.size())
  var at_end := count == traced.size()
- var preview := _board_after_actions(route, count)
  var summary := _nursery_summary(preview)
  if not preview.practice:
   var unit := "action" if preview.turn == 1 else "actions"
@@ -650,7 +676,7 @@ func _comparison_snapshot(route: Dictionary, index: int) -> String:
    preview.harvested, preview.plants.size(), preview.turn, unit, _water_summary(preview),
   ]
  var step := "Start" if count == 0 else "%d / %d actions" % [count, traced.size()]
- if at_end and route.line >= 0:
+ if _comparison_blocked(route, index):
   step = "Blocked · Line %d · %s" % [route.line + 1, route.error]
  elif at_end and route.limited:
   step += " · Preview limit"
@@ -668,6 +694,8 @@ func _close_draft_comparison() -> void:
   comparison_panel.hide()
   comparison_current_route.clear()
   comparison_other_route.clear()
+  _draw_grid(comparison_current_board, null)
+  _draw_grid(comparison_other_board, null)
   compare_drafts_button.text = "Compare drafts"
 
 func _draft_source(key: String) -> String:
@@ -1159,13 +1187,25 @@ func _refresh_variables() -> void:
  if variables_text.text != content:
   variables_text.text = content
 
+func _board_grid(parent: Container) -> GridContainer:
+ var grid := GridContainer.new()
+ grid.add_theme_constant_override("h_separation", 3)
+ grid.add_theme_constant_override("v_separation", 3)
+ parent.add_child(grid)
+ return grid
+
 func _draw_board(view: Programs, blocked := false) -> void:
  var harvest := "Harvested %d" % view.harvested if view.practice else "Lilies %d / %d" % [view.harvested, view.plants.size()]
  info.text = "Water %d / %d    %s" % [view.tank, view.water_capacity, harvest]
- for child in board.get_children():
-  board.remove_child(child)
+ _draw_grid(board, view, blocked)
+
+func _draw_grid(grid: GridContainer, view: Programs, blocked := false, peer: Programs = null, card_size := Vector2(67, 44)) -> void:
+ for child in grid.get_children():
+  grid.remove_child(child)
   child.queue_free()
- board.columns = view.rows[0].length()
+ if view == null:
+  return
+ grid.columns = view.rows[0].length()
  for y in view.rows.size():
   for x in view.rows[y].length():
    var cell := Vector2i(x, y)
@@ -1182,8 +1222,11 @@ func _draw_board(view: Programs, blocked := false) -> void:
    else:
     style.bg_color = Color("#214355") if tile == "~" else Color("#424744") if tile == "#" else Color("#293b27")
    style.set_corner_radius_all(6)
+   if peer != null and ((cell == view.cell) != (cell == peer.cell) or plant != peer.plant_status(cell)):
+    style.border_color = Color("#e8c879")
+    style.set_border_width_all(2)
    card.add_theme_stylebox_override("panel", style)
-   card.custom_minimum_size = Vector2(67, 44)
+   card.custom_minimum_size = card_size
    var heading := "● " if cell == view.cell else ""
    if tile == Programs.LOTUS_BED:
     heading += "Lotus"
@@ -1191,7 +1234,7 @@ func _draw_board(view: Programs, blocked := false) -> void:
    var label: Label = hud.label(heading + "\n" + caption if not heading.is_empty() else caption, 12)
    label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
    card.add_child(label)
-   board.add_child(card)
+   grid.add_child(card)
 
 func _input(event: InputEvent) -> void:
  if not visible:

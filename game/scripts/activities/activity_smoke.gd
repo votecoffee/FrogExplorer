@@ -1113,27 +1113,35 @@ func check_draft_comparison(popup) -> void:
  popup.draft_choice.item_selected.emit(1)
  popup.source.text = "wait()\ngather(east)\n"
  popup.draft_choice.item_selected.emit(2)
- popup.source.text = "wait()\nwater(east)\n"
+ popup.source.text = "hop(east)\nwater()\n"
  popup.draft_choice.item_selected.emit(0)
  var current := "gather(east)\n"
  popup.source.text = current
+ var live_plot: Node = popup.world.garden_root.get_child(0)
  popup.compare_drafts_button.pressed.emit()
  check(popup.comparison_panel.visible and popup.comparison_choice.item_count == 2 and "Live nursery" in popup.comparison_context.text and "Harvested 1 in 1 action · Target 1 met" in popup.comparison_current.text and "Harvested 1 in 2 actions · Target 1 met" in popup.comparison_other.text, "Compare forecasts both drafts from the same living nursery")
  check(popup.comparison_slider.max_value == 2 and popup.comparison_slider.value == 2 and popup.comparison_slider.has_focus() and "Finished · 1 / 1 actions" in popup.comparison_current.text and "Line 2 · gather east" in popup.comparison_other.text, "The comparison holds the shorter draft at its endpoint")
+ var current_board: GridContainer = popup.comparison_current_board
+ var other_board: GridContainer = popup.comparison_other_board
+ check(current_board.columns == 3 and other_board.columns == 3 and current_board.get_child_count() == 9 and other_board.get_child_count() == 9 and popup.comparison_board_key.visible, "Both previews draw the nursery layout")
  popup.comparison_slider.value = 0
  check("0 / 2 actions" in popup.comparison_position.text and "Start" in popup.comparison_current.text and "Start" in popup.comparison_other.text and "Row 0 · Column 0 · Tank 5 / 6" in popup.comparison_current.text and "Row 0 · Column 0 · Tank 5 / 6" in popup.comparison_other.text and "Harvested 0" in popup.comparison_current.text and "Harvested 0" in popup.comparison_other.text, "Both previews return to the same nursery state at action zero")
+ check(current_board.get_child(1).get_child(0).text == "Ripe" and other_board.get_child(1).get_child(0).text == "Ripe" and current_board.get_child(1).get_theme_stylebox("panel").get_margin(SIDE_LEFT) == 0, "Both boards show the same ripe bed without a comparison outline at the start")
  press_key(KEY_RIGHT)
  check(popup.comparison_slider.value == 1 and "Line 1 · gather east" in popup.comparison_current.text and "Line 1 · wait" in popup.comparison_other.text and "Harvested 1 in 1 action" in popup.comparison_current.text and "Harvested 0 in 1 action" in popup.comparison_other.text, "The keyboard moves both drafts to the same action and reveals the different harvests")
+ check(current_board.get_child(1).get_child(0).text == Program.EMPTY_BED and other_board.get_child(1).get_child(0).text == "Ripe" and current_board.get_child(1).get_theme_stylebox("panel").get_margin(SIDE_LEFT) == 2 and other_board.get_child(1).get_theme_stylebox("panel").get_margin(SIDE_LEFT) == 2, "The harvest changes and outlines the same tile on both boards")
  press_key(KEY_RIGHT)
  check(popup.comparison_slider.value == 2 and "Finished · 1 / 1 actions" in popup.comparison_current.text and "Harvested 1 in 2 actions" in popup.comparison_other.text, "Advancing past the short route leaves its completed state visible")
+ check(current_board.get_child(1).get_child(0).text == Program.EMPTY_BED and other_board.get_child(1).get_child(0).text == Program.EMPTY_BED and other_board.get_child(1).get_theme_stylebox("panel").get_margin(SIDE_LEFT) == 0 and popup.board.get_child(1).get_child(0).text == "Ripe" and popup.world.garden_root.get_child(0) == live_plot, "Matching endpoints clear the outline and leave the live boards untouched")
  check(popup.draft_choice.selected == 0 and popup.source.text == current and popup.progress.python_drafts.get(id) == setup and popup.garden.turn == 5 and popup.garden.tank == 5 and popup.garden.plant_status(Vector2i(1, 0)) == "Ripe" and popup.progress.nursery_balance() == balance, "A comparison leaves the unsaved edit, saved draft, live bed, and wallet intact")
  popup.comparison_choice.select(1)
  popup.comparison_choice.item_selected.emit(1)
  check("Blocked · Line 2 · This plot does not need water." in popup.comparison_other.text and "Harvested 1 in 1 action" in popup.comparison_current.text, "A blocked comparison draft does not hide the other result")
+ check("●" in current_board.get_child(0).get_child(0).text and "●" in other_board.get_child(1).get_child(0).text and other_board.get_child(1).get_theme_stylebox("panel").bg_color == Color("#784b30") and other_board.get_child(0).get_theme_stylebox("panel").get_margin(SIDE_LEFT) == 2 and other_board.get_child(1).get_theme_stylebox("panel").get_margin(SIDE_LEFT) == 2, "Different Pondbot positions outline both tiles and show where the other draft blocked")
  popup.comparison_slider.value = 0
  check("Blocked" not in popup.comparison_other.text and "Start" in popup.comparison_other.text and "Harvested 0" in popup.comparison_current.text, "Rewinding the comparison puts the blocked action back in the future")
  press_key(KEY_ESCAPE)
- check(popup.visible and not popup.comparison_panel.visible, "Escape closes the comparison and stays in the editor")
+ check(popup.visible and not popup.comparison_panel.visible and current_board.get_child_count() == 0 and other_board.get_child_count() == 0, "Escape closes the comparison and stays in the editor")
  popup.compare_drafts_button.pressed.emit()
  popup.source.text = "wait()\n"
  popup._queue_save()
@@ -1144,9 +1152,23 @@ func check_draft_comparison(popup) -> void:
  popup.source.text = "fill()\n"
  popup.compare_drafts_button.pressed.emit()
  check(recorded.error == OK and popup.comparison_panel.visible and "Fresh lesson" in popup.comparison_context.text and "Harvested 0 of 2 in 1 action" in popup.comparison_current.text and "Check the arguments for fill()" in popup.comparison_other.text and popup.garden.turn == 0, "Lesson comparisons start fresh and report each draft's compile result")
+ check(current_board.get_child_count() == 3 and other_board.get_child_count() == 0 and not popup.comparison_board_key.visible, "A draft that cannot compile has no board or stale outlines")
  press_key(KEY_ENTER, true)
  check(not popup.comparison_panel.visible and popup.compare_drafts_button.disabled and popup.running, "Starting a run closes the comparison and locks it while the program runs")
  popup.stop_button.pressed.emit()
+
+ var ring: int = Program.GARDENS.find(Program.STONE_RING_NURSERY)
+ var ring_copy: Dictionary = popup.progress.create_draft_copy(Program.STONE_RING_NURSERY.id, "hop(east)\n", true)
+ popup.chooser.item_selected.emit(ring)
+ popup.source.text = "wait()\n"
+ popup.compare_drafts_button.pressed.emit()
+ await frames(2)
+ var current_rect := current_board.get_global_rect()
+ var other_rect := other_board.get_global_rect()
+ var boards_aligned := is_equal_approx(current_rect.position.y, other_rect.position.y) and current_rect.end.x < other_rect.position.x
+ var right_column := popup.board as GridContainer
+ var editor_fits: bool = popup.source.size.y >= 100 and get_viewport().get_visible_rect().encloses(popup.get_global_rect())
+ check(ring_copy.error == OK and current_board.get_child_count() == 25 and other_board.get_child_count() == 25 and boards_aligned and other_rect.end.x <= right_column.get_global_rect().position.x and editor_fits, "Both five-by-five boards fit beside each other with room to edit Python")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)
