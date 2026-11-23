@@ -499,6 +499,18 @@ func check_nursery_storage() -> void:
  reopened.load_from(path)
  check(main_saved == OK and first_copy.error == OK and second_copy.error == OK and classic_copy.error == OK and copy_saved == OK and first_copy.key != second_copy.key and reopened.python_drafts.get(id) == main_source and reopened.python_drafts.get(first_copy.key) == revised and reopened.python_drafts.get(second_copy.key) == match_source and reopened.drafts.get(classic_copy.key) == best_source, "Independent copies and the main draft reload with their own saved sources")
  check(reopened.draft_copy_keys(id, true).size() == 2 and reopened.draft_copy_keys(id, false) == PackedStringArray([classic_copy.key]) and reopened.draft_copy_keys(marsh_id, true).is_empty(), "Draft copies are listed only for the matching board and language")
+ var named := first.rename_draft_copy(id, first_copy.key, true, "  North / south route  ")
+ var classic_named := second.rename_draft_copy(id, classic_copy.key, false, "Bank hop")
+ var main_rename := first.rename_draft_copy(id, id, true, "Other")
+ var python_selected := first.select_draft(id, first_copy.key, true)
+ var classic_selected := second.select_draft(id, classic_copy.key, false)
+ var wrong_language := first.select_draft(id, classic_copy.key, true)
+ reopened.load_from(path)
+ check(named == OK and classic_named == OK and main_rename == ERR_INVALID_PARAMETER and wrong_language == ERR_INVALID_PARAMETER and reopened.draft_copy_name(first_copy.key, true) == "North / south route" and reopened.draft_copy_name(classic_copy.key, false) == "Bank hop" and reopened.draft_copy_name(second_copy.key, true).is_empty(), "Draft names reload with their own copies and languages")
+ check(python_selected == OK and classic_selected == OK and reopened.selected_draft(id, true) == first_copy.key and reopened.selected_draft(id, false) == classic_copy.key and reopened.selected_draft(marsh_id, true) == marsh_id, "Selected drafts persist for each board and language")
+ var restored_main := reopened.select_draft(id, id, true)
+ first.load_from(path)
+ check(restored_main == OK and first.selected_draft(id, true) == id and first.python_drafts.get(first_copy.key) == revised and first.draft_copy_name(first_copy.key, true) == "North / south route", "Returning to Main draft preserves the named copy")
 
 func check_willow_nursery(popup, open_nursery: int) -> void:
  var willow := Program.GARDENS.find(Program.WILLOW_NURSERY)
@@ -1036,14 +1048,26 @@ func check_nursery_bests(popup) -> void:
  check(popup.visible and not popup.best_panel.visible and popup.nursery_target.editable and popup.garden.turn == 7 and popup.source.text.begins_with("# New Python draft"), "Closing the replay restores the live board and editable draft")
  popup.best_button.pressed.emit()
  popup.edit_copy_button.pressed.emit()
- check(not popup.best_panel.visible and popup.language.selected == 1 and popup.source.text == classic and popup.source.editable and popup.draft_choice.visible and popup.draft_choice.selected == 1 and popup.garden.turn == 7 and popup.progress.nursery_balance() == balance + 1, "Edit a copy opens the recorded language and leaves the live nursery intact")
+ check(not popup.best_panel.visible and popup.language.selected == 1 and popup.source.text == classic and popup.source.editable and popup.draft_choice.is_visible_in_tree() and popup.draft_choice.selected == 1 and popup.garden.turn == 7 and popup.progress.nursery_balance() == balance + 1, "Edit a copy opens the recorded language and leaves the live nursery intact")
+ popup.rename_draft_button.pressed.emit()
+ popup.draft_name_edit.text = "Discard this name"
+ press_key(KEY_ESCAPE)
+ check(popup.visible and not popup.draft_name_edit.visible and popup.draft_choice.get_item_text(1) == "Copy 1", "Escape cancels a rename without closing the garden")
+ popup.rename_draft_button.pressed.emit()
+ popup.draft_name_edit.text = "Bank hop"
+ popup.draft_name_edit.text_submitted.emit("Bank hop")
+ check(not popup.draft_name_edit.visible and popup.draft_choice.get_item_text(1) == "1 · Bank hop" and popup.source.text == classic and popup.garden.turn == 7, "Typing a name relabels the selected copy and preserves its code and live board")
  popup.source.text = "# Edited Classic copy\n" + classic
  popup.draft_choice.item_selected.emit(0)
  check(popup.source.text == classic and popup.draft_choice.selected == 0, "Switching back to the main draft leaves its Classic code intact")
  popup.draft_choice.item_selected.emit(1)
- check(popup.source.text.begins_with("# Edited Classic copy"), "Switching drafts saves the edits in the copied program")
+ check(popup.source.text.begins_with("# Edited Classic copy") and popup.draft_choice.get_item_text(1) == "1 · Bank hop", "Switching drafts saves the edits and name of the copied program")
+ popup.rename_draft_button.pressed.emit()
+ popup.draft_name_edit.text = ""
+ popup.save_draft_name_button.pressed.emit()
+ check(popup.draft_choice.get_item_text(1) == "Copy 1" and popup.source.text.begins_with("# Edited Classic copy"), "Saving an empty name restores the numbered label only")
  popup.language.item_selected.emit(0)
- check(popup.source.text == "# New Python draft\n" + route and not popup.draft_choice.visible, "Copying a Classic record preserves the separate Python draft")
+ check(popup.source.text == "# New Python draft\n" + route and not popup.draft_choice.is_visible_in_tree(), "Copying a Classic record preserves the separate Python draft")
  popup._reset()
  popup.source.text = route
  popup.check_button.pressed.emit()
@@ -1074,7 +1098,7 @@ func check_nursery_bests(popup) -> void:
  var kept_first: bool = popup.source.text == "# Improved copy\n" + long_route
  check(second_selected and kept_first and popup.progress.nursery_record(id, popup.garden).source == long_route and popup.garden.turn == 270, "Opening another copy preserves both the earlier edit and the saved best program")
  press_key(KEY_ENTER, true)
- check(popup.draft_choice.disabled and popup.running and popup.draft_choice.selected == 1, "Draft selection stays locked while the editor executes a copy")
+ check(popup.draft_choice.disabled and popup.rename_draft_button.disabled and popup.running and popup.draft_choice.selected == 1, "Draft selection and renaming stay locked while the editor executes a copy")
  popup.stop_button.pressed.emit()
  popup.draft_choice.item_selected.emit(0)
  check(popup.source.text == long_route and popup.draft_choice.selected == 0, "The original main draft remains available after creating and running copies")

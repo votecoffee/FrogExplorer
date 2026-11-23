@@ -30,6 +30,7 @@ const NURSERY_UNLOCKS := {
  Programs.STONE_RING_NURSERY.id:STONE_RING_MARKER,
 }
 const DRAFT_COPY_SEPARATOR := "-copy-"
+const MAX_DRAFT_NAME := 48
 const NURSERY_BEST_PREFIX := "nursery-best-"
 const NURSERY_TALLY_PREFIX := "nursery-yield-"
 const NURSERY_TALLY_SUFFIX := ".txt"
@@ -38,6 +39,8 @@ var best: Dictionary = {}
 var split_records: Dictionary = {}
 var drafts: Dictionary = {}
 var python_drafts: Dictionary = {}
+var draft_names: Dictionary = {}
+var draft_selections: Dictionary = {}
 var solved: Dictionary = {}
 var garden_best: Dictionary = {}
 var garden_best_programs: Dictionary = {}
@@ -59,6 +62,10 @@ func load_from(path: String) -> void:
  nursery_upgrades.clear()
  nursery_targets.clear()
  nursery_bests.clear()
+ drafts.clear()
+ python_drafts.clear()
+ draft_names.clear()
+ draft_selections.clear()
  if not DirAccess.dir_exists_absolute(folder):
   return
  var names := DirAccess.get_files_at(folder)
@@ -90,7 +97,18 @@ func load_from(path: String) -> void:
    if not name.begins_with(copy_prefix) or name.get_extension() not in ["py", "txt"]:
     continue
    var saved := python_drafts if name.ends_with(".py") else drafts
-   saved[name.trim_prefix("draft-").get_basename()] = FileAccess.get_file_as_string(folder.path_join(name))
+   var file_key := name.trim_prefix("draft-")
+   saved[file_key.get_basename()] = FileAccess.get_file_as_string(folder.path_join(name))
+   var title_file := "draft-name-" + file_key + ".txt"
+   if title_file in names:
+    draft_names[file_key] = _clean_draft_name(FileAccess.get_file_as_string(folder.path_join(title_file)))
+  for python: bool in [true, false]:
+   var context := _draft_file_key(id, python)
+   var selection_file := "draft-selected-" + context + ".txt"
+   if selection_file in names:
+    var key := FileAccess.get_file_as_string(folder.path_join(selection_file)).strip_edges()
+    if _has_draft_copy(id, key, python):
+     draft_selections[context] = key
   if puzzle.get("practice", false):
    var target_file := "target-" + id + ".txt"
    if target_file in names:
@@ -331,10 +349,43 @@ func create_draft_copy(id: String, source: String, python: bool) -> Dictionary:
  var key := id + DRAFT_COPY_SEPARATOR + unique
  return {"key":key, "error":edit_draft(key, source, python)}
 
+func _draft_file_key(key: String, python: bool) -> String:
+ return key + (".py" if python else ".txt")
+
+func _has_draft_copy(id: String, key: String, python: bool) -> bool:
+ var saved := python_drafts if python else drafts
+ return key.begins_with(id + DRAFT_COPY_SEPARATOR) and saved.has(key)
+
+func selected_draft(id: String, python: bool) -> String:
+ return draft_selections.get(_draft_file_key(id, python), id)
+
+func select_draft(id: String, key: String, python: bool) -> Error:
+ if key != id and not _has_draft_copy(id, key, python):
+  return ERR_INVALID_PARAMETER
+ var context := _draft_file_key(id, python)
+ if selected_draft(id, python) == key:
+  return OK
+ draft_selections[context] = key
+ return _save("draft-selected-" + context + ".txt", key)
+
+func _clean_draft_name(value: String) -> String:
+ return value.replace("\r", " ").replace("\n", " ").strip_edges().left(MAX_DRAFT_NAME)
+
+func draft_copy_name(key: String, python: bool) -> String:
+ return draft_names.get(_draft_file_key(key, python), "")
+
+func rename_draft_copy(id: String, key: String, python: bool, value: String) -> Error:
+ if not _has_draft_copy(id, key, python):
+  return ERR_INVALID_PARAMETER
+ var name := _clean_draft_name(value)
+ var file_key := _draft_file_key(key, python)
+ draft_names[file_key] = name
+ return _save("draft-name-" + file_key + ".txt", name)
+
 func edit_draft(id: String, text: String, python := false) -> Error:
  var saved := python_drafts if python else drafts
  saved[id] = text
- return _save("draft-" + id + (".py" if python else ".txt"), text)
+ return _save("draft-" + _draft_file_key(id, python), text)
 
 func complete_puzzle(id: String, actions: int, program: String, python := false) -> Error:
  if actions <= 0 or actions > Programs.MAX_STEPS or program.is_empty():

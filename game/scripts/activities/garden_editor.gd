@@ -13,8 +13,11 @@ var puzzle := -1
 var progress: Progress
 var draft_timer: Timer
 var loaded_draft := ""
-var draft_selections: Dictionary = {}
+var draft_bar: HBoxContainer
 var draft_choice: OptionButton
+var rename_draft_button: Button
+var draft_name_edit: LineEdit
+var save_draft_name_button: Button
 var source: CodeEdit
 var actions: HBoxContainer
 var best_button: Button
@@ -112,11 +115,22 @@ func _ready() -> void:
  step_button = _button(actions, "Step · F10", _step)
  stop_button = _button(actions, "Stop", _stop)
  _button(actions, "Reset board", _reset)
+ draft_bar = HBoxContainer.new()
+ left.add_child(draft_bar)
  draft_choice = OptionButton.new()
- draft_choice.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
  draft_choice.tooltip_text = "Switch between the main draft and saved copies."
  draft_choice.item_selected.connect(_select_draft)
- left.add_child(draft_choice)
+ draft_bar.add_child(draft_choice)
+ rename_draft_button = _button(draft_bar, "Rename", _rename_draft)
+ draft_name_edit = LineEdit.new()
+ draft_name_edit.placeholder_text = "Draft name"
+ draft_name_edit.max_length = Progress.MAX_DRAFT_NAME
+ draft_name_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ draft_name_edit.text_submitted.connect(func(_value: String): _save_draft_name())
+ draft_name_edit.hide()
+ draft_bar.add_child(draft_name_edit)
+ save_draft_name_button = _button(draft_bar, "Save name", _save_draft_name)
+ save_draft_name_button.hide()
  source = _code_edit()
  source.gutters_draw_breakpoints_gutter = true
  source.highlight_current_line = true
@@ -273,6 +287,7 @@ func open() -> void:
 
 func _close() -> void:
  _commit_target_edit()
+ _cancel_draft_rename()
  flush_draft()
  if not steps.is_empty():
   _stop()
@@ -327,7 +342,8 @@ func _toggle_best_program() -> void:
  best_source.set_caret_line(0)
  best_source.set_caret_column(0)
  actions.hide()
- draft_choice.hide()
+ _cancel_draft_rename()
+ draft_bar.hide()
  source.hide()
  status.hide()
  best_panel.show()
@@ -363,14 +379,15 @@ func _edit_best_copy() -> void:
  if not best_panel.visible or not steps.is_empty() or best_source.text.is_empty():
   return
  flush_draft()
- var copy := progress.create_draft_copy(Programs.GARDENS[puzzle].id, best_source.text, best_python)
+ var id: String = Programs.GARDENS[puzzle].id
+ var copy := progress.create_draft_copy(id, best_source.text, best_python)
  python_mode = best_python
  language.select(0 if python_mode else 1)
- draft_selections[_draft_context()] = copy.key
+ var selection_error := progress.select_draft(id, copy.key, python_mode)
  _close_best_program()
  _load_draft(false)
  status.text = "Editing %s" % draft_choice.get_item_text(draft_choice.selected)
- if copy.error != OK:
+ if copy.error != OK or selection_error != OK:
   hud.toast("Could not save activity progress.")
  source.grab_focus()
 
@@ -463,11 +480,8 @@ func _select_language(index: int) -> void:
  _load_draft(not garden.practice)
  source.grab_focus()
 
-func _draft_context() -> String:
- return "%s.%s" % [Programs.GARDENS[puzzle].id, "py" if python_mode else "txt"]
-
 func _draft_key() -> String:
- return draft_selections.get(_draft_context(), Programs.GARDENS[puzzle].id)
+ return progress.selected_draft(Programs.GARDENS[puzzle].id, python_mode)
 
 func _refresh_draft_choice() -> void:
  var id: String = Programs.GARDENS[puzzle].id
@@ -478,7 +492,9 @@ func _refresh_draft_choice() -> void:
  draft_choice.set_item_metadata(0, id)
  var selected := 0
  for index in copies.size():
-  draft_choice.add_item("Copy %d" % (index + 1))
+  var title := progress.draft_copy_name(copies[index], python_mode)
+  var label := "Copy %d" % (index + 1) if title.is_empty() else "%d · %s" % [index + 1, title]
+  draft_choice.add_item(label)
   draft_choice.set_item_metadata(index + 1, copies[index])
   if copies[index] == current:
    selected = index + 1
@@ -488,12 +504,37 @@ func _select_draft(index: int) -> void:
  if not steps.is_empty() or best_panel.visible:
   return
  flush_draft()
- draft_selections[_draft_context()] = draft_choice.get_item_metadata(index)
- draft_choice.select(index)
+ if progress.select_draft(Programs.GARDENS[puzzle].id, draft_choice.get_item_metadata(index), python_mode) != OK:
+  hud.toast("Could not save the selected draft.")
  _load_draft(false)
  source.grab_focus()
 
+func _rename_draft() -> void:
+ if draft_choice.selected < 1 or not steps.is_empty() or best_panel.visible:
+  return
+ draft_name_edit.text = progress.draft_copy_name(_draft_key(), python_mode)
+ draft_name_edit.show()
+ save_draft_name_button.show()
+ rename_draft_button.hide()
+ draft_name_edit.grab_focus()
+ draft_name_edit.select_all()
+
+func _cancel_draft_rename() -> void:
+ draft_name_edit.hide()
+ save_draft_name_button.hide()
+ rename_draft_button.visible = draft_choice.selected > 0
+
+func _save_draft_name() -> void:
+ if not draft_name_edit.visible:
+  return
+ if progress.rename_draft_copy(Programs.GARDENS[puzzle].id, _draft_key(), python_mode, draft_name_edit.text) != OK:
+  hud.toast("Could not save the draft name.")
+ _cancel_draft_rename()
+ _refresh_draft_choice()
+ source.grab_focus()
+
 func _load_draft(reset_board := true) -> void:
+ _cancel_draft_rename()
  var item: Dictionary = Programs.GARDENS[puzzle]
  var saved := progress.python_drafts if python_mode else progress.drafts
  loaded_draft = str(saved.get(_draft_key(), item.python_draft if python_mode else item.draft))
@@ -714,6 +755,7 @@ func _prepare_program() -> bool:
   return false
  if not steps.is_empty():
   return true
+ _save_draft_name()
  _commit_target_edit()
  _discard_check()
  steps = _compile_draft()
@@ -898,8 +940,10 @@ func _draw() -> void:
  stop_button.disabled = not active
  nursery_target.editable = not active and not best_panel.visible
  chooser.disabled = active
- draft_choice.visible = draft_choice.item_count > 1 and not best_panel.visible
+ draft_bar.visible = draft_choice.item_count > 1 and not best_panel.visible
  draft_choice.disabled = active
+ rename_draft_button.visible = draft_choice.selected > 0 and not draft_name_edit.visible
+ rename_draft_button.disabled = active
  language.disabled = active
  source.editable = not active
  _draw_lessons(active)
@@ -1003,7 +1047,10 @@ func _input(event: InputEvent) -> void:
   return
  if event is InputEventKey and event.pressed and not event.echo:
   if event.keycode == KEY_ESCAPE:
-   if best_panel.visible:
+   if draft_name_edit.visible:
+    _cancel_draft_rename()
+    source.grab_focus()
+   elif best_panel.visible:
     _close_best_program()
    else:
     _close()
