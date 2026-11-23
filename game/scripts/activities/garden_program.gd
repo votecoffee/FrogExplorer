@@ -14,7 +14,7 @@ const PUZZLES = [
  {"id":"spring_relay", "name":"Spring relay", "unlock_lilies":8, "rows":["~LHL.",".####","~.HL."], "target":35, "hint":"Sweep the lower bed. Go back west to the spring column and hop north twice. The upper bed takes two tankfuls. Already gathered plots can be crossed again.", "draft":"# Sweep the lower bed, then plan two trips along the upper bed\nroutine tend_plot\n  while thirsty and has_water\n    water\n  end\n  if growing or ripe\n    if growing\n      wait\n    end\n    gather\n  end\nend\nroutine sweep_east\n  while clear east and has_water\n    hop east\n    call tend_plot\n  end\nend\n\nfill\ncall sweep_east\n", "python_draft":"# Sweep the lower bed, then plan two trips along the upper bed\ndef tend_plot():\n    while thirsty() and has_water():\n        water()\n    if growing() or ripe():\n        if growing():\n            wait()\n        gather()\ndef sweep_east():\n    while clear(east) and has_water():\n        hop(east)\n        tend_plot()\n\nfill()\nsweep_east()\n"},
  {"id":"side_channels", "name":"Side channels", "unlock_lilies":18, "rows":["##L#L","~....","#L#L#"], "target":31, "hint":"Follow the center path and look for lilies to the north or south. Return west to refill after the third lily. A second sweep can skip the lilies you already gathered.", "draft":"# Look for lilies off the center path before hopping\nroutine tend_plot\n  water\n  wait\n  gather\nend\nroutine sweep_east\n  while clear east and has_water\n    hop east\n    if lily north\n      hop north\n      call tend_plot\n      hop south\n    end\n    if lily south and has_water\n      hop south\n      call tend_plot\n      hop north\n    end\n  end\nend\n\nfill\ncall sweep_east\n", "python_draft":"# Look for lilies off the center path before hopping\ndef tend_plot():\n    water()\n    wait()\n    gather()\ndef sweep_east():\n    while clear(east) and has_water():\n        hop(east)\n        if lily(north):\n            hop(north)\n            tend_plot()\n            hop(south)\n        if lily(south) and has_water():\n            hop(south)\n            tend_plot()\n            hop(north)\n\nfill()\nsweep_east()\n"},
  {"id":"compass_banks", "name":"Compass banks", "unlock_lilies":18, "rows":["L####","..~..","####H"], "target":17, "hint":"The spring is between two mirrored paths. After the west sweep, return east to the spring. Call sweep again with east along the bank, south toward the lily, and north back to the path.", "draft":"# Sweep west, then reuse the routine with different directions\nroutine tend_bed toward back\n  hop toward\n  while thirsty and has_water\n    water\n  end\n  wait\n  gather\n  hop back\nend\nroutine sweep along branch return_path\n  while clear along and has_water\n    hop along\n    if lily branch\n      call tend_bed branch return_path\n    end\n  end\nend\n\nfill\ncall sweep west north south\n", "python_draft":"# Sweep west, then reuse the routine with different directions\ndef tend_bed(toward, back):\n    hop(toward)\n    while thirsty() and has_water():\n        water()\n    wait()\n    gather()\n    hop(back)\ndef sweep(along, branch, return_path):\n    while clear(along) and has_water():\n        hop(along)\n        if lily(branch):\n            tend_bed(branch, return_path)\n\nfill()\nsweep(west, north, south)\n"},
- {"id":"low_water_row", "name":"Low water row", "unlock_lilies":18, "rows":["~LLHL"], "target":25, "hint":"The first sweep runs out of water at the double lily. Return to the spring, refill, and sweep again. The routine skips plots you already gathered.", "draft":"# Leave the row to refill when a plot still needs water\nroutine sweep\n  while clear east\n    hop east\n    if not lily\n      continue\n    end\n    while thirsty and has_water\n      water\n    end\n    if thirsty\n      break\n    end\n    wait\n    gather\n  end\nend\n\nfill\ncall sweep\n", "python_draft":"# Leave the row to refill when a plot still needs water\ndef sweep():\n    while clear(east):\n        hop(east)\n        if not lily():\n            continue\n        while thirsty() and has_water():\n            water()\n        if thirsty():\n            break\n        wait()\n        gather()\n\nfill()\nsweep()\n"},
+ {"id":"low_water_row", "name":"Low water row", "unlock_lilies":18, "rows":["~LLHL"], "target":25, "hint":"The first sweep runs out of water at the double lily. Return to the spring, refill, and sweep again. The routine skips plots you already gathered.", "draft":"# Leave the row to refill when a plot still needs water\nroutine sweep\n  while clear east\n    hop east\n    if not lily\n      continue\n    end\n    while thirsty and has_water\n      water\n    end\n    if thirsty\n      break\n    end\n    wait\n    gather\n  end\nend\n\nfill\ncall sweep\n", "python_draft":"# End the sweep early if a lily still needs water\ndef sweep():\n    while clear(east):\n        hop(east)\n        if not lily():\n            continue\n        while thirsty() and has_water():\n            water()\n        if thirsty():\n            return\n        wait()\n        gather()\n\nfill()\nsweep()\n"},
  {"id":"nursery_beds", "name":"Nursery beds", "unlock_lilies":26, "rows":["~B.BL"], "target":16, "hint":"Plant the brown seedbeds, then water and gather their lilies. The starter tends the first bed. Keep moving east and reuse tend to handle a blank path, another seedbed, and a lily already planted.", "draft":"# Tend the first bed, then reuse the routine along the row\nroutine tend\n  if empty_bed\n    plant\n  end\n  if lily\n    water\n    wait\n    gather\n  end\nend\n\nfill\nhop east\ncall tend\n", "python_draft":"# Tend the first bed, then reuse the function along the row\ndef tend():\n    if empty_bed():\n        plant()\n    if lily():\n        water()\n        wait()\n        gather()\n\nfill()\nhop(east)\ntend()\n"},
  {
   "id":"switchback_beds", "name":"Switchback beds", "unlock_lilies":26, "target":36,
@@ -247,6 +247,7 @@ static func compile(source: String, case_sensitive := false, details: Dictionary
    if inner.has("routine"):
     if inner.steps.is_empty():
      return _error(inner.line, "Add at least one action to this routine.")
+    _resolve_returns(inner.steps)
     routines[inner.routine] = {"steps":inner.steps, "parameters":parameters, "local_scope":inner.local_scope}
     parameters = PackedStringArray()
     continue
@@ -325,6 +326,10 @@ static func compile(source: String, case_sensitive := false, details: Dictionary
    if words.size() != 1 or not blocks.any(func(block): return block.has("times") or block.get("loop", false)):
     return _error(index, "Put %s on its own line inside a loop." % command)
    instruction = {"loop_control":command, "line":index}
+  elif command == "return" and detail.has("return"):
+   if blocks.size() < 2 or not blocks[1].has("routine"):
+    return _error(index, "Use return inside a function.")
+   instruction = {"return":true, "line":index}
   elif words.size() != 1 or command not in ["fill", "plant", "water", "wait", "gather"]:
    return _error(index, "Use hop, fill, plant, water, wait, gather, repeat, routine, call, if, while, break, or continue.")
   if steps.size() >= MAX_STEPS:
@@ -383,6 +388,13 @@ static func compile_python(source: String) -> Dictionary:
   instruction.line = int(locations[instruction.line])
   result.steps[index] = instruction
  return result
+
+static func _resolve_returns(body: Array) -> void:
+ for index in body.size():
+  var instruction: Dictionary = body[index]
+  if instruction.has("return"):
+   # Relative bounds keep the return inside its own call when the body is copied.
+   body[index] = {"from_start":index, "return_offset":body.size() - index, "line":instruction.line}
 
 static func _append_loop_body(outer: Array, body: Array, loop_end: int, has_loop_header := false) -> void:
  var start := outer.size()
@@ -573,6 +585,14 @@ func next_action_index(instructions: Array, first: int) -> int:
   computed += 1
   if instruction.has("back"):
    index -= int(instruction.back)
+   continue
+  if instruction.has("return_offset"):
+   var start := index - int(instruction.from_start)
+   var end := index + int(instruction.return_offset)
+   for header: int in loop_entries.keys():
+    if header >= start and header < end:
+     loop_entries.erase(header)
+   index = end
    continue
   if instruction.has("enter_scope"):
    local_frames.append({"function":instruction.enter_scope, "locals":{}, "revision":0})

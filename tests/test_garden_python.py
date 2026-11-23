@@ -143,6 +143,13 @@ print()
             {"op": "variable", "name": "step", "local": True}, {"op": "variable", "name": "limit"},
         ])
 
+    def test_bare_return_and_return_none_keep_their_source_lines(self):
+        result = LOWER("def sweep():\n    if not clear(east):\n        return\n    hop(east)\n    return None\nsweep()\n")
+        self.assertEqual(result["source"], "routine sweep\nif\nreturn\nend\nhop east\nreturn\nend\ncall sweep")
+        self.assertEqual(result["lines"], [0, 1, 2, 2, 3, 4, 4, 5])
+        self.assertEqual(result["details"]["2"], {"return": True})
+        self.assertEqual(result["details"]["5"], {"return": True})
+
     def test_unsupported_syntax_is_rejected_at_its_source_line(self):
         for source, line in [
             ("fill()\nimport math\n", 1),
@@ -167,6 +174,7 @@ print()
             ("turns = 2\ndef turns():\n    wait()\n", 0),
             ("def survey(heading):\n    heading = row()\n", 1),
             ("def survey():\n    global position\n", 1),
+            ("def survey():\n    return column()\n", 1),
             ("x = 2\nx *= 3\n", 1),
         ]:
             with self.subTest(source=source):

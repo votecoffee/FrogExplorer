@@ -203,7 +203,7 @@ func _code_edit() -> CodeEdit:
 
 func _color_code(editor: CodeEdit, python: bool) -> void:
  var ink := CodeHighlighter.new()
- var structural := ["for", "in", "range", "def", "elif", "print"] if python else ["repeat", "routine", "call", "end"]
+ var structural := ["for", "in", "range", "def", "elif", "print", "return"] if python else ["repeat", "routine", "call", "end"]
  for word in ["hop", "fill", "plant", "water", "wait", "gather", "if", "else", "while", "not", "and", "or", "clear", "break", "continue"] + structural + Programs.CONDITIONS + Programs.NUMERIC_SENSORS:
   ink.add_keyword_color(word, Color("#8bd5bc"))
  ink.add_color_region("#", "", Color("#a5ad99"), true)

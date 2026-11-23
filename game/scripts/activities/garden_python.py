@@ -222,8 +222,13 @@ def lower(source):
                 emit("end", node.end_lineno)
             elif isinstance(node, (ast.Break, ast.Continue)):
                 emit(type(node).__name__.lower(), node.lineno)
+            elif isinstance(node, ast.Return):
+                if node.value is not None and not (isinstance(node.value, ast.Constant) and node.value.value is None):
+                    raise GardenError(node, "Use return by itself to leave a garden function.")
+                details[str(len(lines))] = {"return": True}
+                emit("return", node.lineno)
             else:
-                raise GardenError(node, "Use garden calls, assignments, def, if, while, for, break, or continue.")
+                raise GardenError(node, "Use garden calls, assignments, def, if, while, for, break, continue, or return.")
 
     if len(source) > MAX_SOURCE:
         return {"error": "Programs can contain up to 8,192 characters.", "line": 0}

@@ -212,6 +212,49 @@ print("done", counter)
  popup._reset()
  press_key(KEY_F7)
 
+func check_python_returns(popup) -> void:
+ press_key(KEY_F7)
+ var route := """def scan(toward):
+    start = column()
+    for attempt in range(2):
+        while True:
+            if not clear(toward):
+                print("edge", start, attempt)
+                return
+            hop(toward)
+            print("hop", start, column())
+            return
+    wait()
+def sweep():
+    for trip in range(3):
+        scan(east)
+        print("caller", trip)
+    print("sweep done")
+sweep()
+wait()
+"""
+ var expected := "Line 9 · hop 0 1\nLine 15 · caller 0\nLine 9 · hop 1 2\nLine 15 · caller 1\nLine 6 · edge 2 0\nLine 15 · caller 2\nLine 16 · sweep done"
+ popup.source.text = route
+ popup.check_button.pressed.emit()
+ check(popup.checked_route.actions.size() == 3 and popup.checked_route.get("line", -2) == -1 and popup.output_text.text == expected and popup.garden.turn == 0, "Check predicts nested early returns and keeps the caller's loop running")
+ popup.review_button.pressed.emit()
+ check(popup.variables_text.text == "scan() · attempt = 0\nscan() · start = 0\nsweep() · trip = 0", "Review shows both active functions before the first return")
+ press_key(KEY_F10)
+ check(popup.garden.turn == 1 and popup.variables_text.text == "scan() · attempt = 0\nscan() · start = 1\nsweep() · trip = 1", "Returning clears the inner loop state so the next call starts fresh")
+ press_key(KEY_F10)
+ check(popup.garden.turn == 2 and popup.garden.loop_entries.is_empty() and popup.garden.local_frames.is_empty() and popup.variables_text.text == "No variables assigned" and popup.output_text.text == expected, "Returning at a blocked path releases the callee's locals and reaches the next top-level action")
+ press_key(KEY_F10)
+ check(popup.garden.turn == 3 and popup.garden.cell == Vector2i(2, 1) and popup.steps.is_empty(), "Early returns spend no board actions")
+
+ popup.source.text = "def skip():\n    return None\n    wait()\ndef caller():\n    count = 7\n    skip()\n    print(count)\ncaller()\n"
+ popup.check_button.pressed.emit()
+ check(popup.checked_route.actions.is_empty() and popup.output_text.text == "Line 7 · 7", "Returning from a function with no locals preserves the caller's values")
+ popup.source.text = "wait()\nreturn\n"
+ popup.check_button.pressed.emit()
+ check("Line 2 · Use return inside a function." in popup.status.text and popup.garden.turn == 3, "A top-level return reports its source line before running")
+ popup._reset()
+ press_key(KEY_F7)
+
 func check_switchback_beds(popup, index: int) -> void:
  var earned: int = popup.progress.earned_lilies()
  popup.chooser.item_selected.emit(index)
@@ -934,6 +977,15 @@ func run(game) -> void:
   check(skipped_again and "Best run · 25 / 25 actions" == popup.review_position.text and "Lilies 4 / 4" in popup.info.text, "Replay skips gathered lilies on the second sweep and shows the final harvest")
 
   popup.language.item_selected.emit(0)
+  var low_water_python: String = popup.source.text
+  popup.check_button.pressed.emit()
+  check("            return" in low_water_python and "2 of 4 lilies harvested in 11 actions" in popup.status.text, "The Python Low water row starter ends its sweep with return")
+  low_water_python += "while not spring():\n    hop(west)\nfill()\nsweep()\n"
+  popup.source.text = low_water_python
+  popup.check_button.pressed.emit()
+  check("25 actions to harvest all 4 lilies · meets target" in popup.status.text, "Python Check reaches the refill after the sweep returns early")
+  await finish_by_steps(popup, low_water_python)
+  check(popup.garden.harvested == 4 and popup.garden.turn == 25, "The Python return route completes Low water row at its target")
   popup.chooser.item_selected.emit(1)
   var around_python := "# Route around the stones\nfill()\nfor _ in range(2):\n    hop(east)\nwater()\nwait()\ngather()\nhop(south)\nhop(east)\nwater()\nwait()\ngather()\nhop(west)\nhop(south)\nwater()\nwait()\ngather()\n"
   await finish_by_steps(popup, around_python)
@@ -1072,6 +1124,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   check_python_variables(popup)
   await check_python_ranges(popup)
   check_function_locals(popup)
+  check_python_returns(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
