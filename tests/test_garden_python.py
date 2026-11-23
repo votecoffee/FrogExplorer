@@ -124,6 +124,25 @@ print()
             {"op": "sensor", "name": "clear", "direction": "Heading"},
         ])
 
+    def test_function_assignments_mark_local_reads_before_assignment(self):
+        result = LOWER("def survey():\n    print(Start)\n    if True:\n        Start = row()\nsurvey()\n")
+        self.assertEqual(result["details"]["0"], {"local_scope": True})
+        self.assertEqual(result["details"]["1"]["output"], [
+            {"op": "variable", "name": "Start", "local": True},
+        ])
+        self.assertEqual(result["details"]["3"], {
+            "assign": "Start", "local": True, "value": {"op": "sensor", "name": "row", "direction": ""},
+        })
+
+    def test_function_range_target_is_local_but_unassigned_names_stay_global(self):
+        result = LOWER("def trip():\n    for step in range(limit):\n        print(step, limit)\ntrip()\n")
+        self.assertEqual(result["details"]["1"]["range"], {
+            "target": "step", "local": True, "args": [{"op": "variable", "name": "limit"}],
+        })
+        self.assertEqual(result["details"]["2"]["output"], [
+            {"op": "variable", "name": "step", "local": True}, {"op": "variable", "name": "limit"},
+        ])
+
     def test_unsupported_syntax_is_rejected_at_its_source_line(self):
         for source, line in [
             ("fill()\nimport math\n", 1),
@@ -132,7 +151,7 @@ print()
             ("for x in range(1, 2, 3, 4):\n    wait()\n", 0),
             ("for a, b in range(2):\n    wait()\n", 0),
             ("for water_level in range(2):\n    wait()\n", 0),
-            ("def trip():\n    for step in range(2):\n        wait()\n", 1),
+            ("def trip(heading):\n    for heading in range(2):\n        wait()\n", 1),
             ("for step in range(2):\n    wait()\nelse:\n    wait()\n", 0),
             ("fill()\nif spring()\n    wait()\n", 1),
             ("fill()\nprint(plant())\n", 1),
@@ -146,7 +165,8 @@ print()
             ("x = y = 0\n", 0),
             ("water_level = 1\n", 0),
             ("turns = 2\ndef turns():\n    wait()\n", 0),
-            ("def survey():\n    if True:\n        position = row()\n", 2),
+            ("def survey(heading):\n    heading = row()\n", 1),
+            ("def survey():\n    global position\n", 1),
             ("x = 2\nx *= 3\n", 1),
         ]:
             with self.subTest(source=source):

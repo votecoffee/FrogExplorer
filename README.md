@@ -228,9 +228,9 @@ Use Python `print("Tank ready", has_water())` to show messages and sensor readin
 
 `water_level()` returns the number of water doses left in Pondbot's tank, from 0 to 3. `column()` counts from the left edge and `row()` counts from the top, both starting at zero. Print the readings with `print(column(), row(), water_level())` or compare them in a route. For example, use `while column() < 2 and clear(east):` with an indented `hop(east)` to move toward column 2. Use `spring() and water_level() < 3` in an `if` before filling. Classic Pondbot uses comparisons such as `if water_level < 3`.
 
-Save a numeric reading or a Boolean in a Python variable, such as `start = column()` or `had_water = has_water()`. Outside function bodies, assign values with `=` and update counters with `+=` or `-=`. A function can read a variable after it has been assigned. Run and Check each start with fresh variables, and Resume keeps the current values.
+Save a numeric reading or a Boolean in a Python variable, such as `start = column()` or `had_water = has_water()`. Assign values with `=` and update counters with `+=` or `-=`. Assignments and named loop counters inside a function belong to that call. If a function assigns a name anywhere in its body, initialize that local value before reading it. Functions can read other variables from the main program. Run and Check each start with fresh variables, and Resume keeps the current values.
 
-Press **F7** or choose **Variables** to inspect the current Python values. **Check** shows the final simulated values. In **Review** and **Best program**, move the action slider to see which values the program had at each point. The initial position includes assignments made before Pondbot's first action.
+Press **F7** or choose **Variables** to inspect the current Python values. The panel labels local variables with their function name. **Check** shows the final simulated values. In **Review** and **Best program**, move the action slider to see which values the program had at each point. The initial position includes assignments made before Pondbot's first action.
 
 ```python
 start = column()
@@ -241,7 +241,7 @@ while hops < 2 and clear(east):
 print("Started at", start, "and hopped", hops, "times")
 ```
 
-Use `for bed in range(2):` to count from zero or `for bed in range(2, 0, -1):` to count down. A range takes up to 16 iterations, excludes its stop value, and reads its bounds once on entry. Bounds can come from variables or garden readings. Use named indices outside function bodies and `for _ in range(...):` when you just need repetition.
+Use `for bed in range(2):` to count from zero or `for bed in range(2, 0, -1):` to count down. A range takes up to 16 iterations, excludes its stop value, and reads its bounds once on entry. Bounds can come from variables or garden readings. Use `for _ in range(...):` when you just need repetition.
 
 Define reusable functions above their first call. Functions can accept direction parameters, as in `def seek(heading):` with `hop(heading)` inside. `seek(north)` then uses north for that call. `break` exits the innermost loop and `continue` advances it. A `while` loop stops with a line error if it repeats without an action or a change to a variable. Scored puzzles allow up to 16 iterations of each `while` loop and 256 board actions. Programs that keep computing without an action also have an instruction limit.
 

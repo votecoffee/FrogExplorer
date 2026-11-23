@@ -426,7 +426,7 @@ func _trace(commands: Array) -> Dictionary:
  var traced: Array[Dictionary] = []
  var index := preview.next_action_index(commands, 0)
  # Review position zero includes assignments before the first board action.
- var variable_history: Array[Dictionary] = [preview.variables.duplicate()]
+ var variable_history: Array[Dictionary] = [preview.inspect_variables()]
  while index < commands.size() and (not preview.practice or traced.size() < Programs.MAX_STEPS):
   var action: Dictionary = commands[index]
   var error := preview.step(action)
@@ -438,7 +438,7 @@ func _trace(commands: Array) -> Dictionary:
   var revision := preview.variable_revision
   if not complete:
    index = preview.next_action_index(commands, index + 1)
-  var values: Dictionary = variable_history.back() if preview.variable_revision == revision else preview.variables.duplicate()
+  var values: Dictionary = variable_history.back() if preview.variable_revision == revision else preview.inspect_variables()
   variable_history.append(values)
   if complete:
    break
@@ -675,7 +675,7 @@ func _draw_diagnostics(view: Programs, context := "Program", through_turn := -1,
  var transcript := "\n".join(lines)
  if output_text.text != transcript:
   output_text.text = transcript
- _show_variables(view.variables if snapshot == null else snapshot, context)
+ _show_variables(view.inspect_variables() if snapshot == null else snapshot, context)
 
 func _show_variables(values: Dictionary, context: String) -> void:
  displayed_variables = values

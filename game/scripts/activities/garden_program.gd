@@ -174,7 +174,9 @@ var runtime_error_line := -1
 var loop_entries: Dictionary = {}
 var output: Array[Dictionary] = []
 var variables: Dictionary = {}
+var local_frames: Array[Dictionary] = []
 var variable_revision := 0
+var module_revision := 0
 
 static func compile(source: String, case_sensitive := false, details: Dictionary = {}) -> Dictionary:
  if source.length() > 8192:
@@ -205,7 +207,7 @@ static func compile(source: String, case_sensitive := false, details: Dictionary
     if parameter in parameters:
      return _error(index, "Parameter %s is already listed." % parameter)
     parameters.append(parameter)
-   blocks.append({"steps":[], "routine":words[1], "line":index})
+   blocks.append({"steps":[], "routine":words[1], "line":index, "local_scope":detail.get("local_scope", false)})
    continue
   if command in ["repeat", "if", "while"] or (command == "for" and detail.has("range")):
    var block_limit := 6 if blocks.size() > 1 and blocks[1].has("routine") else 5
@@ -245,7 +247,7 @@ static func compile(source: String, case_sensitive := false, details: Dictionary
    if inner.has("routine"):
     if inner.steps.is_empty():
      return _error(inner.line, "Add at least one action to this routine.")
-    routines[inner.routine] = {"steps":inner.steps, "parameters":parameters}
+    routines[inner.routine] = {"steps":inner.steps, "parameters":parameters, "local_scope":inner.local_scope}
     parameters = PackedStringArray()
     continue
    var outer: Array = blocks.back().steps
@@ -297,7 +299,8 @@ static func compile(source: String, case_sensitive := false, details: Dictionary
    if arguments.size() != targets.size():
     var unit := "argument" if targets.size() == 1 else "arguments"
     return _error(index, "Routine %s expects %d direction %s." % [words[1], targets.size(), unit])
-   if steps.size() + routine.steps.size() > MAX_STEPS:
+   var local_scope: bool = routine.local_scope
+   if steps.size() + routine.steps.size() + 2 * int(local_scope) > MAX_STEPS:
     return _error(index, "This call expands the program beyond 256 instructions.")
    var bindings: Dictionary = {}
    for argument_index in arguments.size():
@@ -305,7 +308,11 @@ static func compile(source: String, case_sensitive := false, details: Dictionary
     if not _is_direction(argument, parameters):
      return _error(index, "Argument %s needs a compass direction or a routine parameter." % targets[argument_index])
     bindings[targets[argument_index]] = argument
+   if local_scope:
+    steps.append({"enter_scope":words[1], "line":index})
    steps.append_array(_bind_directions(routine.steps, bindings))
+   if local_scope:
+    steps.append({"leave_scope":true, "line":index})
    continue
   var instruction := {"command":command, "direction":"", "line":index}
   if (command == "diagnostic" and detail.has("output")) or (command == "assign" and detail.has("assign")):
@@ -415,6 +422,8 @@ static func _bind_directions(instructions: Array, bindings: Dictionary) -> Array
     _bind_expression(value, bindings)
   elif instruction.has("range"):
    _bind_expression(instruction.range, bindings)
+  elif instruction.has("assign"):
+   _bind_expression(instruction.value, bindings)
   expanded.append(instruction)
  return expanded
 
@@ -509,7 +518,17 @@ func reset_program() -> void:
  loop_entries.clear()
  output.clear()
  variables.clear()
+ local_frames.clear()
  variable_revision = 0
+ module_revision = 0
+
+func inspect_variables() -> Dictionary:
+ var visible_values := variables.duplicate()
+ for frame: Dictionary in local_frames:
+  for variable: String in frame.locals:
+   var label := "%s() · %s" % [frame.function, variable]
+   visible_values[label] = frame.locals[variable]
+ return visible_values
 
 func copy_board() -> RefCounted:
  var copy = get_script().new()
@@ -555,6 +574,16 @@ func next_action_index(instructions: Array, first: int) -> int:
   if instruction.has("back"):
    index -= int(instruction.back)
    continue
+  if instruction.has("enter_scope"):
+   local_frames.append({"function":instruction.enter_scope, "locals":{}, "revision":0})
+   variable_revision += 1
+   index += 1
+   continue
+  if instruction.has("leave_scope"):
+   local_frames.pop_back()
+   variable_revision += 1
+   index += 1
+   continue
   if instruction.has("output"):
    _append_output(instruction)
    if not runtime_error.is_empty():
@@ -567,7 +596,7 @@ func next_action_index(instructions: Array, first: int) -> int:
    if value == null:
     runtime_error_line = instruction.line
     break
-   _set_variable(variable, value)
+   _set_variable(variable, value, instruction.get("local", false))
    index += 1
    continue
   if not instruction.has("skip"):
@@ -594,24 +623,34 @@ func next_action_index(instructions: Array, first: int) -> int:
     passes = _meets_any_clause(instruction.test)
   if instruction.get("loop", false):
    if passes:
+    var revision: int = module_revision if local_frames.is_empty() else local_frames.back().revision
     var entry: Dictionary = loop_entries.get(index, {"turn":-1, "revision":-1, "iterations":0})
-    if entry.turn == turn and entry.revision == variable_revision:
+    if entry.turn == turn and entry.revision == revision:
      runtime_error = "This while loop came back without doing an action."
     elif not practice and entry.iterations >= MAX_WHILE_ITERATIONS:
      runtime_error = "This while loop reached its %d-iteration limit." % MAX_WHILE_ITERATIONS
     if not runtime_error.is_empty():
      runtime_error_line = instruction.line
      break
-    loop_entries[index] = {"turn":turn, "revision":variable_revision, "iterations":int(entry.iterations) + 1}
+    loop_entries[index] = {"turn":turn, "revision":revision, "iterations":int(entry.iterations) + 1}
    else:
     loop_entries.erase(index)
   index += 1 if passes else 1 + int(instruction.skip)
  return index if runtime_error.is_empty() else instructions.size()
 
-func _set_variable(variable: String, value: Variant) -> void:
- if not variables.has(variable) or not is_same(variables[variable], value):
-  variables[variable] = value
-  variable_revision += 1
+func _variable_store(local: bool) -> Dictionary:
+ return local_frames.back().locals if local else variables
+
+func _set_variable(variable: String, value: Variant, local: bool) -> void:
+ var store := _variable_store(local)
+ if store.has(variable) and is_same(store[variable], value):
+  return
+ store[variable] = value
+ variable_revision += 1
+ if local:
+  local_frames.back().revision += 1
+ else:
+  module_revision += 1
 
 func _next_counted_iteration(index: int, spec: Dictionary) -> bool:
  var entry: Dictionary = loop_entries.get(index, {})
@@ -640,7 +679,7 @@ func _next_counted_iteration(index: int, spec: Dictionary) -> bool:
   loop_entries.erase(index)
   return false
  if not spec.target.is_empty():
-  _set_variable(spec.target, item)
+  _set_variable(spec.target, item, spec.get("local", false))
  entry.next = item + int(entry.stride)
  loop_entries[index] = entry
  return true
@@ -716,9 +755,12 @@ func _expression_value(expression: Dictionary) -> Variant:
   "direction":
    return expression.direction
   "variable":
-   if variables.has(expression.name):
-    return variables[expression.name]
-   runtime_error = "Variable '%s' has no value yet." % expression.name
+   var local: bool = expression.get("local", false)
+   var store := _variable_store(local)
+   if store.has(expression.name):
+    return store[expression.name]
+   var label := "Local variable" if local else "Variable"
+   runtime_error = "%s '%s' has no value yet." % [label, expression.name]
    return null
   "sensor":
    if expression.name in NUMERIC_SENSORS:

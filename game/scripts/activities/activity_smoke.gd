@@ -162,6 +162,56 @@ print(lap, offset, limit)
  check(popup.checked_route.get("line", -1) == 0 and "at most 16 iterations" in popup.status.text and popup.garden.turn == 6, "Counted loops preserve the 16-iteration limit")
  popup._reset()
 
+func check_function_locals(popup) -> void:
+ press_key(KEY_F7)
+ var route := """def read_counter():
+    print("global", counter)
+def visit(heading):
+    counter = 100
+    ready = clear(heading)
+    if ready:
+        hop(heading)
+    counter += 1
+    read_counter()
+    print("visit", heading, counter)
+def sweep(heading):
+    for counter in range(2):
+        visit(heading)
+        print("sweep", counter)
+counter = 9
+sweep(east)
+print("done", counter)
+"""
+ var expected := "Line 2 · global 9\nLine 10 · visit east 101\nLine 14 · sweep 0\nLine 2 · global 9\nLine 10 · visit east 101\nLine 14 · sweep 1\nLine 17 · done 9"
+ popup.source.text = route
+ popup.check_button.pressed.emit()
+ check(popup.checked_route.actions.size() == 2 and popup.output_text.text == expected and popup.variables_text.text == "counter = 9" and popup.garden.variables.is_empty(), "Check isolates nested function counters and reads the module variable from a separate function")
+ popup.review_button.pressed.emit()
+ check(popup.variables_text.text == "counter = 9\nsweep() · counter = 0\nvisit() · counter = 100\nvisit() · ready = True", "Review lists both active functions' locals before the first hop")
+ press_key(KEY_F10)
+ check(popup.garden.turn == 1 and popup.variables_text.text == "counter = 9\nsweep() · counter = 1\nvisit() · counter = 100\nvisit() · ready = True", "Step enters the next call with fresh locals and keeps the caller's loop index")
+ press_key(KEY_F10)
+ check(popup.garden.turn == 2 and popup.garden.cell == Vector2i(2, 1) and popup.garden.local_frames.is_empty() and popup.variables_text.text == "counter = 9" and popup.output_text.text == expected, "Completed calls release their locals and preserve the module counter")
+
+ popup._reset()
+ popup.source.text = "counter = 9\ndef sample():\n    print(counter)\n    counter = 3\nsample()\n"
+ popup.check_button.pressed.emit()
+ check(popup.checked_route.get("line", -1) == 2 and "Local variable 'counter' has no value yet" in popup.status.text and popup.garden.turn == 0, "An assignment makes a name local even before that assignment runs")
+
+ popup.source.text = "def sample(heading):\n    if clear(heading):\n        saved = column()\n        hop(heading)\n    print(saved)\nhop(east)\nfor _ in range(2):\n    sample(east)\n"
+ popup.check_button.pressed.emit()
+ check(popup.checked_route.actions.size() == 2 and popup.checked_route.get("line", -1) == 4 and "Local variable 'saved' has no value yet" in popup.status.text and popup.output_text.text == "Line 5 · 1", "Reentering the same call site never reuses values from the previous call")
+
+ popup.source.text = "def count_up():\n    count = 0\n    while count < 3:\n        count += 1\n    print(count)\ncount_up()\n"
+ popup.check_button.pressed.emit()
+ check(popup.checked_route.get("line", -2) == -1 and popup.output_text.text == "Line 5 · 3" and popup.garden.turn == 0, "A function can advance its own finite while loop without advancing the board")
+
+ popup.source.text = "def scratch():\n    count = 1\nwhile True:\n    scratch()\n"
+ popup.check_button.pressed.emit()
+ check("without doing an action" in popup.status.text and popup.garden.turn == 0, "A helper that only updates its own locals leaves the caller's stalled-loop guard intact")
+ popup._reset()
+ press_key(KEY_F7)
+
 func check_switchback_beds(popup, index: int) -> void:
  var earned: int = popup.progress.earned_lilies()
  popup.chooser.item_selected.emit(index)
@@ -1021,6 +1071,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   check(classic_measurement.has("steps") and popup.garden.next_action_index(classic_measurement.get("steps", []), 0) == 1 and bad_measurement.get("line", -1) == 0, "Classic comparisons share the simulator and invalid Python sensor calls report their line")
   check_python_variables(popup)
   await check_python_ranges(popup)
+  check_function_locals(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
