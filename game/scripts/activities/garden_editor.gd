@@ -15,6 +15,13 @@ var draft_timer: Timer
 var loaded_draft := ""
 var draft_bar: HBoxContainer
 var draft_choice: OptionButton
+var compare_drafts_button: Button
+var comparison_panel: VBoxContainer
+var comparison_choice: OptionButton
+var comparison_context: Label
+var comparison_current: Label
+var comparison_other: Label
+var comparison_source := ""
 var rename_draft_button: Button
 var draft_name_edit: LineEdit
 var save_draft_name_button: Button
@@ -122,6 +129,7 @@ func _ready() -> void:
  draft_choice.item_selected.connect(_select_draft)
  draft_bar.add_child(draft_choice)
  rename_draft_button = _button(draft_bar, "Rename", _rename_draft)
+ compare_drafts_button = _button(draft_bar, "Compare drafts", _toggle_draft_comparison)
  draft_name_edit = LineEdit.new()
  draft_name_edit.placeholder_text = "Draft name"
  draft_name_edit.max_length = Progress.MAX_DRAFT_NAME
@@ -131,6 +139,7 @@ func _ready() -> void:
  draft_bar.add_child(draft_name_edit)
  save_draft_name_button = _button(draft_bar, "Save name", _save_draft_name)
  save_draft_name_button.hide()
+ _add_draft_comparison(left)
  source = _code_edit()
  source.gutters_draw_breakpoints_gutter = true
  source.highlight_current_line = true
@@ -288,6 +297,7 @@ func open() -> void:
 func _close() -> void:
  _commit_target_edit()
  _cancel_draft_rename()
+ _close_draft_comparison()
  flush_draft()
  if not steps.is_empty():
   _stop()
@@ -297,6 +307,8 @@ func _close() -> void:
  dismissed.emit()
 
 func _queue_save() -> void:
+ if comparison_panel.visible and comparison_source != source.text:
+  _close_draft_comparison()
  var matches_check: bool = checked_source is String and checked_source == source.text
  if steps.is_empty() and not matches_check:
   source.clear_executing_lines()
@@ -343,6 +355,7 @@ func _toggle_best_program() -> void:
  best_source.set_caret_column(0)
  actions.hide()
  _cancel_draft_rename()
+ _close_draft_comparison()
  draft_bar.hide()
  source.hide()
  status.hide()
@@ -512,6 +525,7 @@ func _select_draft(index: int) -> void:
 func _rename_draft() -> void:
  if draft_choice.selected < 1 or not steps.is_empty() or best_panel.visible:
   return
+ _close_draft_comparison()
  draft_name_edit.text = progress.draft_copy_name(_draft_key(), python_mode)
  draft_name_edit.show()
  save_draft_name_button.show()
@@ -533,11 +547,90 @@ func _save_draft_name() -> void:
  _refresh_draft_choice()
  source.grab_focus()
 
+func _add_draft_comparison(parent: Container) -> void:
+ comparison_panel = VBoxContainer.new()
+ parent.add_child(comparison_panel)
+ var choices := HBoxContainer.new()
+ comparison_panel.add_child(choices)
+ comparison_context = hud.label("", 14)
+ comparison_context.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ choices.add_child(comparison_context)
+ choices.add_child(hud.label("Compare with", 14))
+ comparison_choice = OptionButton.new()
+ comparison_choice.item_selected.connect(_compare_drafts)
+ choices.add_child(comparison_choice)
+ var results := HBoxContainer.new()
+ results.add_theme_constant_override("separation", 18)
+ comparison_panel.add_child(results)
+ comparison_current = hud.label("", 14, Color("#b9dccc"))
+ comparison_other = hud.label("", 14, Color("#b9dccc"))
+ for label in [comparison_current, comparison_other]:
+  label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+  label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+  results.add_child(label)
+ comparison_panel.hide()
+
+func _toggle_draft_comparison() -> void:
+ if comparison_panel.visible:
+  _close_draft_comparison()
+  return
+ if not steps.is_empty() or best_panel.visible or draft_choice.item_count < 2:
+  return
+ _save_draft_name()
+ _commit_target_edit()
+ _close_review()
+ comparison_choice.clear()
+ for index in draft_choice.item_count:
+  if index == draft_choice.selected:
+   continue
+  comparison_choice.add_item(draft_choice.get_item_text(index))
+  comparison_choice.set_item_metadata(comparison_choice.item_count - 1, draft_choice.get_item_metadata(index))
+ comparison_choice.select(0)
+ comparison_context.text = "Starting board · Live nursery" if garden.practice else "Starting board · Fresh lesson"
+ comparison_source = source.text
+ comparison_panel.show()
+ compare_drafts_button.text = "Close comparison"
+ _compare_drafts(0)
+
+func _compare_drafts(index: int) -> void:
+ if not comparison_panel.visible:
+  return
+ var other: String = comparison_choice.get_item_metadata(index)
+ comparison_current.text = draft_choice.get_item_text(draft_choice.selected) + "\n" + _draft_forecast(source.text)
+ comparison_other.text = comparison_choice.get_item_text(index) + "\n" + _draft_forecast(_draft_source(other))
+
+func _draft_forecast(text: String) -> String:
+ var result := _compile(text, python_mode)
+ if result.has("error"):
+  return result.error
+ var route := _trace(result.steps)
+ var preview: Programs = route.preview
+ var summary := _nursery_summary(preview)
+ if not preview.practice:
+  var unit := "action" if preview.turn == 1 else "actions"
+  summary = "Harvested %d of %d in %d %s · %s" % [
+   preview.harvested, preview.plants.size(), preview.turn, unit, _water_summary(preview),
+  ]
+ if route.line >= 0:
+  summary += "\nLine %d · %s" % [route.line + 1, route.error]
+ elif route.limited:
+  summary += "\nPreview limit"
+ return summary
+
+func _close_draft_comparison() -> void:
+ if comparison_panel.visible:
+  comparison_panel.hide()
+  compare_drafts_button.text = "Compare drafts"
+
+func _draft_source(key: String) -> String:
+ var item: Dictionary = Programs.GARDENS[puzzle]
+ var saved := progress.python_drafts if python_mode else progress.drafts
+ return str(saved.get(key, item.python_draft if python_mode else item.draft))
+
 func _load_draft(reset_board := true) -> void:
  _cancel_draft_rename()
  var item: Dictionary = Programs.GARDENS[puzzle]
- var saved := progress.python_drafts if python_mode else progress.drafts
- loaded_draft = str(saved.get(_draft_key(), item.python_draft if python_mode else item.draft))
+ loaded_draft = _draft_source(_draft_key())
  _refresh_draft_choice()
  _color_code(source, python_mode)
  source.indent_automatic = python_mode
@@ -687,6 +780,7 @@ func _trace(commands: Array, fresh_board := false, practice_limit := Programs.MA
 func _toggle_review() -> void:
  if best_panel.visible:
   return
+ _close_draft_comparison()
  if review_controls.visible:
   _close_review()
   return
@@ -717,6 +811,7 @@ func _close_review() -> void:
  _draw_diagnostics(garden)
 
 func _discard_check() -> void:
+ _close_draft_comparison()
  checked_source = null
  checked_route.clear()
  _close_review()
@@ -942,6 +1037,7 @@ func _draw() -> void:
  chooser.disabled = active
  draft_bar.visible = draft_choice.item_count > 1 and not best_panel.visible
  draft_choice.disabled = active
+ compare_drafts_button.disabled = active
  rename_draft_button.visible = draft_choice.selected > 0 and not draft_name_edit.visible
  rename_draft_button.disabled = active
  language.disabled = active
@@ -1049,6 +1145,9 @@ func _input(event: InputEvent) -> void:
   if event.keycode == KEY_ESCAPE:
    if draft_name_edit.visible:
     _cancel_draft_rename()
+    source.grab_focus()
+   elif comparison_panel.visible:
+    _close_draft_comparison()
     source.grab_focus()
    elif best_panel.visible:
     _close_best_program()

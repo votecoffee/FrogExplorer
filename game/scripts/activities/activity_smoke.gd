@@ -1103,6 +1103,42 @@ func check_nursery_bests(popup) -> void:
  popup.draft_choice.item_selected.emit(0)
  check(popup.source.text == long_route and popup.draft_choice.selected == 0, "The original main draft remains available after creating and running copies")
 
+func check_draft_comparison(popup) -> void:
+ var id: String = Program.OPEN_NURSERY.id
+ popup._reset()
+ popup.nursery_target.value = 1
+ var setup := "fill()\nhop(north)\nplant(east)\nwater(east)\nwait()\n"
+ await finish_by_steps(popup, setup)
+ var balance: int = popup.progress.nursery_balance()
+ popup.draft_choice.item_selected.emit(1)
+ popup.source.text = "wait()\ngather(east)\n"
+ popup.draft_choice.item_selected.emit(2)
+ popup.source.text = "water(east)\n"
+ popup.draft_choice.item_selected.emit(0)
+ var current := "gather(east)\n"
+ popup.source.text = current
+ popup.compare_drafts_button.pressed.emit()
+ check(popup.comparison_panel.visible and popup.comparison_choice.item_count == 2 and "Live nursery" in popup.comparison_context.text and "Harvested 1 in 1 action · Target 1 met" in popup.comparison_current.text and "Harvested 1 in 2 actions · Target 1 met" in popup.comparison_other.text, "Compare forecasts both drafts from the same living nursery")
+ check(popup.draft_choice.selected == 0 and popup.source.text == current and popup.progress.python_drafts.get(id) == setup and popup.garden.turn == 5 and popup.garden.tank == 5 and popup.garden.plant_status(Vector2i(1, 0)) == "Ripe" and popup.progress.nursery_balance() == balance, "A comparison leaves the unsaved edit, saved draft, live bed, and wallet intact")
+ popup.comparison_choice.select(1)
+ popup.comparison_choice.item_selected.emit(1)
+ check("Line 1 · This plot does not need water." in popup.comparison_other.text and "Harvested 1 in 1 action" in popup.comparison_current.text, "A blocked comparison draft does not hide the other result")
+ press_key(KEY_ESCAPE)
+ check(popup.visible and not popup.comparison_panel.visible, "Escape closes the comparison and stays in the editor")
+ popup.compare_drafts_button.pressed.emit()
+ popup.source.text = "wait()\n"
+ popup._queue_save()
+ check(not popup.comparison_panel.visible and popup.garden.turn == 5, "Editing the active draft clears the old comparison")
+
+ var recorded: Dictionary = popup.progress.create_draft_copy("first_bloom", "fill(east)\n", true)
+ popup.chooser.item_selected.emit(0)
+ popup.source.text = "fill()\n"
+ popup.compare_drafts_button.pressed.emit()
+ check(recorded.error == OK and popup.comparison_panel.visible and "Fresh lesson" in popup.comparison_context.text and "Harvested 0 of 2 in 1 action" in popup.comparison_current.text and "Check the arguments for fill()" in popup.comparison_other.text and popup.garden.turn == 0, "Lesson comparisons start fresh and report each draft's compile result")
+ press_key(KEY_ENTER, true)
+ check(not popup.comparison_panel.visible and popup.compare_drafts_button.disabled and popup.running, "Starting a run closes the comparison and locks it while the program runs")
+ popup.stop_button.pressed.emit()
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -1951,6 +1987,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   await check_nursery_target(popup)
   check_nursery_reports(popup)
   check_nursery_bests(popup)
+  await check_draft_comparison(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
