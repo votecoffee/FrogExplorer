@@ -5,6 +5,10 @@ extends RefCounted
 const DIRECTORY := "user://activity-progress-v1"
 const Programs = preload("res://scripts/activities/garden_program.gd")
 const COURSES := ["car_circuit", "balloon_rings"]
+const WILLOW_COST := 12
+const WILLOW_MARKER := "nursery-willow-unlocked"
+const NURSERY_TALLY_PREFIX := "nursery-yield-"
+const NURSERY_TALLY_SUFFIX := ".txt"
 
 var best: Dictionary = {}
 var split_records: Dictionary = {}
@@ -14,14 +18,23 @@ var solved: Dictionary = {}
 var garden_best: Dictionary = {}
 var garden_best_programs: Dictionary = {}
 var garden_best_python: Dictionary = {}
+var willow_unlocked := false
+var nursery_harvested := 0
+var session_harvests := 0
+var nursery_tally := ""
 var folder := ""
 var pending: Dictionary = {}
 
 func load_from(path: String) -> void:
  folder = ProjectSettings.globalize_path(path)
+ session_harvests = 0
+ nursery_tally = ""
+ nursery_harvested = 0
+ willow_unlocked = false
  if not DirAccess.dir_exists_absolute(folder):
   return
  var names := DirAccess.get_files_at(folder)
+ _load_nursery(names)
  for course: String in COURSES:
   var prefix := "best-" + course + "-"
   for name in names:
@@ -122,7 +135,57 @@ func earned_lilies() -> int:
 
 func lesson_available(puzzle: Dictionary, lilies: int) -> bool:
  var id: String = puzzle.id
+ if id == Programs.WILLOW_NURSERY.id:
+  return willow_unlocked
  return lilies >= int(puzzle.get("unlock_lilies", 0)) or solved.has(id) or drafts.has(id) or python_drafts.has(id)
+
+func nursery_balance() -> int:
+ return maxi(0, nursery_harvested - (WILLOW_COST if willow_unlocked else 0))
+
+func record_nursery_harvest() -> Error:
+ nursery_harvested += 1
+ if folder.is_empty():
+  return OK
+ session_harvests += 1
+ if nursery_tally.is_empty():
+  # Each game session writes its own cumulative harvests.
+  var key := "%d-%d-%d" % [roundi(Time.get_unix_time_from_system() * 1000), OS.get_process_id(), Time.get_ticks_usec()]
+  nursery_tally = NURSERY_TALLY_PREFIX + key + NURSERY_TALLY_SUFFIX
+ return _save(nursery_tally, str(session_harvests))
+
+func refresh_nursery() -> Error:
+ if folder.is_empty():
+  return OK
+ var error := flush()
+ if error == OK:
+  var names := DirAccess.get_files_at(folder) if DirAccess.dir_exists_absolute(folder) else PackedStringArray()
+  _load_nursery(names)
+ return error
+
+func unlock_willow_nursery() -> Error:
+ var error := refresh_nursery()
+ if error != OK or willow_unlocked:
+  return error
+ if nursery_balance() < WILLOW_COST:
+  return ERR_UNAVAILABLE
+ if not folder.is_empty():
+  # The same marker charges the balance once, even across game instances.
+  var marker := folder.path_join(WILLOW_MARKER)
+  error = _write(marker, "unlocked")
+  if error != OK and not FileAccess.file_exists(marker):
+   return error
+ willow_unlocked = true
+ return OK
+
+func _load_nursery(names: PackedStringArray) -> void:
+ willow_unlocked = WILLOW_MARKER in names
+ nursery_harvested = 0
+ for name in names:
+  if not name.begins_with(NURSERY_TALLY_PREFIX) or not name.ends_with(NURSERY_TALLY_SUFFIX):
+   continue
+  var tally := FileAccess.get_file_as_string(folder.path_join(name)).strip_edges()
+  if tally.is_valid_int() and int(tally) > 0:
+   nursery_harvested += int(tally)
 
 func next_lesson(lilies: int) -> int:
  for index in Programs.PUZZLES.size():

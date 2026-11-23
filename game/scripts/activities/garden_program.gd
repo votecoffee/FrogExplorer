@@ -145,7 +145,49 @@ while True:
     tend_row(south, north)
 """,
 }
-const GARDENS := PUZZLES + [OPEN_NURSERY]
+const WILLOW_NURSERY := {
+ "id":"willow_nursery", "name":"Willow nursery", "practice":true,
+ "rows":[".BBB","~...",".B.B"],
+ "hint":"Tend both banks, including the gap in the south row. Three water doses cover the north bank. Harvested beds can be planted again.",
+ "draft":"""# Tend one bed, then extend the route to both banks
+routine tend
+  if empty_bed
+    plant
+  end
+  if thirsty and has_water
+    water
+  end
+  if growing
+    wait
+  end
+  if ripe
+    gather
+  end
+end
+
+fill
+hop north
+hop east
+call tend
+""",
+ "python_draft":"""# Tend one bed, then extend the route to both banks
+def tend():
+    if empty_bed():
+        plant()
+    if thirsty() and has_water():
+        water()
+    if growing():
+        wait()
+    if ripe():
+        gather()
+
+fill()
+hop(north)
+hop(east)
+tend()
+""",
+}
+const GARDENS := PUZZLES + [OPEN_NURSERY, WILLOW_NURSERY]
 const DIRECTIONS = {"north":Vector2i(0,-1), "east":Vector2i(1,0), "south":Vector2i(0,1), "west":Vector2i(-1,0)}
 const CONDITIONS := ["always", "spring", "has_water", "empty_bed", "lily", "thirsty", "growing", "ripe"]
 const NUMERIC_SENSORS := ["water_level", "row", "column"]

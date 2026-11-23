@@ -2,6 +2,7 @@ extends Node
 
 const Run = preload("res://scripts/activities/course_run.gd")
 const Program = preload("res://scripts/activities/garden_program.gd")
+const Progress = preload("res://scripts/activities/activity_progress.gd")
 const IDS = ["car_circuit", "balloon_rings", "lily_code_garden"]
 var failures: Array[String] = []
 var checks := 0
@@ -378,6 +379,63 @@ for stop in range(1, 3):
  check(popup.variables_text.text == "spring_column = 2", "Best program shows the variables at the beginning of the recorded run")
  press_key(KEY_F7)
 
+func check_nursery_storage() -> void:
+ var temporary := DirAccess.create_temp("frog-nursery-progress")
+ check(temporary != null, "Nursery save checks have an isolated directory")
+ if temporary == null:
+  return
+ var path := temporary.get_current_dir()
+ var first := Progress.new()
+ var second := Progress.new()
+ first.load_from(path)
+ second.load_from(path)
+ var recorded := first.edit_draft("first_bloom", "fill()\n", true) == OK
+ recorded = first.complete_puzzle("first_bloom", 9, "fill()\n", true) == OK and recorded
+ for bloom in 8:
+  recorded = first.record_nursery_harvest() == OK and recorded
+ check(recorded and first.unlock_willow_nursery() == ERR_UNAVAILABLE and first.nursery_balance() == 8, "An unaffordable nursery purchase leaves the saved harvest intact")
+ for bloom in 6:
+  recorded = second.record_nursery_harvest() == OK and recorded
+ var restored := Progress.new()
+ restored.load_from(path)
+ check(recorded and restored.nursery_balance() == 14 and restored.earned_lilies() == 2 and restored.python_drafts.get("first_bloom") == "fill()\n", "Reloading combines harvests from two sessions and preserves lesson progress and drafts")
+ var purchase := second.unlock_willow_nursery()
+ var repeated := first.unlock_willow_nursery()
+ check(purchase == OK and repeated == OK and first.nursery_balance() == 2 and second.nursery_balance() == 2 and first.willow_unlocked, "Two sessions see the same unlock and spend nursery lilies once")
+ var saved := first.record_nursery_harvest()
+ var reopened := Progress.new()
+ reopened.load_from(path)
+ check(saved == OK and reopened.nursery_balance() == 3 and reopened.lesson_available(Program.WILLOW_NURSERY, 0), "The purchased nursery and additional harvests survive a restart")
+
+func check_willow_nursery(popup, open_nursery: int) -> void:
+ var willow := Program.GARDENS.find(Program.WILLOW_NURSERY)
+ var earned: int = popup.progress.earned_lilies()
+ var balance: int = popup.progress.nursery_balance()
+ check(balance > 0 and balance < Progress.WILLOW_COST and popup.expand_button.disabled and popup.chooser.is_item_disabled(willow), "Live harvests remain in the nursery balance and Willow nursery starts locked")
+ popup.source.text = Program.OPEN_NURSERY.python_draft
+ press_key(KEY_ENTER, true)
+ for action in Program.MAX_STEPS:
+  if not popup.running or popup.progress.nursery_balance() >= Progress.WILLOW_COST:
+   break
+  popup._process(.25)
+ check(popup.running and popup.progress.nursery_balance() == Progress.WILLOW_COST and popup.expand_button.disabled, "Continuous harvesting funds the expansion and purchase waits for Stop")
+ popup.stop_button.pressed.emit()
+ popup.expand_button.pressed.emit()
+ check(popup.puzzle == willow and popup.garden.practice and popup.garden.plants.size() == 5 and popup.progress.nursery_balance() == 0 and popup.progress.earned_lilies() == earned and not popup.expand_button.visible, "Buying Willow nursery opens five renewable beds and spends only its nursery cost")
+ popup.check_button.pressed.emit()
+ check("Harvested 1 in 7 actions" in popup.status.text and popup.progress.nursery_balance() == 0 and popup.garden.turn == 0, "Check forecasts the Willow starter without crediting its harvest")
+
+ popup.source.text = Program.OPEN_NURSERY.python_draft.replace("range(2)", "range(3)")
+ press_key(KEY_ENTER, true)
+ for action in Program.MAX_STEPS:
+  if not popup.running or popup.garden.harvested >= 5:
+   break
+  popup._process(.25)
+ check(popup.running and popup.garden.harvested == 5 and popup.progress.nursery_balance() == 5 and not popup.score.visible, "An automated sweep spans the gap in Willow nursery and earns more lilies")
+ popup.stop_button.pressed.emit()
+ popup.chooser.item_selected.emit(open_nursery)
+ check(popup.puzzle == open_nursery and not popup.chooser.is_item_disabled(willow) and popup.progress.nursery_balance() == 5, "Both nurseries remain available and share their saved harvest balance")
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -389,6 +447,7 @@ func travel(game, id: String) -> bool:
 func run(game) -> void:
  var t: WorldTravel = game.travel
  check(game.activities.progress.folder.is_empty(), "Activity smoke keeps records and garden drafts in memory")
+ check_nursery_storage()
  game.travel_menu.open()
  for id in IDS:
   var item := t.place(id)
@@ -1125,7 +1184,7 @@ func run(game) -> void:
   check("Line 1" in popup.status.text and "without doing an action" in popup.status.text, "The nursery stops a loop that cannot advance")
   popup.source.text = practice_start
   popup.check_button.pressed.emit()
-  check(popup.checked_route.actions.size() == Program.MAX_STEPS and "Preview limit" in popup.status.text and popup.garden.turn == 0, "Check previews the first 256 nursery actions on a copy")
+  check(popup.checked_route.actions.size() == Program.MAX_STEPS and "Preview limit" in popup.status.text and popup.garden.turn == 0 and popup.progress.nursery_balance() == 0, "Check previews the first 256 nursery actions without earning lilies")
   press_key(KEY_ENTER, true)
   for action in 30:
    popup._process(.25)
@@ -1149,7 +1208,7 @@ func run(game) -> void:
   popup.review_slider.value = 3
   check(captured_nursery and "Empty bed" in popup.board.get_child(1).get_child(0).text and "Harvested 5" in popup.info.text and popup.garden.harvested == 4, "Review replays the captured nursery without changing the live bed")
   await finish_by_steps(popup, "water()\nwait()\ngather()\n")
-  check(popup.garden.harvested == 5 and popup.progress.earned_lilies() == earned_for_practice and not popup.best_button.visible, "Nursery harvest counts stay separate from lesson records")
+  check(popup.garden.harvested == 5 and popup.progress.nursery_balance() == 5 and popup.progress.earned_lilies() == earned_for_practice and not popup.best_button.visible, "Nursery harvests credit the nursery balance and leave lesson records intact")
   await finish_by_steps(popup, "plant()\n")
   popup.source.text = practice_start
   press_key(KEY_ENTER, true)
@@ -1214,6 +1273,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   check_python_returns(popup)
   await check_function_results(popup)
   await check_value_parameters(popup)
+  check_willow_nursery(popup, open_nursery)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

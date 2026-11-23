@@ -30,6 +30,8 @@ var status: Label
 var board: GridContainer
 var info: Label
 var score: Label
+var nursery_wallet: Label
+var expand_button: Button
 var hint: Label
 var guide: Label
 var chooser: OptionButton
@@ -162,6 +164,9 @@ func _ready() -> void:
  score = hud.label("", 15, Color("#b9dccc"))
  score.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  right.add_child(score)
+ nursery_wallet = hud.label("", 15, Color("#b9dccc"))
+ right.add_child(nursery_wallet)
+ expand_button = _button(right, "Unlock Willow nursery · %d lilies" % Progress.WILLOW_COST, _unlock_willow_nursery)
  best_button = _button(right, "Best program", _toggle_best_program)
  review_button = _button(right, "Review", _toggle_review)
  review_button.hide()
@@ -222,6 +227,8 @@ func enter_place(next: ExplorerActivityWorld) -> void:
   world.show_garden(garden)
 
 func open() -> void:
+ if progress.refresh_nursery() != OK:
+  hud.toast("Could not save nursery progress.")
  show()
  _draw()
  source.grab_focus()
@@ -325,6 +332,16 @@ func _continue_lessons() -> void:
  if index >= 0:
   _choose(index)
   source.grab_focus()
+
+func _unlock_willow_nursery() -> void:
+ if not steps.is_empty() or Programs.GARDENS[puzzle].id != Programs.OPEN_NURSERY.id:
+  return
+ if progress.unlock_willow_nursery() != OK:
+  status.text = "Could not unlock Willow nursery."
+  _draw()
+  return
+ _choose(Programs.GARDENS.find(Programs.WILLOW_NURSERY))
+ status.text = "Willow nursery unlocked. Run or Step to tend the new beds."
 
 func _select_language(index: int) -> void:
  if not steps.is_empty():
@@ -585,12 +602,15 @@ func _process(delta: float) -> void:
 func _advance() -> void:
  breakpoint_offset = -1
  var action: Dictionary = steps[offset]
+ var before := garden.harvested
  var error: String = garden.step(action)
  if not error.is_empty():
   _clear_program()
   _line_error("Line %d · %s" % [action.line + 1, error], action.line)
  else:
   _mark_line(source, action.line)
+  if garden.practice and garden.harvested > before and progress.record_nursery_harvest() != OK:
+   hud.toast("Could not save the nursery harvest.")
   if garden.is_complete():
    var completed_program := submitted_program
    _clear_program()
@@ -628,6 +648,11 @@ func _draw() -> void:
   var best_text := "%d actions" % best_actions if best_actions > 0 else "—"
   score.text = "%s · %d actions\nPersonal best · %s" % [target_status, item.target, best_text]
  var active := not steps.is_empty()
+ var balance := progress.nursery_balance()
+ nursery_wallet.visible = garden.practice
+ nursery_wallet.text = "Nursery lilies · %d" % balance
+ expand_button.visible = item.id == Programs.OPEN_NURSERY.id and not progress.willow_unlocked
+ expand_button.disabled = active or balance < Progress.WILLOW_COST
  best_button.visible = score.visible and progress.garden_best_programs.has(item.id)
  best_button.disabled = active
  check_button.disabled = active
@@ -651,7 +676,9 @@ func _draw_lessons(active: bool) -> void:
   var item: Dictionary = Programs.GARDENS[index]
   var available := progress.lesson_available(item, lilies)
   var label: String = item.name
-  if not available:
+  if not available and item.id == Programs.WILLOW_NURSERY.id:
+   label += " · %d nursery lilies" % Progress.WILLOW_COST
+  elif not available:
    var threshold: int = item.unlock_lilies
    next_unlock = threshold if next_unlock == 0 else mini(next_unlock, threshold)
    label += " · %d lilies" % threshold
