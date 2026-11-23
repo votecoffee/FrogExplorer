@@ -818,6 +818,63 @@ func check_nursery_speed(popup) -> void:
  check(not popup.speed_choice.visible and popup.speed_choice.get_selected_id() == 4 and popup.running and popup.garden.turn == 1, "Scored lessons run at normal speed regardless of the selected nursery speed")
  popup.stop_button.pressed.emit()
 
+func check_run_counters(popup, hook_route: String) -> void:
+ popup.chooser.item_selected.emit(Program.GARDENS.find(Program.STONE_RING_NURSERY))
+ var balance: int = popup.progress.nursery_balance()
+ popup.source.text = Program.STONE_RING_NURSERY.python_draft.replace("\nif spring():", "\nwhile spring() and harvest_count() < 32:")
+ popup.check_button.pressed.emit()
+ check("Harvested 32 in 118 actions" in popup.status.text and popup.checked_route.preview.cell == Vector2i(0, 3) and popup.progress.nursery_balance() == balance, "The Stone ring harvest quota stops at the spring after earning 32 lilies in Check")
+
+ popup.chooser.item_selected.emit(Program.GARDENS.find(Program.LOTUS_MARSH))
+ await finish_by_steps(popup, Program.LOTUS_MARSH.python_draft + "hop(west)\nhop(west)\nhop(south)\n")
+ var starting_turn: int = popup.garden.turn
+ var starting_harvest: int = popup.garden.harvested
+ var starting_balance: int = popup.progress.nursery_balance()
+ check(starting_turn == 14 and starting_harvest == 4 and starting_balance == balance + 4 and popup.garden.cell == Vector2i(0, 1), "The quota test starts on a nursery with earlier live harvests")
+
+ var helpers := hook_route.get_slice("\nfill()\n", 0)
+ var circuit := "fill()\n" + hook_route.get_slice("\nfill()\n", 1).get_slice("\nprint(", 0)
+ var program := helpers + "\ndef sweep():\n" + circuit.indent("    ") + """
+print("start", harvest_count(), action_count())
+while harvest_count() < 16 and action_count() < 30:
+    sweep()
+    print("lap", harvest_count(), action_count())
+"""
+ popup.source.text = program
+ popup.check_button.pressed.emit()
+ check("Harvested 16 in 42 actions" in popup.status.text and " · start 0 0" in popup.output_text.text and " · lap 8 21" in popup.output_text.text and popup.output_text.text.ends_with(" · lap 16 42") and popup.garden.turn == starting_turn and popup.progress.nursery_balance() == starting_balance, "Check counts only the new program on an occupied nursery")
+ popup.review_button.pressed.emit()
+ popup.review_slider.value = 21
+ var middle_counts: bool = popup.output_text.text.ends_with(" · lap 8 21")
+ popup.review_slider.value = 0
+ check(middle_counts and popup.output_text.text.ends_with(" · start 0 0") and popup.garden.harvested == starting_harvest, "Review restores counters for the selected position without touching live harvests")
+
+ press_key(KEY_ENTER, true)
+ for action in 21:
+  popup._process(.25)
+ press_key(KEY_ENTER, true)
+ check(not popup.running and popup.garden.turn == starting_turn + 21 and popup.garden.harvested == starting_harvest + 8 and popup.output_text.text.ends_with(" · lap 8 21"), "The live quota program pauses after one circuit with eight lilies counted")
+ press_key(KEY_F10)
+ press_key(KEY_ENTER, true)
+ for action in 20:
+  popup._process(.25)
+ check(popup.steps.is_empty() and popup.garden.turn == starting_turn + 42 and popup.garden.harvested == starting_harvest + 16 and popup.progress.nursery_balance() == starting_balance + 16 and popup.output_text.text.ends_with(" · lap 16 42"), "Step and Resume keep counting until the live harvest quota stops the program")
+
+ popup.source.text = "print(harvest_count(), action_count())\nwait()\nprint(harvest_count(), action_count())\n"
+ await finish_by_steps(popup, popup.source.text)
+ check(" · 0 0" in popup.output_text.text and popup.output_text.text.ends_with(" · 0 1") and popup.garden.harvested == starting_harvest + 16, "Starting a new program resets its counts on the current board")
+
+ popup.language.item_selected.emit(1)
+ popup.source.text = "if harvest_count == 0\n  while action_count < 3\n    wait\n  end\nend\n"
+ popup.check_button.pressed.emit()
+ check("Harvested 0 in 3 actions" in popup.status.text and popup.checked_route.preview.turn == starting_turn + 46, "Classic Pondbot can stop at an action budget on the same nursery")
+ popup.language.item_selected.emit(0)
+
+ popup.chooser.item_selected.emit(0)
+ popup.source.text = "if action_count() == 0 and harvest_count() == 0:\n    fill()\nprint(harvest_count(), action_count())\n"
+ popup.check_button.pressed.emit()
+ check("0 of 2 lilies harvested in 1 action" in popup.status.text and popup.output_text.text.ends_with(" · 0 1"), "Scored lesson previews can read the same counters")
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -1662,6 +1719,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   var hook_route: String = await check_harvest_hook(popup, lotus_route)
   await check_stone_ring_nursery(popup, hook_route)
   check_nursery_speed(popup)
+  await check_run_counters(popup, hook_route)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

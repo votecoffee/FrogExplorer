@@ -486,6 +486,7 @@ func _trace(commands: Array) -> Dictionary:
  var initial := Programs.new()
  if garden.practice:
   initial = garden.copy_board() as Programs
+  initial.reset_program()
  else:
   initial.load_puzzle(puzzle)
  var preview := initial.copy_board() as Programs

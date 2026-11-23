@@ -271,6 +271,10 @@ After buying the harvest hook, spend **72 nursery lilies** to unlock **Stone rin
 
 After unlocking Stone ring nursery, spend **96 nursery lilies** on **Speed control**. In any nursery, choose 1×, 2×, or 4× beside **Run**, or press **F8** to cycle through them. You can change speed during a run. Crops still ripen after the same number of actions, and **Step** and breakpoints work at every speed.
 
+Use `harvest_count()` for lilies earned by the current program and `action_count()` for completed board actions. A new run starts both at zero even when the nursery already has crops. Pausing, stepping, or resuming an active run keeps its counts. A lotus adds three to the harvest count. Check and Review use their own preview counts. In Classic Pondbot, use `harvest_count` and `action_count` in comparisons.
+
+To stop at a harvest quota in Stone ring nursery, replace the starter's final `if spring():` with `while spring() and harvest_count() < 32:` and keep its indented body. Pondbot checks the target at each spring, so it finishes the current bank before stopping.
+
 Use Python `print("Tank ready", has_water())` to show messages and sensor readings with their source line numbers. **Program output** shows the live run. **Check output** shows readings from the simulated board, and **Review** reveals those messages as you move through the actions. Printing costs no actions, and each view retains the latest 32 messages.
 
 `water_level()` returns the remaining doses and `tank_capacity()` returns the tank's limit. `column()` counts from the left edge and `row()` counts from the top, both starting at zero. Print the readings with `print(column(), row(), water_level())` or compare them in a route. For example, use `while column() < 2 and clear(east):` with an indented `hop(east)` to move toward column 2. Use `spring() and water_level() < tank_capacity()` in an `if` before filling. Classic Pondbot uses comparisons such as `if water_level < tank_capacity`.

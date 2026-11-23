@@ -8,13 +8,13 @@ import sys
 
 ACTIONS = {"fill", "hop", "plant", "water", "wait", "gather"}
 SENSORS = {"clear", "spring", "has_water", "empty_bed", "lily", "thirsty", "growing", "ripe", "has_reach_tool", "has_harvest_hook"}
-NUMERIC_SENSORS = {"water_level", "tank_capacity", "row", "column"}
+NUMERIC_SENSORS = {"water_level", "tank_capacity", "row", "column", "harvest_count", "action_count"}
 COMPARISONS = {ast.Lt: "<", ast.LtE: "<=", ast.Eq: "==", ast.NotEq: "!=", ast.GtE: ">=", ast.Gt: ">"}
 DIRECTIONS = {"north", "east", "south", "west"}
 # Preserve names available to older drafts before these commands and readings were added.
 RESERVED_NAMES = (ACTIONS | SENSORS | DIRECTIONS | {"range"}) - {"plant", "empty_bed", "has_reach_tool", "has_harvest_hook"}
 VARIABLE_RESERVED_NAMES = (ACTIONS | SENSORS | NUMERIC_SENSORS | DIRECTIONS | {"print", "range", "_"}) - {
-    "tank_capacity", "has_reach_tool", "has_harvest_hook",
+    "tank_capacity", "has_reach_tool", "has_harvest_hook", "harvest_count", "action_count",
 }
 VALUE_TYPES = {"int", "bool"}
 MAX_SOURCE = 8192
