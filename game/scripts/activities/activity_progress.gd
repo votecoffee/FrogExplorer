@@ -243,39 +243,54 @@ func _nursery_best_key(id: String, board: Programs) -> String:
  var layout := "/".join(board.rows).sha256_text().left(12)
  return "%s-%s-%d-%d-%d" % [id, layout, board.harvest_target, board.water_capacity, tools]
 
-func nursery_best(id: String, board: Programs) -> Vector3i:
- return nursery_bests.get(_nursery_best_key(id, board), Vector3i.ZERO)
+func nursery_record(id: String, board: Programs) -> Dictionary:
+ return nursery_bests.get(_nursery_best_key(id, board), {})
 
-func _remember_nursery_best(key: String, result: Vector3i) -> bool:
- var previous: Vector3i = nursery_bests.get(key, Vector3i.ZERO)
- # Order by actions, then water doses, then fills.
- if previous != Vector3i.ZERO and not result < previous:
+func nursery_best(id: String, board: Programs) -> Vector3i:
+ return nursery_record(id, board).get("score", Vector3i.ZERO)
+
+func _remember_nursery_best(key: String, result: Vector3i, source := "", python := false) -> bool:
+ var previous: Dictionary = nursery_bests.get(key, {})
+ var score: Vector3i = previous.get("score", Vector3i.ZERO)
+ # Order by actions, then water doses, then fills. A tie can supply missing source.
+ if score != Vector3i.ZERO and (score < result or (score == result and (source.is_empty() or not previous.source.is_empty()))):
   return false
- nursery_bests[key] = result
+ nursery_bests[key] = {"score":result, "source":source, "python":python}
  return true
 
 func _load_nursery_bests(names: PackedStringArray) -> void:
  nursery_bests.clear()
  for name in names:
-  if not name.begins_with(NURSERY_BEST_PREFIX) or not name.ends_with(".txt"):
+  var extension := name.get_extension()
+  if not name.begins_with(NURSERY_BEST_PREFIX) or extension not in ["txt", "json"]:
    continue
-  var record := name.trim_prefix(NURSERY_BEST_PREFIX).trim_suffix(".txt").rsplit("-", true, 3)
+  var record := name.trim_prefix(NURSERY_BEST_PREFIX).get_basename().rsplit("-", true, 3)
   if record.size() != 4 or not record[1].is_valid_int() or not record[2].is_valid_int() or not record[3].is_valid_int():
    continue
   var result := Vector3i(int(record[1]), int(record[2]), int(record[3]))
-  if result.x > 0 and result.y >= 0 and result.z >= 0 and result.y + result.z <= result.x:
-   _remember_nursery_best(record[0], result)
+  if result.x <= 0 or result.y < 0 or result.z < 0 or result.y + result.z > result.x:
+   continue
+  var source := ""
+  var python := false
+  if extension == "json":
+   var stored := JSON.new()
+   if stored.parse(FileAccess.get_file_as_string(folder.path_join(name))) == OK and stored.data is Dictionary:
+    var draft: Dictionary = stored.data
+    if draft.get("source") is String and draft.get("format") in ["python", "classic"]:
+     source = draft.source
+     python = draft.format == "python"
+  _remember_nursery_best(record[0], result, source, python)
 
-func record_nursery_best(id: String, board: Programs) -> Error:
- if not board.practice or board.starting_turn != 0 or board.run_harvest_count() < board.harvest_target or not board.runtime_error.is_empty():
+func record_nursery_best(id: String, board: Programs, source: String, python: bool) -> Error:
+ if source.is_empty() or not board.practice or board.starting_turn != 0 or board.run_harvest_count() < board.harvest_target or not board.runtime_error.is_empty():
   return ERR_INVALID_PARAMETER
  var key := _nursery_best_key(id, board)
  var result := Vector3i(board.run_action_count(), board.run_water_used, board.run_fills)
- if not _remember_nursery_best(key, result):
+ if not _remember_nursery_best(key, result, source, python):
   return OK
- # Different scores use different files so simultaneous sessions keep the better result on reload.
- var filename := "%s%s-%d-%d-%d.txt" % [NURSERY_BEST_PREFIX, key, result.x, result.y, result.z]
- return _save(filename, "completed")
+ # The score-specific file keeps each program with the result it earned.
+ var filename := "%s%s-%d-%d-%d.json" % [NURSERY_BEST_PREFIX, key, result.x, result.y, result.z]
+ return _save(filename, JSON.stringify({"format":"python" if python else "classic", "source":source}))
 
 func next_lesson(lilies: int) -> int:
  for index in Programs.PUZZLES.size():

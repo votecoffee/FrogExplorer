@@ -291,15 +291,24 @@ func _toggle_best_program() -> void:
  if best_panel.visible:
   _close_best_program()
   return
- if garden.practice or not steps.is_empty():
+ if not steps.is_empty():
   return
+ _commit_target_edit()
  var item: Dictionary = Programs.GARDENS[puzzle]
- var recorded: String = progress.garden_best_programs.get(item.id, "")
+ var record := progress.nursery_record(item.id, garden) if garden.practice else {}
+ var recorded: String = record.get("source", "") if garden.practice else progress.garden_best_programs.get(item.id, "")
  if recorded.is_empty():
   return
  _close_review()
- best_python = progress.garden_best_python.get(item.id, false)
- best_title.text = "%s · %d actions · %s" % [item.name, progress.garden_best[item.id], "Python" if best_python else "Classic Pondbot"]
+ best_python = record.get("python", false) if garden.practice else progress.garden_best_python.get(item.id, false)
+ var language_name := "Python" if best_python else "Classic Pondbot"
+ if garden.practice:
+  var result: Vector3i = record.score
+  best_title.text = "%s · Target %d · %d actions · %s\nWater used %d · Fills %d" % [
+   item.name, garden.harvest_target, result.x, language_name, result.y, result.z,
+  ]
+ else:
+  best_title.text = "%s · %d actions · %s" % [item.name, progress.garden_best[item.id], language_name]
  _color_code(best_source, best_python)
  best_source.text = recorded
  best_source.set_caret_line(0)
@@ -308,6 +317,8 @@ func _toggle_best_program() -> void:
  source.hide()
  status.hide()
  best_panel.show()
+ nursery_target.editable = false
+ nursery_upgrade_button.disabled = true
  output_panel.hide()
  _show_variables({}, "Best run")
  best_button.text = "Back to draft"
@@ -318,10 +329,18 @@ func _toggle_best_program() -> void:
   best_title.text += "\nReplay unavailable · " + result.error
   _mark_line(best_source, result.line)
   return
- best_route = _trace(result.steps)
+ var limit := Programs.MAX_STEPS
+ if garden.practice:
+  limit = mini(record.score.x, Programs.MAX_COMPUTATION_STEPS)
+ best_route = _trace(result.steps, true, limit)
  var preview: Programs = best_route.preview
  if best_route.line >= 0:
   best_title.text += "\nLine %d · %s" % [best_route.line + 1, best_route.error]
+ elif garden.practice:
+  if best_route.limited:
+   best_title.text += "\nReplay shows the first %d actions" % best_route.actions.size()
+  elif Vector3i(preview.run_action_count(), preview.run_water_used, preview.run_fills) != record.score or preview.run_harvest_count() < garden.harvest_target:
+   best_title.text += "\nReplay differs from the saved result."
  elif not preview.is_complete():
   best_title.text += "\nReplay gathers %d of %d lilies" % [preview.harvested, preview.plants.size()]
  _open_review(best_route.actions.size())
@@ -337,8 +356,7 @@ func _close_best_program() -> void:
  status.show()
  best_button.text = "Best program"
  review_button.disabled = false
- _draw_board(garden)
- _draw_diagnostics(garden)
+ _draw()
  source.grab_focus()
 
 func _choose(index: int) -> void:
@@ -361,7 +379,7 @@ func _continue_lessons() -> void:
   source.grab_focus()
 
 func _buy_nursery_upgrade() -> void:
- if not steps.is_empty() or not garden.practice:
+ if not steps.is_empty() or not garden.practice or best_panel.visible:
   return
  var upgrade := progress.next_nursery_upgrade()
  if upgrade.is_empty():
@@ -456,7 +474,7 @@ func _reset() -> void:
  _draw()
 
 func _commit_target_edit() -> void:
- if garden.practice and steps.is_empty():
+ if garden.practice and steps.is_empty() and not best_panel.visible:
   nursery_target.apply()
 
 func _show_nursery_target() -> void:
@@ -464,7 +482,7 @@ func _show_nursery_target() -> void:
  nursery_target.get_line_edit().text = str(garden.harvest_target)
 
 func _set_nursery_target(value: float) -> void:
- if not garden.practice or not steps.is_empty():
+ if not garden.practice or not steps.is_empty() or best_panel.visible:
   _show_nursery_target()
   return
  if garden.harvest_target == int(value):
@@ -531,19 +549,22 @@ func _check_code() -> void:
  if not checked_route.actions.is_empty() or line >= 0:
   review_button.show()
 
-func _trace(commands: Array) -> Dictionary:
+func _trace(commands: Array, fresh_board := false, practice_limit := Programs.MAX_STEPS) -> Dictionary:
  var initial := Programs.new()
- if garden.practice:
+ if not garden.practice:
+  initial.load_puzzle(puzzle)
+ elif fresh_board:
+  initial.load_puzzle(puzzle, garden.water_capacity == Programs.RESERVOIR_CAPACITY, garden.reach_tool, garden.harvest_hook)
+  initial.harvest_target = garden.harvest_target
+ else:
   initial = garden.copy_board() as Programs
   initial.reset_program()
- else:
-  initial.load_puzzle(puzzle)
  var preview := initial.copy_board() as Programs
  var traced: Array[Dictionary] = []
  var index := preview.next_action_index(commands, 0)
  # Review position zero includes assignments before the first board action.
  var variable_history: Array[Dictionary] = [preview.inspect_variables()]
- while index < commands.size() and (not preview.practice or traced.size() < Programs.MAX_STEPS):
+ while index < commands.size() and (not preview.practice or traced.size() < practice_limit):
   var action: Dictionary = commands[index]
   var error := preview.step(action)
   if not error.is_empty():
@@ -740,6 +761,7 @@ func _advance() -> void:
  _draw()
 
 func _finish_incomplete() -> void:
+ var completed_program := submitted_program
  _clear_program()
  if not garden.runtime_error.is_empty():
   var line: int = garden.runtime_error_line
@@ -749,7 +771,7 @@ func _finish_incomplete() -> void:
   if garden.starting_turn == 0 and garden.run_harvest_count() >= garden.harvest_target:
    var id: String = Programs.GARDENS[puzzle].id
    var previous := progress.nursery_best(id, garden)
-   if progress.record_nursery_best(id, garden) != OK:
+   if progress.record_nursery_best(id, garden, completed_program, python_mode) != OK:
     hud.toast("Could not save the nursery best.")
    elif progress.nursery_best(id, garden) != previous:
     status.text += " · New personal best"
@@ -770,8 +792,9 @@ func _nursery_summary(view: Programs) -> String:
 
 func _draw() -> void:
  var item: Dictionary = Programs.GARDENS[puzzle]
+ var nursery_record := progress.nursery_record(item.id, garden) if garden.practice else {}
  if garden.practice:
-  var nursery_best := progress.nursery_best(item.id, garden)
+  var nursery_best: Vector3i = nursery_record.get("score", Vector3i.ZERO)
   score.visible = nursery_best != Vector3i.ZERO
   if score.visible:
    score.text = "Best for target %d · %d actions\nWater used %d · Fills %d" % [
@@ -806,14 +829,14 @@ func _draw() -> void:
    Progress.SPEED_CONTROL_MARKER:
     label = "Buy speed control"
   nursery_upgrade_button.text = "%s · %d lilies" % [label, cost]
-  nursery_upgrade_button.disabled = active or balance < cost
- best_button.visible = not garden.practice and progress.garden_best_programs.has(item.id)
+  nursery_upgrade_button.disabled = active or best_panel.visible or balance < cost
+ best_button.visible = not nursery_record.get("source", "").is_empty() if garden.practice else progress.garden_best_programs.has(item.id)
  best_button.disabled = active
  check_button.disabled = active
  run_button.text = ("Pause" if running else "Resume" if active else "Run") + " · Ctrl+Enter"
  step_button.disabled = running
  stop_button.disabled = not active
- nursery_target.editable = not active
+ nursery_target.editable = not active and not best_panel.visible
  chooser.disabled = active
  language.disabled = active
  source.editable = not active

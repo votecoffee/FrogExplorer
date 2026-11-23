@@ -456,21 +456,38 @@ func check_nursery_storage() -> void:
  board.turn = 9
  board.run_water_used = 3
  board.run_fills = 1
- var saved_result := first.record_nursery_best(id, board)
+ var saved_result := first.record_nursery_best(id, board, "# First draft\nwait()\n", true)
  board.run_water_used = 2
- var lower_water := second.record_nursery_best(id, board)
+ var best_source := "# Uses less water\nwait\n"
+ var lower_water := second.record_nursery_best(id, board, best_source, false)
  board.turn = 10
  board.run_water_used = 1
- var more_actions := first.record_nursery_best(id, board)
+ var more_actions := first.record_nursery_best(id, board, "# Longer draft\nwait()\n", true)
  board.starting_turn = 1
- var established := second.record_nursery_best(id, board)
+ var established := second.record_nursery_best(id, board, best_source, false)
  reopened.load_from(path)
- check(saved_result == OK and lower_water == OK and more_actions == OK and established == ERR_INVALID_PARAMETER and reopened.nursery_best(id, board) == Vector3i(9, 2, 1), "Reload keeps the fewest actions and breaks ties by water across sessions")
+ var saved_program := reopened.nursery_record(id, board)
+ check(saved_result == OK and lower_water == OK and more_actions == OK and established == ERR_INVALID_PARAMETER and saved_program.score == Vector3i(9, 2, 1) and saved_program.source == best_source and not saved_program.python, "Reload keeps the best result and its exact program across sessions")
  board.harvest_target = 2
  var other_target := reopened.nursery_best(id, board)
  board.harvest_target = 1
  board.reach_tool = false
  check(other_target == Vector3i.ZERO and reopened.nursery_best(id, board) == Vector3i.ZERO, "Personal bests are scoped to the same target and tools")
+
+ board.harvest_target = 2
+ board.harvested = 2
+ board.starting_turn = 0
+ board.turn = 12
+ board.run_water_used = 3
+ var legacy_file := "%s%s-12-3-1.txt" % [Progress.NURSERY_BEST_PREFIX, first._nursery_best_key(id, board)]
+ var legacy_saved := first._save(legacy_file, "completed")
+ reopened.load_from(path)
+ var older := reopened.nursery_record(id, board)
+ var match_source := "# Matched the old score\nwait()\n"
+ var matched := reopened.record_nursery_best(id, board, match_source, true)
+ first.load_from(path)
+ var migrated := first.nursery_record(id, board)
+ check(legacy_saved == OK and older.score == Vector3i(12, 3, 1) and older.source.is_empty() and matched == OK and migrated.score == older.score and migrated.source == match_source and migrated.python, "A tied live result adds source to a legacy score without changing the score")
 
 func check_willow_nursery(popup, open_nursery: int) -> void:
  var willow := Program.GARDENS.find(Program.WILLOW_NURSERY)
@@ -990,11 +1007,22 @@ func check_nursery_bests(popup) -> void:
  popup.nursery_target.value = 1
  var balance: int = popup.progress.nursery_balance()
  var route := "fill()\nhop(north)\nplant(east)\nwater(east)\nwait()\ngather(east)\n"
- popup.source.text = route.replace("wait()\n", "wait()\nwait()\n")
+ var classic := "fill\nhop north\nplant east\nwater east\nwait\nwait\ngather east\n"
+ popup.language.item_selected.emit(1)
+ popup.source.text = classic
  press_key(KEY_ENTER, true)
  for action in 7:
   popup._process(.25)
- check(popup.steps.is_empty() and popup.progress.nursery_best(id, popup.garden) == Vector3i(7, 1, 1) and "New personal best" in popup.status.text and "Best for target 1 · 7 actions" in popup.score.text, "A finished reset-board run earns a nursery personal best")
+ check(popup.steps.is_empty() and popup.best_button.visible and popup.progress.nursery_best(id, popup.garden) == Vector3i(7, 1, 1) and "New personal best" in popup.status.text and "Best for target 1 · 7 actions" in popup.score.text, "A finished reset-board run earns a nursery personal best and saves its program")
+ popup.language.item_selected.emit(0)
+ popup.source.text = "# New Python draft\n" + route
+ popup.best_button.pressed.emit()
+ check(popup.best_panel.visible and popup.best_source.text == classic and not popup.best_source.editable and not popup.best_python and popup.source.text.begins_with("# New Python draft"), "Best program shows the recorded language and leaves the new draft available")
+ check(popup.best_route.actions.size() == 7 and popup.best_route.initial.cell == Vector2i(0, 1) and popup.best_route.initial.turn == 0 and popup.garden.turn == 7 and popup.garden.harvested == 1 and popup.progress.nursery_balance() == balance + 1, "The saved replay starts on a fresh nursery while the live board stays intact")
+ popup.review_slider.value = 7
+ check("Best run · 7 / 7 actions" in popup.review_position.text and "Water used 1 · Fills 1" in popup.review_position.text and popup.progress.nursery_balance() == balance + 1, "The replay reaches the recorded total without earning another lily")
+ press_key(KEY_ESCAPE)
+ check(popup.visible and not popup.best_panel.visible and popup.nursery_target.editable and popup.garden.turn == 7 and popup.source.text.begins_with("# New Python draft"), "Closing the replay restores the live board and editable draft")
  popup._reset()
  popup.source.text = route
  popup.check_button.pressed.emit()
@@ -1006,6 +1034,17 @@ func check_nursery_bests(popup) -> void:
 
  popup.nursery_target.value = 2
  check(not popup.score.visible and popup.progress.nursery_best(id, popup.garden) == Vector3i.ZERO, "Changing the target clears the displayed comparison until there is a matching best")
+ popup._reset()
+ var long_route := "while action_count() < 260:\n    wait()\n" + route + "plant(east)\nwater(east)\nwait()\ngather(east)\n"
+ popup.source.text = long_route
+ popup.check_button.pressed.emit()
+ check(popup.checked_route.actions.size() == Program.MAX_STEPS and not popup.best_button.visible, "Check retains its normal limit on a long nursery script")
+ press_key(KEY_ENTER, true)
+ for action in 270:
+  popup._process(.25)
+ popup.best_button.pressed.emit()
+ check(popup.best_panel.visible and popup.best_python and popup.best_source.text == long_route and popup.best_route.actions.size() == 270 and not popup.best_route.limited and popup.best_route.preview.run_harvest_count() == 2 and popup.progress.nursery_balance() == balance + 4, "Best program replays a completed nursery run past the Check limit")
+ press_key(KEY_ESCAPE)
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)
