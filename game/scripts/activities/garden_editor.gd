@@ -154,8 +154,12 @@ var review_breakpoint_row: HBoxContainer
 var review_previous_breakpoint: Button
 var review_next_breakpoint: Button
 var review_pause_at_breakpoints: CheckBox
+var review_print_row: HBoxContainer
+var review_previous_print: Button
+var review_next_print: Button
 var review_pause_at_print: CheckBox
 var review_breakpoint_actions := PackedInt32Array()
+var review_print_actions := PackedInt32Array()
 var run_button: Button
 var next_live_change_button: Button
 var speed_choice: OptionButton
@@ -505,6 +509,15 @@ func _ready() -> void:
  review_pause_at_breakpoints.tooltip_text = "Pause preview playback after each action on a marked line."
  review_controls.add_child(review_pause_at_breakpoints)
  review_pause_at_breakpoints.hide()
+ review_print_row = HBoxContainer.new()
+ review_controls.add_child(review_print_row)
+ review_previous_print = _button(review_print_row, "Previous print", _jump_to_review_print.bind(false))
+ review_next_print = _button(review_print_row, "Next print", _jump_to_review_print.bind(true))
+ review_previous_print.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ review_next_print.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ review_previous_print.tooltip_text = "Jump to the previous print. Use Alt+Page Up from the timeline."
+ review_next_print.tooltip_text = "Jump to the next print. Use Alt+Page Down from the timeline."
+ review_print_row.hide()
  review_pause_at_print = CheckBox.new()
  review_pause_at_print.text = "Pause on print"
  review_pause_at_print.tooltip_text = "Pause preview playback when the program prints a message."
@@ -1892,7 +1905,7 @@ func _open_review(length: int) -> void:
  review_slider.visible = length > 0
  review_playback_button.visible = review_slider.visible
  review_playback_speed.visible = review_slider.visible
- review_pause_at_print.visible = review_slider.visible and not route.preview.output.is_empty()
+ _index_review_prints(route.output_history)
  review_controls.show()
  _index_review_breakpoints()
  _draw_review(0)
@@ -2056,6 +2069,20 @@ func _jump_to_review_breakpoint(forward: bool) -> void:
  if review_breakpoint_row.is_visible_in_tree():
   _jump_to_review_destination(review_breakpoint_actions, forward)
 
+func _index_review_prints(history: Array) -> void:
+ review_print_actions.clear()
+ if not history[0].is_empty():
+  review_print_actions.append(0)
+ for action in range(1, history.size()):
+  if not is_same(history[action], history[action - 1]):
+   review_print_actions.append(action)
+ review_print_row.visible = review_slider.visible and not review_print_actions.is_empty()
+ review_pause_at_print.visible = review_print_row.visible
+
+func _jump_to_review_print(forward: bool) -> void:
+ if review_print_row.is_visible_in_tree():
+  _jump_to_review_destination(review_print_actions, forward)
+
 func _close_review() -> void:
  if best_panel.visible or not review_controls.visible:
   return
@@ -2097,7 +2124,7 @@ func _toggle_review_playback() -> void:
  var route := best_route if best_panel.visible else checked_route
  if review_slider.value == review_slider.max_value:
   review_slider.value = 0
-  if review_pause_at_print.visible and review_pause_at_print.button_pressed and not route.output_history[0].is_empty():
+  if review_pause_at_print.visible and review_pause_at_print.button_pressed and review_print_actions.has(0):
    return
  review_playback_board = _board_after_actions(route, roundi(review_slider.value))
  playback_interval = RUN_INTERVAL
@@ -2124,7 +2151,7 @@ func _advance_review_playback() -> void:
   _draw_review(next, review_playback_board)
   var watch_stop := review_pause_at_watch.visible and review_pause_at_watch.button_pressed and _review_jump_actions().has(next)
   var breakpoint_stop := review_pause_at_breakpoints.visible and review_pause_at_breakpoints.button_pressed and review_breakpoint_actions.has(next)
-  var print_stop := review_pause_at_print.visible and review_pause_at_print.button_pressed and not is_same(route.output_history[next], route.output_history[action])
+  var print_stop := review_pause_at_print.visible and review_pause_at_print.button_pressed and review_print_actions.has(next)
   if watch_stop or breakpoint_stop or print_stop:
    _pause_review_playback()
 
@@ -2141,6 +2168,8 @@ func _draw_review(value: float, snapshot: Programs = null) -> void:
  review_run_to_action.disabled = count == 0
  review_run_to_action.text = "Run to action %d" % count if count > 0 else "Run to action"
  _refresh_review_breakpoints()
+ review_previous_print.disabled = _adjacent_review_index(review_print_actions, false) < 0
+ review_next_print.disabled = _adjacent_review_index(review_print_actions, true) >= review_print_actions.size()
  var preview := snapshot if snapshot != null else _board_after_actions(route, count)
  var blocked := line >= 0 and count == traced.size()
  review_position.text = "%s · %d / %d actions" % ["Best run" if replaying_best else "Preview", count, traced.size()]
@@ -2872,6 +2901,9 @@ func _input(event: InputEvent) -> void:
    get_viewport().set_input_as_handled()
   elif review_slider.has_focus() and review_breakpoint_row.is_visible_in_tree() and event.get_modifiers_mask() == KEY_MASK_SHIFT and event.keycode in [KEY_PAGEUP, KEY_PAGEDOWN]:
    _jump_to_review_breakpoint(event.keycode == KEY_PAGEDOWN)
+   get_viewport().set_input_as_handled()
+  elif review_slider.has_focus() and review_print_row.is_visible_in_tree() and event.get_modifiers_mask() == KEY_MASK_ALT and event.keycode in [KEY_PAGEUP, KEY_PAGEDOWN]:
+   _jump_to_review_print(event.keycode == KEY_PAGEDOWN)
    get_viewport().set_input_as_handled()
   elif event.keycode == KEY_F7 and variables_button.visible:
    var show_calls: bool = event.shift_pressed

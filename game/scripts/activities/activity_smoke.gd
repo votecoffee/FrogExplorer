@@ -17,12 +17,13 @@ func frames(count: int) -> void:
  for frame in count:
   await get_tree().physics_frame
 
-func press_key(key: Key, ctrl := false, shift := false) -> void:
+func press_key(key: Key, ctrl := false, shift := false, alt := false) -> void:
  var event := InputEventKey.new()
  event.keycode = key
  event.physical_keycode = key
  event.ctrl_pressed = ctrl
  event.shift_pressed = shift
+ event.alt_pressed = alt
  event.pressed = true
  Input.parse_input_event(event)
  var release := event.duplicate() as InputEventKey
@@ -3115,6 +3116,20 @@ while marker < 36:
  var slider: HSlider = popup.review_slider
  var pause_at_print: CheckBox = popup.review_pause_at_print
  check(slider.max_value == 38 and final_output.split("\n").size() == Program.MAX_OUTPUT_MESSAGES and "Start beacon" not in final_output and slider.value == 0 and output.text == "Line 1 · Start beacon" and pause_at_print.is_visible_in_tree(), "Rewinding shows early output even after it has left the final 32-message buffer")
+ var previous_print: Button = popup.review_previous_print
+ var next_print: Button = popup.review_next_print
+ var initial_nav := previous_print.disabled and not next_print.disabled
+ next_print.grab_focus()
+ press_key(KEY_ENTER)
+ check(initial_nav and slider.has_focus() and slider.value == 2 and output.text.ends_with("Line 4 · Checkpoint reached\nLine 5 · At the bed"), "Next print skips quiet actions and shows the messages grouped at one action")
+ press_key(KEY_SPACE)
+ press_key(KEY_PAGEDOWN, false, false, true)
+ popup._process(.25)
+ var jumped_during_playback: bool = slider.value == 3 and popup.review_playback_button.text == "Play" and output.text.ends_with("Line 9 · 0")
+ press_key(KEY_PAGEUP, false, false, true)
+ var back_one := slider.value == 2
+ press_key(KEY_PAGEUP, false, false, true)
+ check(jumped_during_playback and back_one and slider.value == 0 and previous_print.disabled and output.text == "Line 1 · Start beacon" and popup.garden.turn == 0, "Alt+Page keys pause playback and step between print events, including the starting output")
  pause_at_print.grab_focus()
  press_key(KEY_SPACE)
  slider.grab_focus()
@@ -3130,6 +3145,11 @@ while marker < 36:
  check(slider.value == 3 and popup.review_playback_button.text == "Play" and output.text.ends_with("Line 9 · 0") and popup.garden.turn == 0, "Resuming pauses at the next print without moving the live board")
  slider.value = slider.max_value
  check(output.text == final_output and output.text.ends_with("Line 9 · 35"), "The last replay action shows its final print and the same output buffer as Check")
+ press_key(KEY_PAGEDOWN, false, false, true)
+ var held_last_print := slider.value == slider.max_value and next_print.disabled
+ press_key(KEY_PAGEUP, false, false, true)
+ check(held_last_print and slider.value == 37 and output.text.ends_with("Line 9 · 34"), "Print navigation stops at the last message and can rewind to the preceding event")
+ slider.value = slider.max_value
  press_key(KEY_SPACE)
  popup._process(.25)
  check(slider.value == 0 and popup.review_playback_button.text == "Play" and output.text == "Line 1 · Start beacon", "Restarting with Pause on print stops on the initial message")
@@ -3949,6 +3969,9 @@ func run(game) -> void:
   popup.review_slider.value = popup.review_slider.max_value
   check("Best run · 16 / 16 actions" == popup.review_position.text and "Lilies 3 / 3" in popup.info.text, "Best program replays planting and harvesting")
   check(popup.output_panel.visible and popup.output_title.text == "Best run output" and "Line 1 · Ready True" in popup.output_text.text, "Best program replays Python output from the recorded draft")
+  press_key(KEY_PAGEUP, false, false, true)
+  check(popup.review_slider.value == 0 and popup.review_previous_print.disabled and popup.review_next_print.disabled and "Line 1 · Ready True" in popup.output_text.text and popup.garden.turn == 16, "Previous print jumps back to the only message in a saved program")
+  popup.review_slider.value = popup.review_slider.max_value
   var best_print_pause: CheckBox = popup.review_pause_at_print
   best_print_pause.grab_focus()
   press_key(KEY_SPACE)
