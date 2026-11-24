@@ -422,7 +422,8 @@ for stop in range(1, 3):
  events.item_activated.emit(0)
  press_key(KEY_F10, true)
  press_key(KEY_PAGEDOWN, false, true)
- check(only_matches.button_pressed and first_entry == "Action %d · 1 → 2" % second_stop and popup.review_slider.value == second_stop and popup.best_panel.visible and not popup.best_source.editable and not popup.review_run_to_change.is_visible_in_tree() and not popup.review_run_to_action.is_visible_in_tree() and not popup.review_breakpoint_row.is_visible_in_tree() and not popup.running and popup.garden.turn == 36, "Filtered Best program history jumps to a recorded match and keeps the replay read-only")
+ press_key(KEY_F9, true)
+ check(only_matches.button_pressed and first_entry == "Action %d · 1 → 2" % second_stop and popup.review_slider.value == second_stop and popup.best_panel.visible and not popup.best_source.editable and not popup.review_run_to_change.is_visible_in_tree() and not popup.review_run_to_action.is_visible_in_tree() and not popup.review_breakpoint_row.is_visible_in_tree() and not popup.breakpoints_panel.is_visible_in_tree() and not popup.breakpoints_button.is_visible_in_tree() and not popup.running and popup.garden.turn == 36, "Filtered Best program history jumps to a recorded match and keeps the replay read-only")
  press_key(KEY_F7, true)
  press_key(KEY_F7, true)
 
@@ -1438,10 +1439,14 @@ func check_duplicate_draft(popup) -> void:
 
  popup.language.item_selected.emit(0)
  var blank_copy: bool = popup.source.get_breakpointed_lines().is_empty()
+ press_key(KEY_F9, true)
  popup._open_saved_draft(id)
  var main_lines: PackedInt32Array = popup.source.get_breakpointed_lines()
+ var main_label: String = item_list_labels(popup.breakpoint_list)
  popup._open_saved_draft(first_copy)
  check(blank_copy and main_lines == PackedInt32Array([2]) and popup.source.get_breakpointed_lines() == PackedInt32Array([1]), "Switching drafts restores each draft's marks in the editor")
+ check(popup.breakpoints_panel.is_visible_in_tree() and main_label == "Line 3 · wait()" and item_list_labels(popup.breakpoint_list) == "Line 2 · wait()", "The open breakpoint panel follows the active draft")
+ press_key(KEY_F9, true)
  popup.source.set_caret_line(0)
  popup.source.set_caret_column(0)
  popup.source.insert_text_at_caret("# Extra comment\n")
@@ -2812,6 +2817,10 @@ func check_run_to_review_action(popup) -> void:
  for tick in 5:
   popup._process(.25)
  check(not popup.running and popup.garden.turn == starting_turn + 4 and popup.garden.inspect_variables() == expected_values and expected_values.get("visit") == 3 and popup.source.get_executing_lines() == PackedInt32Array([2]) and popup.run_to_action == -1 and "Reached action 4" in popup.status.text, "The live program stops after the exact loop action and marks the next command")
+ press_key(KEY_F9, true)
+ press_key(KEY_ENTER)
+ check(popup.source.has_focus() and popup.source.get_caret_line() == 0 and popup.source.get_executing_lines() == PackedInt32Array([2]) and not popup.running and popup.garden.turn == starting_turn + 4, "Opening a breakpoint line while paused keeps the current execution marker and board")
+ press_key(KEY_F9, true)
  press_key(KEY_ENTER, true)
  popup._process(.25)
  check(not popup.running and popup.steps.is_empty() and popup.garden.turn == starting_turn + 5 and popup.source.is_line_breakpointed(0), "Resume completes the remaining action after the temporary stop")
@@ -2850,6 +2859,35 @@ func check_run_to_review_action(popup) -> void:
  for tick in 2:
   popup._process(.25)
  check(step_cleared and popup.steps.is_empty() and popup.garden.run_action_count() == 3, "Step clears a pending action stop after an earlier breakpoint")
+
+func check_breakpoint_panel(popup) -> void:
+ popup._reset()
+ popup.source.clear_breakpointed_lines()
+ popup.source.text = "wait\n# Hold at the spring\nwait\nwait\n"
+ popup.source.set_line_as_breakpoint(3, true)
+ popup.source.set_line_as_breakpoint(0, true)
+ popup.check_button.pressed.emit()
+ popup.review_button.pressed.emit()
+ var slider: HSlider = popup.review_slider
+ slider.value = 2
+ popup.source.set_caret_line(0)
+ popup.breakpoints_button.grab_focus()
+ press_key(KEY_ENTER)
+ var list: ItemList = popup.breakpoint_list
+ var remove: Button = popup.remove_breakpoint_button
+ check(popup.breakpoints_panel.is_visible_in_tree() and list.has_focus() and item_list_labels(list) == "Line 1 · wait\nLine 4 · wait" and list.is_selected(0), "The breakpoint panel lists marked commands in source order")
+ press_key(KEY_DOWN)
+ press_key(KEY_ENTER)
+ check(popup.source.has_focus() and popup.source.get_caret_line() == 3 and popup.source.get_executing_lines() == PackedInt32Array([2]) and slider.value == 2 and popup.garden.turn == 0, "Opening a line from the list preserves the replay position and marker")
+ press_key(KEY_F9, true)
+ press_key(KEY_F9, true)
+ press_key(KEY_DELETE)
+ check(list.has_focus() and item_list_labels(list) == "Line 1 · wait" and popup.source.get_breakpointed_lines() == PackedInt32Array([0]) and popup.review_next_breakpoint.disabled and slider.value == 2, "Delete removes the selected mark and updates Review navigation")
+ remove.grab_focus()
+ press_key(KEY_ENTER)
+ check(list.has_focus() and remove.disabled and not list.is_item_selectable(0) and popup.source.get_breakpointed_lines().is_empty() and not popup.review_breakpoint_row.is_visible_in_tree(), "Removing the final mark leaves an empty list without an active removal command")
+ press_key(KEY_ESCAPE)
+ check(not popup.breakpoints_panel.is_visible_in_tree() and not popup.breakpoints_button.button_pressed and popup.source.has_focus() and popup.review_controls.is_visible_in_tree() and slider.value == 2, "Escape closes the focused breakpoint panel and returns to the source")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)
@@ -3725,6 +3763,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   check_watch_conditions(popup)
   check_review_watch_conditions(popup)
   check_run_to_review_action(popup)
+  check_breakpoint_panel(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

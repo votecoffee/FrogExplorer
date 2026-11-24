@@ -80,6 +80,10 @@ var best_source: CodeEdit
 var output_panel: PanelContainer
 var output_title: Label
 var output_text: RichTextLabel
+var breakpoints_button: Button
+var breakpoints_panel: PanelContainer
+var breakpoint_list: ItemList
+var remove_breakpoint_button: Button
 var variables_button: Button
 var variables_panel: PanelContainer
 var variables_title: Label
@@ -264,6 +268,7 @@ func _ready() -> void:
  best_panel.hide()
  var diagnostics := HBoxContainer.new()
  left.add_child(diagnostics)
+ _add_breakpoint_panel(diagnostics)
  output_panel = PanelContainer.new()
  output_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  output_panel.size_flags_stretch_ratio = 2.0
@@ -419,6 +424,8 @@ func _ready() -> void:
  nursery_target_row.add_child(nursery_target)
  right.add_child(nursery_target_row)
  nursery_upgrade_button = _button(right, "", _buy_nursery_upgrade)
+ breakpoints_button = _button(right, "Breakpoints · Ctrl+F9", _toggle_breakpoint_panel)
+ breakpoints_button.toggle_mode = true
  best_button = _button(right, "Best program", _toggle_best_program)
  review_button = _button(right, "Review", _toggle_review)
  review_button.hide()
@@ -485,6 +492,76 @@ func _ready() -> void:
  _choose(maxi(0, progress.next_lesson(progress.earned_lilies())))
  hide()
 
+func _add_breakpoint_panel(parent: Container) -> void:
+ breakpoints_panel = PanelContainer.new()
+ breakpoints_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ parent.add_child(breakpoints_panel)
+ var stack := VBoxContainer.new()
+ breakpoints_panel.add_child(stack)
+ var header := HBoxContainer.new()
+ stack.add_child(header)
+ var title: Label = hud.label("Breakpoints", 15, Color("#b9dccc"))
+ title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ header.add_child(title)
+ remove_breakpoint_button = _button(header, "Remove · Del", _remove_selected_breakpoint)
+ remove_breakpoint_button.tooltip_text = "Remove the selected breakpoint."
+ breakpoint_list = ItemList.new()
+ breakpoint_list.custom_minimum_size.y = 88
+ breakpoint_list.add_theme_font_override("font", source.get_theme_font("font"))
+ breakpoint_list.add_theme_font_size_override("font_size", 15)
+ breakpoint_list.focus_mode = Control.FOCUS_ALL
+ breakpoint_list.tooltip_text = "Press Enter to open the marked line or Delete to remove the breakpoint."
+ breakpoint_list.item_activated.connect(_open_breakpoint_line)
+ stack.add_child(breakpoint_list)
+ breakpoints_panel.hide()
+
+func _toggle_breakpoint_panel() -> void:
+ if breakpoints_panel.visible:
+  _close_breakpoint_panel()
+  source.grab_focus()
+  return
+ breakpoints_panel.show()
+ breakpoints_button.set_pressed_no_signal(true)
+ _refresh_breakpoint_list(source.get_caret_line())
+ breakpoint_list.grab_focus()
+
+func _close_breakpoint_panel() -> void:
+ breakpoints_panel.hide()
+ breakpoints_button.set_pressed_no_signal(false)
+
+func _selected_breakpoint_line() -> int:
+ var selected := breakpoint_list.get_selected_items()
+ return -1 if selected.is_empty() else int(breakpoint_list.get_item_metadata(selected[0]))
+
+func _refresh_breakpoint_list(preferred_line := -1) -> void:
+ if not breakpoints_panel.visible:
+  return
+ var selected_line := _selected_breakpoint_line() if preferred_line < 0 else preferred_line
+ var lines := source.get_breakpointed_lines()
+ lines.sort()
+ breakpoint_list.clear()
+ remove_breakpoint_button.disabled = lines.is_empty()
+ if lines.is_empty():
+  breakpoint_list.add_item("No breakpoints. Press F9 on a source line.", null, false)
+  return
+ for line in lines:
+  var snippet := source.get_line(line).strip_edges()
+  var row := breakpoint_list.item_count
+  breakpoint_list.add_item("Line %d · %s" % [line + 1, snippet if not snippet.is_empty() else "(blank line)"])
+  breakpoint_list.set_item_metadata(row, line)
+ breakpoint_list.select(mini(lines.bsearch(selected_line), lines.size() - 1))
+ breakpoint_list.ensure_current_is_visible()
+
+func _open_breakpoint_line(row: int) -> void:
+ if breakpoint_list.is_item_selectable(row):
+  _focus_source_line(int(breakpoint_list.get_item_metadata(row)))
+
+func _remove_selected_breakpoint() -> void:
+ var line := _selected_breakpoint_line()
+ if line >= 0:
+  source.set_line_as_breakpoint(line, false)
+  breakpoint_list.grab_focus()
+
 func _code_edit() -> CodeEdit:
  var editor := CodeEdit.new()
  editor.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -525,6 +602,7 @@ func _close() -> void:
  _commit_target_edit()
  _cancel_draft_rename()
  _close_draft_comparison()
+ _close_breakpoint_panel()
  flush_draft()
  if not steps.is_empty():
   _stop()
@@ -544,10 +622,12 @@ func _queue_save() -> void:
    status.text = "Code changed. Check again for an updated result."
  if puzzle >= 0 and source.text != loaded_draft:
   draft_timer.start()
+ _refresh_breakpoint_list()
 
 func _on_draft_breakpoint_toggled(_line: int) -> void:
  if not restoring_breakpoints and puzzle >= 0:
   _index_review_breakpoints()
+  _refresh_breakpoint_list()
   draft_timer.start()
 
 func flush_draft() -> void:
@@ -583,6 +663,8 @@ func _toggle_best_program() -> void:
  if recorded.is_empty():
   return
  _close_review()
+ _close_breakpoint_panel()
+ breakpoints_button.hide()
  best_python = record.get("python", false) if garden.practice else progress.garden_best_python.get(item.id, false)
  var language_name := "Python" if best_python else "Classic Pondbot"
  if garden.practice:
@@ -660,6 +742,7 @@ func _close_best_program() -> void:
  source.show()
  status.show()
  best_button.text = "Best program"
+ breakpoints_button.show()
  review_button.disabled = false
  _draw()
  source.grab_focus()
@@ -1489,6 +1572,7 @@ func _load_draft(reset_board := true) -> void:
  for line in loaded_breakpoints:
   source.set_line_as_breakpoint(line, true)
  restoring_breakpoints = false
+ _refresh_breakpoint_list()
  if reset_board:
   _reset()
  else:
@@ -2571,6 +2655,9 @@ func _input(event: InputEvent) -> void:
    if draft_name_edit.visible:
     _cancel_draft_rename()
     source.grab_focus()
+   elif breakpoint_list.has_focus() or remove_breakpoint_button.has_focus():
+    _close_breakpoint_panel()
+    source.grab_focus()
    elif comparison_panel.visible:
     _close_draft_comparison()
     source.grab_focus()
@@ -2632,6 +2719,9 @@ func _input(event: InputEvent) -> void:
    get_viewport().set_input_as_handled()
   elif best_panel.visible:
    return
+  elif event.keycode == KEY_DELETE and breakpoint_list.has_focus():
+   _remove_selected_breakpoint()
+   get_viewport().set_input_as_handled()
   elif event.ctrl_pressed and event.keycode in [KEY_ENTER, KEY_KP_ENTER]:
    if event.shift_pressed:
     _run_to_variable_change()
@@ -2642,8 +2732,11 @@ func _input(event: InputEvent) -> void:
    speed_choice.select((speed_choice.selected + 1) % speed_choice.item_count)
    get_viewport().set_input_as_handled()
   elif event.keycode == KEY_F9:
-   var line := source.get_caret_line()
-   source.set_line_as_breakpoint(line, not source.is_line_breakpointed(line))
+   if event.get_modifiers_mask() == KEY_MASK_CTRL:
+    _toggle_breakpoint_panel()
+   else:
+    var line := source.get_caret_line()
+    source.set_line_as_breakpoint(line, not source.is_line_breakpointed(line))
    get_viewport().set_input_as_handled()
   elif event.keycode == KEY_F10:
    if event.ctrl_pressed:
