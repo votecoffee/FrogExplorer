@@ -154,6 +154,7 @@ var review_breakpoint_row: HBoxContainer
 var review_previous_breakpoint: Button
 var review_next_breakpoint: Button
 var review_pause_at_breakpoints: CheckBox
+var review_pause_at_print: CheckBox
 var review_breakpoint_actions := PackedInt32Array()
 var run_button: Button
 var next_live_change_button: Button
@@ -504,6 +505,11 @@ func _ready() -> void:
  review_pause_at_breakpoints.tooltip_text = "Pause preview playback after each action on a marked line."
  review_controls.add_child(review_pause_at_breakpoints)
  review_pause_at_breakpoints.hide()
+ review_pause_at_print = CheckBox.new()
+ review_pause_at_print.text = "Pause on print"
+ review_pause_at_print.tooltip_text = "Pause preview playback when the program prints a message."
+ review_controls.add_child(review_pause_at_print)
+ review_pause_at_print.hide()
  source.breakpoint_toggled.connect(_on_draft_breakpoint_toggled)
  review_controls.hide()
  board = _board_grid(right)
@@ -1803,7 +1809,7 @@ func _check_code() -> void:
   var unit := "action" if preview.turn == 1 else "actions"
   status.text = "Check · %d of %d lilies harvested in %d %s" % [preview.harvested, preview.plants.size(), preview.turn, unit]
  var history: Array = checked_route.variable_history
- _draw_diagnostics(preview, "Check", -1, history[-1], null, history[maxi(0, history.size() - 2)])
+ _draw_diagnostics(preview, "Check", null, history[-1], null, history[maxi(0, history.size() - 2)])
  if not checked_route.actions.is_empty() or line >= 0:
   review_button.show()
 
@@ -1828,13 +1834,10 @@ func _trace(commands: Array, fresh_board := false, practice_limit := Programs.MA
  if not capture_comparison:
   call_history.append(preview.inspect_call_stack())
   variable_source_history.append(preview.variable_sources)
- var output_history: Array[Array] = []
+ var output_history: Array[Array] = [preview.output.duplicate()]
  var totals_history: Array[Vector4i] = []
- var capture_output := capture_comparison and python_mode
  if capture_comparison:
   totals_history.append(_comparison_totals(preview))
- if capture_output:
-  output_history.append(preview.output.duplicate())
  while index < commands.size() and (not preview.practice or traced.size() < practice_limit):
   var action: Dictionary = commands[index]
   var error := preview.step(action)
@@ -1856,10 +1859,9 @@ func _trace(commands: Array, fresh_board := false, practice_limit := Programs.MA
    variable_source_history.append({} if complete else preview.variable_sources)
   if capture_comparison:
    totals_history.append(_comparison_totals(preview))
-  if capture_output:
-   # The current buffer can be reused until another message is printed.
-   var printed_this_turn: bool = not preview.output.is_empty() and preview.output.back().turn == preview.turn
-   output_history.append(preview.output.duplicate() if printed_this_turn else output_history.back())
+  # The current buffer can be reused until another message is printed.
+  var printed_this_turn: bool = not preview.output.is_empty() and preview.output.back().turn == preview.turn
+  output_history.append(preview.output.duplicate() if printed_this_turn else output_history.back())
   if complete:
    break
  return {"actions":traced, "initial":initial, "preview":preview, "line":preview.runtime_error_line,
@@ -1890,6 +1892,7 @@ func _open_review(length: int) -> void:
  review_slider.visible = length > 0
  review_playback_button.visible = review_slider.visible
  review_playback_speed.visible = review_slider.visible
+ review_pause_at_print.visible = review_slider.visible and not route.preview.output.is_empty()
  review_controls.show()
  _index_review_breakpoints()
  _draw_review(0)
@@ -2091,9 +2094,11 @@ func _toggle_review_playback() -> void:
  if review_playback_board != null:
   _pause_review_playback()
   return
+ var route := best_route if best_panel.visible else checked_route
  if review_slider.value == review_slider.max_value:
   review_slider.value = 0
- var route := best_route if best_panel.visible else checked_route
+  if review_pause_at_print.visible and review_pause_at_print.button_pressed and not route.output_history[0].is_empty():
+   return
  review_playback_board = _board_after_actions(route, roundi(review_slider.value))
  playback_interval = RUN_INTERVAL
  review_playback_button.text = "Pause"
@@ -2119,7 +2124,8 @@ func _advance_review_playback() -> void:
   _draw_review(next, review_playback_board)
   var watch_stop := review_pause_at_watch.visible and review_pause_at_watch.button_pressed and _review_jump_actions().has(next)
   var breakpoint_stop := review_pause_at_breakpoints.visible and review_pause_at_breakpoints.button_pressed and review_breakpoint_actions.has(next)
-  if watch_stop or breakpoint_stop:
+  var print_stop := review_pause_at_print.visible and review_pause_at_print.button_pressed and not is_same(route.output_history[next], route.output_history[action])
+  if watch_stop or breakpoint_stop or print_stop:
    _pause_review_playback()
 
 func _draw_review(value: float, snapshot: Programs = null) -> void:
@@ -2148,7 +2154,7 @@ func _draw_review(value: float, snapshot: Programs = null) -> void:
  if preview.practice:
   review_position.text += "\n" + _water_summary(preview)
  _draw_board(preview, blocked)
- _draw_diagnostics(route.preview, "Best run" if replaying_best else "Check", preview.turn,
+ _draw_diagnostics(route.preview, "Best run" if replaying_best else "Check", route.output_history[count],
                    route.variable_history[count], route.call_history[count], route.variable_history[maxi(0, count - 1)])
 
 func _prepare_program(target_line := -1) -> bool:
@@ -2501,19 +2507,18 @@ func _draw_lessons(active: bool) -> void:
  next_lesson_button.visible = progress.solved.has(Programs.GARDENS[puzzle].id) and progress.next_lesson(lilies) >= 0
  next_lesson_button.disabled = active
 
-func _format_program_output(entries: Array, through_turn := -1) -> String:
+func _format_program_output(entries: Array) -> String:
  var lines := PackedStringArray()
  for entry: Dictionary in entries:
-  if through_turn < 0 or entry.turn <= through_turn:
-   lines.append(_print_line(entry))
+  lines.append(_print_line(entry))
  return "\n".join(lines)
 
 func _print_line(entry: Dictionary) -> String:
  return "Line %d · %s" % [entry.line + 1, entry.text]
 
-func _draw_diagnostics(view: Programs, context := "Program", through_turn := -1,
+func _draw_diagnostics(view: Programs, context := "Program", output_snapshot: Variant = null,
                        snapshot: Variant = null, calls: Variant = null, previous: Variant = null) -> void:
- var transcript := _format_program_output(view.output, through_turn)
+ var transcript := _format_program_output(view.output if output_snapshot == null else output_snapshot)
  output_panel.visible = not transcript.is_empty()
  output_title.text = context + " output"
  if output_text.text != transcript:

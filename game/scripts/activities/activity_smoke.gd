@@ -3095,6 +3095,47 @@ func check_review_playback(popup) -> void:
  check(playback.text == "Play" and not popup.review_controls.visible and not popup.running and popup.garden.turn == 1 and popup.garden.tank == capacity and "Reached action 1" in popup.status.text, "Run to action stops playback and executes the selected live action")
  popup.stop_button.pressed.emit()
 
+func check_review_print_playback(popup) -> void:
+ popup._reset()
+ popup.source.text = """print('Start beacon')
+wait()
+wait()
+print('Checkpoint reached')
+print('At the bed')
+marker = 0
+while marker < 36:
+    wait()
+    print(marker)
+    marker = marker + 1
+"""
+ popup.check_button.pressed.emit()
+ var output: RichTextLabel = popup.output_text
+ var final_output := output.text
+ popup.review_button.pressed.emit()
+ var slider: HSlider = popup.review_slider
+ var pause_at_print: CheckBox = popup.review_pause_at_print
+ check(slider.max_value == 38 and final_output.split("\n").size() == Program.MAX_OUTPUT_MESSAGES and "Start beacon" not in final_output and slider.value == 0 and output.text == "Line 1 · Start beacon" and pause_at_print.is_visible_in_tree(), "Rewinding shows early output even after it has left the final 32-message buffer")
+ pause_at_print.grab_focus()
+ press_key(KEY_SPACE)
+ slider.grab_focus()
+ press_key(KEY_SPACE)
+ popup._process(.25)
+ var passed_quiet_action: bool = slider.value == 1 and output.text == "Line 1 · Start beacon" and popup.review_playback_button.text == "Pause"
+ popup._process(.25)
+ popup._process(.25)
+ check(pause_at_print.button_pressed and passed_quiet_action and slider.value == 2 and popup.review_playback_button.text == "Play" and output.text.ends_with("Line 4 · Checkpoint reached\nLine 5 · At the bed"), "Playback passes a quiet action and groups messages printed at the next action into one stop")
+ press_key(KEY_SPACE)
+ popup._process(.25)
+ popup._process(.25)
+ check(slider.value == 3 and popup.review_playback_button.text == "Play" and output.text.ends_with("Line 9 · 0") and popup.garden.turn == 0, "Resuming pauses at the next print without moving the live board")
+ slider.value = slider.max_value
+ check(output.text == final_output and output.text.ends_with("Line 9 · 35"), "The last replay action shows its final print and the same output buffer as Check")
+ press_key(KEY_SPACE)
+ popup._process(.25)
+ check(slider.value == 0 and popup.review_playback_button.text == "Play" and output.text == "Line 1 · Start beacon", "Restarting with Pause on print stops on the initial message")
+ pause_at_print.set_pressed_no_signal(false)
+ popup.review_button.pressed.emit()
+
 func check_muted_breakpoints(popup) -> void:
  popup.language.item_selected.emit(0)
  popup._reset()
@@ -3908,6 +3949,14 @@ func run(game) -> void:
   popup.review_slider.value = popup.review_slider.max_value
   check("Best run · 16 / 16 actions" == popup.review_position.text and "Lilies 3 / 3" in popup.info.text, "Best program replays planting and harvesting")
   check(popup.output_panel.visible and popup.output_title.text == "Best run output" and "Line 1 · Ready True" in popup.output_text.text, "Best program replays Python output from the recorded draft")
+  var best_print_pause: CheckBox = popup.review_pause_at_print
+  best_print_pause.grab_focus()
+  press_key(KEY_SPACE)
+  popup.review_slider.grab_focus()
+  press_key(KEY_SPACE)
+  popup._process(.25)
+  check(best_print_pause.button_pressed and popup.review_slider.value == 0 and popup.review_playback_button.text == "Play" and "Line 1 · Ready True" in popup.output_text.text and popup.garden.turn == 16, "Best program can pause on the saved draft's first print at the starting board")
+  best_print_pause.set_pressed_no_signal(false)
 
   await check_switchback_beds(popup, switchback)
   var earned_for_practice: int = popup.progress.earned_lilies()
@@ -4047,6 +4096,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   check_run_to_review_action(popup)
   check_breakpoint_panel(popup)
   check_review_playback(popup)
+  check_review_print_playback(popup)
   check_muted_breakpoints(popup)
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
