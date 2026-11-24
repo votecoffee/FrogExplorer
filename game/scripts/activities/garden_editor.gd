@@ -153,6 +153,7 @@ var review_match_actions := PackedInt32Array()
 var review_breakpoint_row: HBoxContainer
 var review_previous_breakpoint: Button
 var review_next_breakpoint: Button
+var review_pause_at_breakpoints: CheckBox
 var review_breakpoint_actions := PackedInt32Array()
 var run_button: Button
 var next_live_change_button: Button
@@ -498,6 +499,11 @@ func _ready() -> void:
  review_previous_breakpoint.tooltip_text = "Jump to the previous action on a marked line. Use Shift+Page Up from the timeline."
  review_next_breakpoint.tooltip_text = "Jump to the next action on a marked line. Use Shift+Page Down from the timeline."
  review_breakpoint_row.hide()
+ review_pause_at_breakpoints = CheckBox.new()
+ review_pause_at_breakpoints.text = "Pause at breakpoints"
+ review_pause_at_breakpoints.tooltip_text = "Pause preview playback after each action on a marked line."
+ review_controls.add_child(review_pause_at_breakpoints)
+ review_pause_at_breakpoints.hide()
  source.breakpoint_toggled.connect(_on_draft_breakpoint_toggled)
  review_controls.hide()
  board = _board_grid(right)
@@ -2036,6 +2042,7 @@ func _index_review_breakpoints() -> void:
     if source.is_line_breakpointed(traced[index].line):
      review_breakpoint_actions.append(index + 1)
  review_breakpoint_row.visible = not review_breakpoint_actions.is_empty()
+ review_pause_at_breakpoints.visible = review_breakpoint_row.visible
  _refresh_review_breakpoints()
 
 func _refresh_review_breakpoints() -> void:
@@ -2110,7 +2117,9 @@ func _advance_review_playback() -> void:
  else:
   review_playback_board.step(route.actions[action])
   _draw_review(next, review_playback_board)
-  if review_pause_at_watch.visible and review_pause_at_watch.button_pressed and _review_jump_actions().has(next):
+  var watch_stop := review_pause_at_watch.visible and review_pause_at_watch.button_pressed and _review_jump_actions().has(next)
+  var breakpoint_stop := review_pause_at_breakpoints.visible and review_pause_at_breakpoints.button_pressed and review_breakpoint_actions.has(next)
+  if watch_stop or breakpoint_stop:
    _pause_review_playback()
 
 func _draw_review(value: float, snapshot: Programs = null) -> void:

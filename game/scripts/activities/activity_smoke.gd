@@ -439,7 +439,7 @@ for stop in range(1, 3):
  press_key(KEY_F10, true)
  press_key(KEY_PAGEDOWN, false, true)
  press_key(KEY_F9, true)
- check(only_matches.button_pressed and first_entry == "Action %d · 1 → 2" % second_stop and popup.review_slider.value == second_stop and popup.best_panel.visible and not popup.best_source.editable and not popup.review_run_to_change.is_visible_in_tree() and not popup.review_run_to_action.is_visible_in_tree() and not popup.review_breakpoint_row.is_visible_in_tree() and not popup.breakpoints_panel.is_visible_in_tree() and not popup.breakpoints_button.is_visible_in_tree() and not popup.running and popup.garden.turn == 36, "Filtered Best program history jumps to a recorded match and keeps the replay read-only")
+ check(only_matches.button_pressed and first_entry == "Action %d · 1 → 2" % second_stop and popup.review_slider.value == second_stop and popup.best_panel.visible and not popup.best_source.editable and not popup.review_run_to_change.is_visible_in_tree() and not popup.review_run_to_action.is_visible_in_tree() and not popup.review_breakpoint_row.is_visible_in_tree() and not popup.review_pause_at_breakpoints.is_visible_in_tree() and not popup.breakpoints_panel.is_visible_in_tree() and not popup.breakpoints_button.is_visible_in_tree() and not popup.running and popup.garden.turn == 36, "Filtered Best program history jumps to a recorded match and keeps the replay read-only")
  press_key(KEY_F7, true)
  press_key(KEY_F7, true)
  popup.review_slider.grab_focus()
@@ -2816,6 +2816,23 @@ wait()
   popup._process(.25)
  check(slider.value == 5 and popup.review_playback_button.text == "Play" and popup.garden.turn == 0, "Resuming passes changes that leave the condition true and pauses at the next match")
  slider.value = 0
+ popup.source.set_line_as_breakpoint(2, true)
+ var pause_at_breakpoints: CheckBox = popup.review_pause_at_breakpoints
+ pause_at_breakpoints.grab_focus()
+ press_key(KEY_SPACE)
+ slider.grab_focus()
+ press_key(KEY_SPACE)
+ popup._process(.25)
+ popup._process(.25)
+ var stopped_at_mark: bool = slider.value == 1 and popup.review_playback_button.text == "Play" and popup.source.get_executing_lines() == PackedInt32Array([2])
+ press_key(KEY_SPACE)
+ popup._process(.25)
+ popup._process(.25)
+ check(stopped_at_mark and slider.value == 2 and popup.review_playback_button.text == "Play" and popup.variables_text.text == "count = 1 → 3" and popup.garden.turn == 0, "Review can pause at a marked action and then at a watch match in the same playback")
+ popup.source.set_line_as_breakpoint(2, false)
+ check(not pause_at_breakpoints.is_visible_in_tree() and not popup.review_breakpoint_row.is_visible_in_tree() and slider.value == 2, "Removing the last reachable mark hides the breakpoint playback control")
+ pause_at_breakpoints.set_pressed_no_signal(false)
+ slider.value = 0
  press_key(KEY_PAGEDOWN)
  var first_match: bool = slider.value == 2 and popup.variables_text.text == "count = 1 → 3"
  popup.review_next_change.pressed.emit()
@@ -3095,6 +3112,21 @@ func check_muted_breakpoints(popup) -> void:
 
  popup.check_button.pressed.emit()
  popup.review_button.pressed.emit()
+ var slider: HSlider = popup.review_slider
+ var preview_pause: CheckBox = popup.review_pause_at_breakpoints
+ preview_pause.grab_focus()
+ press_key(KEY_SPACE)
+ slider.grab_focus()
+ press_key(KEY_SPACE)
+ popup._process(.25)
+ popup._process(.25)
+ var paused_first_visit: bool = slider.value == 1 and popup.review_playback_button.text == "Play"
+ press_key(KEY_SPACE)
+ popup._process(.25)
+ popup._process(.25)
+ check(mute.button_pressed and paused_first_visit and slider.value == 2 and popup.review_playback_button.text == "Play" and popup.garden.turn == 0, "Preview playback stops at each loop visit even when live breakpoints are muted")
+ preview_pause.set_pressed_no_signal(false)
+ slider.value = 0
  press_key(KEY_PAGEDOWN, false, true)
  press_key(KEY_PAGEDOWN, false, true)
  var visited_repeat: bool = popup.review_slider.value == 2

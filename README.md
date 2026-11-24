@@ -222,7 +222,7 @@ Place the cursor on a board command and press **Ctrl+F10** to run until just bef
 
 To reproduce a specific preview step on the live board, run **Check**, open **Review**, and select an action. Choose **Run to action** or press **Ctrl+F10** with the timeline focused. The draft runs from its normal starting board and pauses after that action. Use **Resume** to continue past an earlier breakpoint. If the action ends the program, the run finishes normally.
 
-In **Review**, use **Previous breakpoint** and **Next breakpoint** to jump between actions on marked lines. With the timeline focused, use **Shift+Page Up** and **Shift+Page Down**. Each visit to a marked line in a loop is a separate action. The preview shows the board after that action, while a live breakpoint pauses before its command.
+In **Review**, use **Previous breakpoint** and **Next breakpoint** to jump between actions on marked lines. With the timeline focused, use **Shift+Page Up** and **Shift+Page Down**. Turn on **Pause at breakpoints** to stop playback after each marked action, including repeated visits in a loop. Press **Space** with the timeline focused to resume. During a live run, a breakpoint pauses before its command.
 
 Breakpoints save with each draft and return when you reopen it. A new copy starts with its own empty breakpoint list.
 
