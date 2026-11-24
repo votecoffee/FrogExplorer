@@ -8,7 +8,8 @@ const COMPARISON_BOARD_KEY := "Gold outline · Tile differs between drafts"
 const COMPARISON_BEST := "<personal-best>"
 const COMPARISON_GOLD := "#e8c879"
 const COMPARISON_HIGHLIGHT := "[color=" + COMPARISON_GOLD + "]"
-enum ComparisonView { BOARDS, VARIABLES, PRINT_OUTPUT, SOURCE }
+const COMPARISON_TOTAL_NAMES := ["Lilies harvested", "Actions", "Water doses", "Fills"]
+enum ComparisonView { BOARDS, VARIABLES, PRINT_OUTPUT, SOURCE, RESULTS }
 enum ComparisonStart { LIVE, FRESH }
 const CLASSIC_GUIDE := "hop north / east / south / west\nfill     plant     water     wait     gather\nrepeat N … end     # comment\nroutine NAME heading · call NAME east\nif / while CONDITION … end\nelse · not · and · or · break · continue\nLook ahead with clear east or lily north\nF9 toggles a breakpoint"
 const PYTHON_GUIDE := "hop(east)    fill()    water()\nplant()       wait()       gather()\nfor bed in range(2):\nif water_level() < tank_capacity():\nwhile clear(east):\ndef walk(heading, steps: int):\nstart = column()    print(start)\nTab indents · Shift+Tab unindents\nF9 toggles a breakpoint"
@@ -49,6 +50,8 @@ var comparison_other_details: RichTextLabel
 var comparison_current_code: CodeEdit
 var comparison_other_code: CodeEdit
 var comparison_other_edit: Button
+var comparison_results: GridContainer
+var comparison_result_values: Array[Label] = []
 var comparison_best_source := ""
 var comparison_source := ""
 var comparison_key := ""
@@ -655,6 +658,7 @@ func _add_draft_comparison(parent: Container) -> void:
  comparison_other_details = _comparison_details_box(results)
  comparison_current_code = _comparison_code_box(results, false)
  comparison_other_code = _comparison_code_box(results, true)
+ _add_comparison_results(comparison_panel)
  var footer := HBoxContainer.new()
  comparison_panel.add_child(footer)
  comparison_board_key = hud.label(COMPARISON_BOARD_KEY, 13, Color(COMPARISON_GOLD))
@@ -667,6 +671,27 @@ func _add_draft_comparison(parent: Container) -> void:
  comparison_view.item_selected.connect(_select_comparison_view)
  footer.add_child(comparison_view)
  comparison_panel.hide()
+
+func _add_comparison_results(parent: Container) -> void:
+ comparison_results = GridContainer.new()
+ comparison_results.columns = 4
+ comparison_results.add_theme_constant_override("h_separation", 16)
+ comparison_results.add_theme_constant_override("v_separation", 5)
+ parent.add_child(comparison_results)
+ for title in ["Total", "Current", "Other", "Other − current"]:
+  var heading: Label = hud.label(title, 14, Color("#b9dccc"))
+  comparison_results.add_child(heading)
+  if title != "Total":
+   heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+   heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ for name in COMPARISON_TOTAL_NAMES:
+  comparison_results.add_child(hud.label(name, 14))
+  for column in 3:
+   var value: Label = hud.label("", 14)
+   value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+   comparison_results.add_child(value)
+   comparison_result_values.append(value)
+ comparison_results.hide()
 
 func _select_comparison_view(_index: int) -> void:
  if comparison_panel.visible:
@@ -772,6 +797,7 @@ func _toggle_draft_comparison() -> void:
   comparison_view.add_item("Variables", ComparisonView.VARIABLES)
   comparison_view.add_item("Print output", ComparisonView.PRINT_OUTPUT)
  comparison_view.add_item("Source", ComparisonView.SOURCE)
+ comparison_view.add_item("Results", ComparisonView.RESULTS)
  comparison_view.select(remembered.get("view", 0))
  for editor in [comparison_current_code, comparison_other_code]:
   _color_code(editor, python_mode)
@@ -853,6 +879,8 @@ func _update_comparison_differences() -> void:
     comparison_differences = _find_variable_differences(comparison_current_route.variable_history, comparison_other_route.variable_history)
    ComparisonView.PRINT_OUTPUT:
     comparison_differences = _find_print_differences(comparison_current_route, comparison_other_route)
+   ComparisonView.RESULTS:
+    comparison_differences = _find_result_differences(comparison_current_route.totals_history, comparison_other_route.totals_history)
  comparison_slider.visible = comparison_slider.max_value > 0
  comparison_timeline.visible = comparison_slider.visible or not comparison_differences.is_empty()
  comparison_difference_button.visible = both_compiled
@@ -865,6 +893,8 @@ func _update_comparison_differences() -> void:
    comparison_difference_button.tooltip_text = "Compare the messages printed at each action."
   ComparisonView.SOURCE:
    comparison_difference_button.tooltip_text = "Jump to the source for different board commands and stopping points."
+  ComparisonView.RESULTS:
+   comparison_difference_button.tooltip_text = "Jump to changes in the difference between the two sets of totals."
  comparison_difference_button.disabled = comparison_differences.is_empty()
  comparison_previous_difference_button.visible = comparison_differences.size() > 1
  comparison_next_difference_button.visible = comparison_previous_difference_button.visible
@@ -941,6 +971,33 @@ func _prints_at_action(route: Dictionary, index: int) -> PackedStringArray:
     messages.append(entry.text)
  return messages
 
+func _find_result_differences(current: Array[Vector4i], other: Array[Vector4i]) -> Array[int]:
+ var differences: Array[int] = []
+ var previous := Vector4i.ZERO
+ for index in maxi(current.size(), other.size()):
+  var delta := other[mini(index, other.size() - 1)] - current[mini(index, current.size() - 1)]
+  if delta != Vector4i.ZERO and delta != previous:
+   differences.append(index)
+  previous = delta
+ return differences
+
+func _comparison_totals(board: Programs) -> Vector4i:
+ return Vector4i(board.run_harvest_count(), board.run_action_count(), board.run_water_used, board.run_fills)
+
+func _show_comparison_results(current: Programs, other: Programs) -> void:
+ var left := _comparison_totals(current) if current != null else Vector4i.ZERO
+ var right := _comparison_totals(other) if other != null else Vector4i.ZERO
+ var delta := right - left
+ for row in COMPARISON_TOTAL_NAMES.size():
+  var offset := 3 * row
+  comparison_result_values[offset].text = str(left[row]) if current != null else "—"
+  comparison_result_values[offset + 1].text = str(right[row]) if other != null else "—"
+  var difference := comparison_result_values[offset + 2]
+  difference.text = "%+d" % delta[row] if delta[row] != 0 else "0"
+  if current == null or other == null:
+   difference.text = "—"
+  difference.modulate = Color(COMPARISON_GOLD) if difference.text not in ["0", "—"] else Color.WHITE
+
 func _comparison_interruption(route: Dictionary, index: int) -> String:
  if _comparison_blocked(route, index):
   return route.error
@@ -960,7 +1017,7 @@ func _jump_to_adjacent_comparison_difference(forward: bool) -> void:
 func _trace_draft(text: String) -> Dictionary:
  var result := _compile(text, python_mode)
  var fresh := garden.practice and comparison_start.get_selected_id() == ComparisonStart.FRESH
- return result if result.has("error") else _trace(result.steps, fresh, comparison_limit, python_mode)
+ return result if result.has("error") else _trace(result.steps, fresh, comparison_limit, true)
 
 func _show_comparison_step(value: float) -> void:
  if not comparison_panel.visible:
@@ -969,9 +1026,13 @@ func _show_comparison_step(value: float) -> void:
  comparison_position.text = "%d / %d actions" % [index, int(comparison_slider.max_value)]
  var current := _comparison_board_at(comparison_current_route, index)
  var other := _comparison_board_at(comparison_other_route, index)
- comparison_current.text = draft_choice.get_item_text(draft_choice.selected) + "\n" + _comparison_snapshot(comparison_current_route, index, current)
- comparison_other.text = comparison_choice.get_item_text(comparison_choice.selected) + "\n" + _comparison_snapshot(comparison_other_route, index, other)
  var view := comparison_view.get_selected_id()
+ var show_results := view == ComparisonView.RESULTS
+ comparison_current.text = draft_choice.get_item_text(draft_choice.selected) + "\n" + _comparison_snapshot(comparison_current_route, index, current, not show_results)
+ comparison_other.text = comparison_choice.get_item_text(comparison_choice.selected) + "\n" + _comparison_snapshot(comparison_other_route, index, other, not show_results)
+ comparison_results.visible = show_results
+ if show_results:
+  _show_comparison_results(current, other)
  var show_boards := view == ComparisonView.BOARDS
  comparison_current_board.visible = show_boards
  comparison_other_board.visible = show_boards
@@ -1079,18 +1140,12 @@ func _comparison_board_at(route: Dictionary, index: int) -> Programs:
 func _comparison_blocked(route: Dictionary, index: int) -> bool:
  return route.has("actions") and route.line >= 0 and index >= route.actions.size()
 
-func _comparison_snapshot(route: Dictionary, index: int, preview: Programs) -> String:
+func _comparison_snapshot(route: Dictionary, index: int, preview: Programs, include_summary: bool) -> String:
  if preview == null:
   return route.error
  var traced: Array = route.actions
  var count := mini(index, traced.size())
  var at_end := count == traced.size()
- var summary := _nursery_summary(preview)
- if not preview.practice:
-  var unit := "action" if preview.turn == 1 else "actions"
-  summary = "Harvested %d of %d in %d %s · %s" % [
-   preview.harvested, preview.plants.size(), preview.turn, unit, _water_summary(preview),
-  ]
  var step := "Start" if count == 0 else "%d / %d actions" % [count, traced.size()]
  if _comparison_blocked(route, index):
   step = "Blocked · Line %d · %s" % [route.line + 1, route.error]
@@ -1103,7 +1158,16 @@ func _comparison_snapshot(route: Dictionary, index: int, preview: Programs) -> S
   var command := (str(action.command) + " " + str(action.get("direction", ""))).strip_edges()
   step += " · Line %d · %s" % [action.line + 1, command]
  var position := "Row %d · Column %d · Tank %d / %d" % [preview.cell.y, preview.cell.x, preview.tank, preview.water_capacity]
- return "%s\n%s\n%s" % [step, position, summary]
+ var snapshot := "%s\n%s" % [step, position]
+ if not include_summary:
+  return snapshot
+ var summary := _nursery_summary(preview)
+ if not preview.practice:
+  var unit := "action" if preview.turn == 1 else "actions"
+  summary = "Harvested %d of %d in %d %s · %s" % [
+   preview.harvested, preview.plants.size(), preview.turn, unit, _water_summary(preview),
+  ]
+ return snapshot + "\n" + summary
 
 func _comparison_key_for(draft: String) -> String:
  return ("python:" if python_mode else "classic:") + draft
@@ -1254,7 +1318,7 @@ func _check_code() -> void:
  if not checked_route.actions.is_empty() or line >= 0:
   review_button.show()
 
-func _trace(commands: Array, fresh_board := false, practice_limit := Programs.MAX_STEPS, capture_output := false) -> Dictionary:
+func _trace(commands: Array, fresh_board := false, practice_limit := Programs.MAX_STEPS, capture_comparison := false) -> Dictionary:
  var initial := Programs.new()
  if not garden.practice:
   initial.load_puzzle(puzzle)
@@ -1270,6 +1334,10 @@ func _trace(commands: Array, fresh_board := false, practice_limit := Programs.MA
  # Review position zero includes assignments before the first board action.
  var variable_history: Array[Dictionary] = [preview.inspect_variables()]
  var output_history: Array[Array] = []
+ var totals_history: Array[Vector4i] = []
+ var capture_output := capture_comparison and python_mode
+ if capture_comparison:
+  totals_history.append(_comparison_totals(preview))
  if capture_output:
   output_history.append(preview.output.duplicate())
  while index < commands.size() and (not preview.practice or traced.size() < practice_limit):
@@ -1277,7 +1345,8 @@ func _trace(commands: Array, fresh_board := false, practice_limit := Programs.MA
   var error := preview.step(action)
   if not error.is_empty():
    return {"actions":traced, "initial":initial, "preview":preview, "line":action.line,
-           "error":error, "variable_history":variable_history, "output_history":output_history}
+           "error":error, "variable_history":variable_history, "output_history":output_history,
+           "totals_history":totals_history}
   traced.append(action)
   var complete := preview.is_complete()
   var revision := preview.variable_revision
@@ -1285,6 +1354,8 @@ func _trace(commands: Array, fresh_board := false, practice_limit := Programs.MA
    index = preview.next_action_index(commands, index + 1)
   var values: Dictionary = variable_history.back() if preview.variable_revision == revision else preview.inspect_variables()
   variable_history.append(values)
+  if capture_comparison:
+   totals_history.append(_comparison_totals(preview))
   if capture_output:
    # The current buffer can be reused until another message is printed.
    var printed_this_turn: bool = not preview.output.is_empty() and preview.output.back().turn == preview.turn
@@ -1293,7 +1364,7 @@ func _trace(commands: Array, fresh_board := false, practice_limit := Programs.MA
    break
  return {"actions":traced, "initial":initial, "preview":preview, "line":preview.runtime_error_line,
          "error":preview.runtime_error, "limited":preview.practice and index < commands.size(),
-         "variable_history":variable_history, "output_history":output_history}
+         "variable_history":variable_history, "output_history":output_history, "totals_history":totals_history}
 
 func _toggle_review() -> void:
  if best_panel.visible:

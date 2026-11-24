@@ -1386,7 +1386,7 @@ func check_comparison_source(popup) -> void:
  var edit_other := other.get_parent().get_child(1) as Button
  view.select(1)
  view.item_selected.emit(1)
- check(not popup.python_mode and view.item_count == 2 and view.get_item_text(1) == "Source" and current.is_visible_in_tree() and current.text == "wait\n" and current.get_executing_lines() == PackedInt32Array([0]), "Classic comparisons offer a source view with the selected command marked")
+ check(not popup.python_mode and view.item_count == 3 and view.get_item_text(1) == "Source" and view.get_item_text(2) == "Results" and current.is_visible_in_tree() and current.text == "wait\n" and current.get_executing_lines() == PackedInt32Array([0]), "Classic comparisons offer a source view with the selected command marked")
  var live_turn: int = popup.garden.turn
  var live_cell: Vector2i = popup.garden.cell
  edit_other.grab_focus()
@@ -1630,6 +1630,39 @@ func check_extended_comparison(popup) -> void:
  extend.pressed.emit()
  check(slider.max_value == Program.MAX_COMPUTATION_STEPS and popup.comparison_limit == Program.MAX_COMPUTATION_STEPS and popup.comparison_other_route.limited and not extend.visible, "Continuously running drafts can extend up to the comparison maximum")
  check(popup.garden.turn == 1 and popup.garden.tank == 6 and popup.progress.nursery_balance() == balance and popup.progress.nursery_record(id, popup.garden) == saved and popup.source.text == candidate, "Extended comparisons preserve the live nursery, best, and editable draft")
+
+func check_comparison_results(popup) -> void:
+ var id: String = Program.OPEN_NURSERY.id
+ popup.chooser.item_selected.emit(Program.GARDENS.find(Program.OPEN_NURSERY))
+ popup.draft_choice.item_selected.emit(0)
+ popup.nursery_target.value = 3
+ await finish_by_steps(popup, "fill()\nhop(north)\nplant(east)\nwater(east)\nwait()\ngather(east)\nplant(east)\nwater(east)\nwait()\n")
+ var other: Dictionary = popup.progress.create_draft_copy(id, "wait()\ngather(east)\nplant(east)\nwater(east)\nwait()\ngather(east)\nhop(south)\nfill()\n", true)
+ var invalid: Dictionary = popup.progress.create_draft_copy(id, "fill(east)\n", true)
+ popup._refresh_draft_choice()
+ var current := "gather(east)\n"
+ popup.source.text = current
+ var balance: int = popup.progress.nursery_balance()
+ popup.compare_drafts_button.pressed.emit()
+ var choice: OptionButton = popup.comparison_choice
+ var start: OptionButton = popup.comparison_start
+ var view: OptionButton = popup.comparison_view
+ var slider: HSlider = popup.comparison_slider
+ var values: Array[Label] = popup.comparison_result_values
+ start.select(0)
+ start.item_selected.emit(0)
+ select_comparison_copy(choice, other.key)
+ view.select(4)
+ view.item_selected.emit(4)
+ check(other.error == OK and view.get_item_text(4) == "Results" and popup.comparison_results.is_visible_in_tree() and slider.value == 8 and values.map(func(label): return label.text) == ["1", "2", "+1", "1", "8", "+7", "0", "1", "+1", "0", "1", "+1"], "Results aligns both drafts' totals and signs the right-minus-left differences")
+ slider.value = 0
+ check(values.map(func(label): return label.text) == ["0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"] and popup.garden.harvested == 1 and popup.garden.turn == 9, "Results counts only this preview's work on a nursery already harvested")
+ popup.comparison_difference_button.pressed.emit()
+ check(slider.has_focus() and slider.value == 1 and values[2].text == "-1" and values[5].text == "0" and values[2].modulate == Color("#e8c879"), "Results navigation jumps to the first differing total")
+ select_comparison_copy(choice, invalid.key)
+ check(invalid.error == OK and "Check the arguments for fill()" in popup.comparison_other.text and values.map(func(label): return label.text) == ["1", "—", "—", "1", "—", "—", "0", "—", "—", "0", "—", "—"] and not popup.comparison_difference_button.visible, "Results preserves the valid side when the other draft cannot compile")
+ press_key(KEY_ESCAPE)
+ check(not popup.comparison_panel.visible and popup.garden.turn == 9 and popup.garden.tank == 4 and popup.garden.plant_status(Vector2i(1, 0)) == "Ripe" and popup.progress.nursery_balance() == balance and popup.source.text == current, "Results preserves the live nursery and editable program")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)
@@ -2489,6 +2522,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   await check_comparison_starting_board(popup)
   check_compare_personal_best(popup)
   await check_extended_comparison(popup)
+  await check_comparison_results(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
