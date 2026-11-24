@@ -420,7 +420,8 @@ for stop in range(1, 3):
  var first_entry := events.get_item_text(0)
  popup.review_slider.value = 0
  events.item_activated.emit(0)
- check(only_matches.button_pressed and first_entry == "Action %d · 1 → 2" % second_stop and popup.review_slider.value == second_stop and popup.best_panel.visible and not popup.best_source.editable and not popup.review_run_to_change.is_visible_in_tree() and popup.garden.turn == 36, "Filtered Best program history jumps to a recorded match without changing the live board")
+ press_key(KEY_F10, true)
+ check(only_matches.button_pressed and first_entry == "Action %d · 1 → 2" % second_stop and popup.review_slider.value == second_stop and popup.best_panel.visible and not popup.best_source.editable and not popup.review_run_to_change.is_visible_in_tree() and not popup.review_run_to_action.is_visible_in_tree() and not popup.running and popup.garden.turn == 36, "Filtered Best program history jumps to a recorded match and keeps the replay read-only")
  press_key(KEY_F7, true)
  press_key(KEY_F7, true)
 
@@ -2728,6 +2729,70 @@ wait()
   popup._process(.25)
  check(not popup.running and popup.garden.turn == 5 and "Watch condition met · count = 1 → 3" in popup.status.text, "Live Next match reaches the same second transition as the preview")
 
+func check_run_to_review_action(popup) -> void:
+ popup.stop_button.pressed.emit()
+ popup.chooser.item_selected.emit(Program.GARDENS.find(Program.OPEN_NURSERY))
+ popup.language.item_selected.emit(0)
+ popup._reset()
+ popup.source.clear_breakpointed_lines()
+ popup.source.text = "wait()\n"
+ popup.run_button.pressed.emit()
+ popup._process(.25)
+ var starting_turn: int = popup.garden.turn
+ popup.source.text = "wait()\nfor visit in range(4):\n    wait()\n    print(visit)\n"
+ popup.source.set_line_as_breakpoint(0, true)
+ popup.check_button.pressed.emit()
+ popup.review_button.pressed.emit()
+ var slider: HSlider = popup.review_slider
+ var run_action: Button = popup.review_run_to_action
+ press_key(KEY_F10, true)
+ check(starting_turn == 1 and slider.has_focus() and run_action.is_visible_in_tree() and run_action.disabled and not popup.running and popup.garden.turn == starting_turn, "The initial Review snapshot has no live action to run")
+ slider.value = 4
+ var expected_values: Dictionary = popup.checked_route.variable_history[4]
+ check(run_action.text == "Run to action 4" and not run_action.disabled and popup.garden.turn == starting_turn, "Review offers a live stop at the selected later loop action without moving the board")
+ press_key(KEY_F10, true)
+ popup._process(.25)
+ check(not popup.running and popup.run_to_action == 4 and popup.garden.turn == starting_turn and "Breakpoint · line 1" in popup.status.text and not popup.review_controls.visible, "A permanent breakpoint pauses first and preserves the selected action")
+ press_key(KEY_ENTER, true)
+ for tick in 5:
+  popup._process(.25)
+ check(not popup.running and popup.garden.turn == starting_turn + 4 and popup.garden.inspect_variables() == expected_values and expected_values.get("visit") == 3 and popup.source.get_executing_lines() == PackedInt32Array([2]) and popup.run_to_action == -1 and "Reached action 4" in popup.status.text, "The live program stops after the exact loop action and marks the next command")
+ press_key(KEY_ENTER, true)
+ popup._process(.25)
+ check(not popup.running and popup.steps.is_empty() and popup.garden.turn == starting_turn + 5 and popup.source.is_line_breakpointed(0), "Resume completes the remaining action after the temporary stop")
+
+ popup.language.item_selected.emit(1)
+ popup.source.text = "wait\nwait\nwait\n"
+ popup.check_button.pressed.emit()
+ popup.review_button.pressed.emit()
+ slider.value = 2
+ run_action.grab_focus()
+ press_key(KEY_ENTER)
+ for tick in 3:
+  popup._process(.25)
+ check(not popup.running and popup.garden.run_action_count() == 2 and popup.source.get_executing_lines() == PackedInt32Array([2]) and "Reached action 2" in popup.status.text, "The Run to action button works in a Classic draft")
+ popup.stop_button.pressed.emit()
+ popup.check_button.pressed.emit()
+ popup.review_button.pressed.emit()
+ slider.value = slider.max_value
+ run_action.pressed.emit()
+ for tick in 3:
+  popup._process(.25)
+ check(not popup.running and popup.steps.is_empty() and popup.garden.run_action_count() == 3 and popup.run_to_action == -1 and popup.status.text.begins_with("Program ended"), "Running through the final preview action preserves normal completion")
+
+ popup.source.set_line_as_breakpoint(0, true)
+ popup.check_button.pressed.emit()
+ popup.review_button.pressed.emit()
+ slider.value = 2
+ run_action.pressed.emit()
+ popup._process(.25)
+ press_key(KEY_F10)
+ var step_cleared: bool = not popup.running and popup.run_to_action == -1 and popup.garden.run_action_count() == 1
+ press_key(KEY_ENTER, true)
+ for tick in 2:
+  popup._process(.25)
+ check(step_cleared and popup.steps.is_empty() and popup.garden.run_action_count() == 3, "Step clears a pending action stop after an earlier breakpoint")
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -3601,6 +3666,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   check_live_watch_choice(popup)
   check_watch_conditions(popup)
   check_review_watch_conditions(popup)
+  check_run_to_review_action(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

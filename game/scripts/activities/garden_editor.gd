@@ -122,6 +122,7 @@ var review_button: Button
 var review_controls: VBoxContainer
 var review_position: Label
 var review_slider: HSlider
+var review_run_to_action: Button
 var review_variable_row: HBoxContainer
 var review_variable_filter: OptionButton
 var review_variable_name := ""
@@ -143,6 +144,7 @@ var submitted_program := ""
 var offset := 0
 var breakpoint_offset := -1
 var run_to_line := -1
+var run_to_action := -1
 var watched_variable := ""
 var watchpoint_active := false
 var watch_condition: int = WatchCondition.CHANGES
@@ -450,6 +452,8 @@ func _ready() -> void:
  review_run_to_change = _button(review_controls, "Run to change", _run_to_variable_change)
  review_run_to_change.tooltip_text = "Run the current draft until the followed variable changes. Ctrl+Shift+Enter also starts the run."
  review_run_to_change.hide()
+ review_run_to_action = _button(review_controls, "Run to action", _run_to_review_action)
+ review_run_to_action.tooltip_text = "Run the draft on the live board and pause after this action. Press Ctrl+F10 from the timeline."
  review_controls.hide()
  board = _board_grid(right)
  hint = hud.label("", 15)
@@ -1462,6 +1466,7 @@ func _clear_program() -> void:
  offset = 0
  breakpoint_offset = -1
  run_to_line = -1
+ run_to_action = -1
  watched_variable = ""
  watchpoint_active = false
  _reset_watch_condition()
@@ -1819,6 +1824,9 @@ func _draw_review(value: float) -> void:
  var line: int = route.line
  var editor := best_source if replaying_best else source
  var count := clampi(roundi(value), 0, traced.size())
+ review_run_to_action.visible = not replaying_best and not traced.is_empty()
+ review_run_to_action.disabled = count == 0
+ review_run_to_action.text = "Run to action %d" % count if count > 0 else "Run to action"
  var preview := _board_after_actions(route, count)
  var blocked := line >= 0 and count == traced.size()
  review_position.text = "%s · %d / %d actions" % ["Best run" if replaying_best else "Preview", count, traced.size()]
@@ -1879,8 +1887,15 @@ func _run_to_variable_change() -> void:
  if running:
   source.grab_focus()
 
-func _run(target_line := -1, target_variable := "") -> void:
- var has_destination := target_line >= 0 or not target_variable.is_empty()
+func _run_to_review_action() -> void:
+ if not review_run_to_action.is_visible_in_tree() or review_run_to_action.disabled or checked_source != source.text:
+  return
+ _run(-1, "", roundi(review_slider.value))
+ if running:
+  source.grab_focus()
+
+func _run(target_line := -1, target_variable := "", target_action := -1) -> void:
+ var has_destination := target_line >= 0 or not target_variable.is_empty() or target_action > 0
  if running:
   if has_destination:
    return
@@ -1889,6 +1904,7 @@ func _run(target_line := -1, target_variable := "") -> void:
   live_change_source_line = -1
   if has_destination:
    run_to_line = target_line
+   run_to_action = target_action
    watchpoint_active = not target_variable.is_empty()
    if watchpoint_active:
     watched_variable = target_variable
@@ -1902,6 +1918,7 @@ func _run(target_line := -1, target_variable := "") -> void:
 
 func _step() -> void:
  if not running and _prepare_program():
+  run_to_action = -1
   step_out_frame = {}
   watchpoint_active = false
   _advance()
@@ -1915,6 +1932,7 @@ func _step_out() -> void:
  # Retain this call's frame. A new call to the same function may be active at the next action.
  step_out_frame = garden.local_frames.back()
  run_to_line = -1
+ run_to_action = -1
  watchpoint_active = false
  _run()
 
@@ -1927,6 +1945,8 @@ func _show_progress() -> void:
   status.text += " · %d / %d lilies this run" % [garden.run_harvest_count(), garden.harvest_target]
  if run_to_line >= 0:
   status.text += " · Cursor line %d" % (run_to_line + 1)
+ elif run_to_action > 0:
+  status.text += " · To action %d" % run_to_action
  elif not step_out_frame.is_empty():
   status.text += " · Stepping out of %s()" % step_out_frame.function
  elif watchpoint_active:
@@ -2010,6 +2030,12 @@ func _advance() -> void:
    garden.track_variable_sources = false
    if offset == steps.size():
     _finish_incomplete()
+   elif run_to_action == garden.run_action_count():
+    var next_line: int = steps[offset].line
+    status.text = "Reached action %d · next line %d" % [run_to_action, next_line + 1]
+    run_to_action = -1
+    running = false
+    _mark_line(source, next_line)
    elif not _pause_on_watchpoint(before_variables):
     _show_progress()
  _draw()
@@ -2557,9 +2583,12 @@ func _input(event: InputEvent) -> void:
    get_viewport().set_input_as_handled()
   elif event.keycode == KEY_F10:
    if event.ctrl_pressed:
-    if not source.has_focus():
+    if review_slider.has_focus():
+     _run_to_review_action()
+    elif source.has_focus():
+     _run(source.get_caret_line())
+    else:
      return
-    _run(source.get_caret_line())
    else:
     _step()
    get_viewport().set_input_as_handled()
