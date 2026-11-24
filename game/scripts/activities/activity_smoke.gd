@@ -2449,6 +2449,9 @@ wait()
  press_key(KEY_ENTER, true, true)
  popup._process(.25)
  check(not popup.running and popup.garden.turn == 3 and "value = 6 → out of scope" in popup.status.text and next.is_visible_in_tree(), "The same shortcut follows the local through its scope exit")
+ press_key(KEY_F7, true, true)
+ var watch: OptionButton = popup.live_watch_choice
+ check(watch.is_visible_in_tree() and watch.has_focus() and watch.get_item_metadata(watch.selected) == local_name and watch.get_item_text(watch.selected) == local_name + " · out of scope", "The Watch menu retains the followed local after it leaves scope")
 
  var counter := "value = 0\nwait()\nvalue = 1\nwait()\nvalue = 2\nwait()\nvalue = 3\nwait()\n"
  open_run_to_change_review(popup, counter, "value")
@@ -2473,6 +2476,62 @@ wait()
  for action in 3:
   popup._process(.25)
  check(popup.steps.is_empty() and popup.garden.turn == 4 and popup.garden.variables.get("value") == 3 and "Program ended" in popup.status.text, "Ordinary Resume keeps running past later changes after a variable stop")
+
+func check_live_watch_choice(popup) -> void:
+ popup._reset()
+ popup.variables_button.set_pressed_no_signal(false)
+ popup.source.text = """outer = 0
+def sample(value: int):
+    wait()
+    value += 1
+    wait()
+    value += 1
+    wait()
+sample(4)
+wait()
+outer = 1
+wait()
+outer = 2
+wait()
+wait()
+"""
+ popup.source.grab_focus()
+ press_key(KEY_F10)
+ press_key(KEY_F7, true, true)
+ var watch: OptionButton = popup.live_watch_choice
+ var next: Button = popup.next_live_change_button
+ check(watch.is_visible_in_tree() and watch.has_focus() and watch.selected == 0 and watch.item_count == 3 and watch.get_item_text(0) == "Off" and watch.get_item_text(1) == "outer" and watch.get_item_text(2) == "sample() · value", "The keyboard opens Watch with the current top-level and local variables from a normal live step")
+ var marker: PackedInt32Array = popup.source.get_executing_lines()
+ watch.select(2)
+ watch.item_selected.emit(2)
+ check(not popup.running and popup.watched_variable == "sample() · value" and not popup.watchpoint_active and next.is_visible_in_tree() and popup.garden.turn == 1 and popup.source.get_executing_lines() == marker, "Choosing a live local makes Next change available and keeps the board and execution marker in place")
+ press_key(KEY_ENTER, true, true)
+ popup._process(.25)
+ check(not popup.running and popup.garden.turn == 2 and "sample() · value = 5 → 6" in popup.status.text and popup.live_change_source_line == 5, "Next change uses the live selection and records the write that changed it")
+
+ press_key(KEY_ENTER, true, true)
+ press_key(KEY_ENTER, true)
+ var old_watch_pending: bool = not popup.running and popup.watchpoint_active and popup.watched_variable == "sample() · value"
+ press_key(KEY_F7, true, true)
+ watch.select(1)
+ watch.item_selected.emit(1)
+ check(old_watch_pending and not popup.running and popup.watched_variable == "outer" and not popup.watchpoint_active and popup.live_change_source_line == -1 and popup.garden.turn == 2, "Choosing another variable cancels the pending stop for the previous selection")
+ press_key(KEY_ENTER, true, true)
+ popup._process(.25)
+ var passed_exit: bool = popup.running and popup.garden.turn == 3
+ popup._process(.25)
+ check(passed_exit and not popup.running and popup.garden.turn == 4 and "outer = 0 → 1" in popup.status.text, "A new live selection skips the former local's scope exit and stops at the top-level change")
+
+ watch.select(0)
+ watch.item_selected.emit(0)
+ press_key(KEY_ENTER, true, true)
+ check(popup.watched_variable.is_empty() and not popup.watchpoint_active and not next.is_visible_in_tree() and not popup.running and popup.garden.turn == 4, "Off clears the live watch and the change shortcut stays idle")
+ watch.select(1)
+ watch.item_selected.emit(1)
+ press_key(KEY_ENTER, true)
+ for action in 3:
+  popup._process(.25)
+ check(popup.steps.is_empty() and popup.garden.turn == 7 and popup.garden.variables.get("outer") == 2, "Ordinary Resume runs through later changes after a variable is selected from the Watch menu")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)
@@ -3344,6 +3403,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   check_review_variable_filter(popup)
   check_run_to_change(popup)
   check_next_live_change(popup)
+  check_live_watch_choice(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

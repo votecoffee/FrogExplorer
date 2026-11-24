@@ -81,6 +81,8 @@ var variables_button: Button
 var variables_panel: PanelContainer
 var variables_title: Label
 var variables_text: RichTextLabel
+var live_watch_row: HBoxContainer
+var live_watch_choice: OptionButton
 var review_history_list: ItemList
 var variable_source_button: Button
 var variable_changes_button: Button
@@ -169,7 +171,7 @@ func _ready() -> void:
  top.add_child(language)
  variables_button = _button(top, "Variables · F7", _refresh_variables)
  variables_button.toggle_mode = true
- variables_button.tooltip_text = "F7 shows variables. Ctrl+F7 shows changes. Shift+F7 shows the call stack. Ctrl+Shift+F7 opens a followed variable's history."
+ variables_button.tooltip_text = "F7 shows variables. Ctrl+F7 shows changes. Shift+F7 shows the call stack. Ctrl+Shift+F7 opens replay History or focuses Watch while paused."
  _button(top, "Close · Esc", _close)
  var pair := HBoxContainer.new()
  pair.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -281,6 +283,17 @@ func _ready() -> void:
  call_stack_button.toggle_mode = true
  call_stack_button.button_group = inspector_views
  call_stack_button.tooltip_text = "Show the active Python calls and their source lines."
+ live_watch_row = HBoxContainer.new()
+ variables_stack.add_child(live_watch_row)
+ live_watch_row.add_child(hud.label("Watch", 15))
+ live_watch_choice = OptionButton.new()
+ live_watch_choice.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ live_watch_choice.fit_to_longest_item = false
+ live_watch_choice.clip_text = true
+ live_watch_choice.tooltip_text = "Choose a variable for Next change. Choose Off to clear it."
+ live_watch_choice.item_selected.connect(_select_live_watch)
+ live_watch_row.add_child(live_watch_choice)
+ live_watch_row.hide()
  variables_text = RichTextLabel.new()
  variables_text.custom_minimum_size.y = output_text.custom_minimum_size.y
  variables_text.add_theme_font_override("normal_font", source.get_theme_font("font"))
@@ -2104,6 +2117,7 @@ func _show_variables(values: Dictionary, context: String, calls: Array = [], pre
 func _refresh_variables() -> void:
  variables_button.visible = best_python if best_panel.visible else python_mode
  variables_panel.visible = variables_button.visible and variables_button.button_pressed
+ _refresh_live_watch()
  var show_calls := call_stack_button.button_pressed
  var show_changes := variable_changes_button.button_pressed
  var show_review_changes := review_controls.visible and variables_panel.visible and show_changes
@@ -2145,6 +2159,41 @@ func _refresh_variables() -> void:
  var content := _format_variable_changes() if show_changes else _format_program_variables(displayed_variables)
  if variables_text.text != content:
   variables_text.text = content
+
+func _can_choose_live_watch() -> bool:
+ return python_mode and not running and not steps.is_empty() and (not displayed_variables.is_empty() or not watched_variable.is_empty())
+
+func _refresh_live_watch() -> void:
+ live_watch_row.visible = variables_panel.visible and _can_choose_live_watch()
+ if not live_watch_row.visible:
+  return
+ var names := displayed_variables.keys()
+ if not watched_variable.is_empty() and not displayed_variables.has(watched_variable):
+  names.append(watched_variable)
+ names.sort()
+ live_watch_choice.clear()
+ live_watch_choice.add_item("Off")
+ live_watch_choice.set_item_metadata(0, "")
+ for name: String in names:
+  var label := name if displayed_variables.has(name) else "%s · out of scope" % name
+  var index := live_watch_choice.item_count
+  live_watch_choice.add_item(label)
+  live_watch_choice.set_item_metadata(index, name)
+ live_watch_choice.select(names.find(watched_variable) + 1)
+
+func _select_live_watch(index: int) -> void:
+ if not live_watch_row.is_visible_in_tree() or index < 0 or index >= live_watch_choice.item_count:
+  return
+ var variable: String = live_watch_choice.get_item_metadata(index)
+ if watched_variable == variable:
+  return
+ watched_variable = variable
+ watchpoint_active = false
+ live_change_source_line = -1
+ _show_progress()
+ _draw()
+ if not live_watch_row.is_visible_in_tree():
+  source.grab_focus()
 
 func _refresh_call_stack_list(selection: int) -> void:
  call_stack_list.clear()
@@ -2305,6 +2354,10 @@ func _input(event: InputEvent) -> void:
      review_history_button.set_pressed_no_signal(true)
      _refresh_variables()
      review_history_list.grab_focus()
+    elif _can_choose_live_watch():
+     variables_button.set_pressed_no_signal(true)
+     _refresh_variables()
+     live_watch_choice.grab_focus()
    elif show_calls and variables_panel.visible and call_stack_button.button_pressed:
     call_stack_list.grab_focus()
    else:
