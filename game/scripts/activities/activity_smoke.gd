@@ -17,11 +17,12 @@ func frames(count: int) -> void:
  for frame in count:
   await get_tree().physics_frame
 
-func press_key(key: Key, ctrl := false) -> void:
+func press_key(key: Key, ctrl := false, shift := false) -> void:
  var event := InputEventKey.new()
  event.keycode = key
  event.physical_keycode = key
  event.ctrl_pressed = ctrl
+ event.shift_pressed = shift
  event.pressed = true
  Input.parse_input_event(event)
  var release := event.duplicate() as InputEventKey
@@ -1853,6 +1854,99 @@ wait()
   popup._process(.25)
  check(not popup.running and popup.steps.is_empty() and popup.garden.turn == 2 and popup.run_to_line == -1 and "Program ended" in popup.status.text, "A skipped destination allows normal completion and leaves no temporary state")
 
+func check_step_out(popup) -> void:
+ popup._reset()
+ popup.source.grab_focus()
+ popup.variables_button.set_pressed_no_signal(true)
+ popup._refresh_variables()
+ var route := """def sample(value: int):
+    wait()
+    wait()
+    return value + 1
+
+def relay():
+    first = sample(4)
+    second = sample(4)
+    wait()
+    return first + second
+
+total = relay()
+wait()
+"""
+ popup.source.text = route
+ press_key(KEY_F11, false, true)
+ check(popup.steps.is_empty() and popup.garden.turn == 0 and "Pause inside a Python function" in popup.status.text, "Step out requires a paused function and leaves an idle board alone")
+ popup.source.set_caret_line(1)
+ press_key(KEY_F10, true)
+ popup._process(.25)
+ popup.source.set_caret_line(2)
+ press_key(KEY_F9)
+ press_key(KEY_F11, false, true)
+ popup._process(.25)
+ popup._process(.25)
+ check(not popup.running and popup.garden.turn == 1 and "Breakpoint · line 3" in popup.status.text and popup.step_out_frame.get("function") == "sample", "A breakpoint inside the call pauses the run and keeps the Step out request")
+
+ press_key(KEY_ENTER, true)
+ popup._process(.25)
+ popup._process(.25)
+ check(not popup.running and popup.garden.turn == 2 and "Step out · line 2" in popup.status.text and popup.source.get_executing_lines() == PackedInt32Array([1]) and popup.variables_text.text == "relay() · first = 5\nsample() · value = 4", "Step out pauses before the next identical call advances and exposes the first return")
+ popup.source.set_caret_line(2)
+ press_key(KEY_F9)
+ press_key(KEY_F11, false, true)
+ for action in 3:
+  popup._process(.25)
+ check(not popup.running and popup.garden.turn == 4 and "Step out · line 9" in popup.status.text and popup.variables_text.text == "relay() · first = 5\nrelay() · second = 5", "Stepping out of the second call lands in the caller with both return values")
+ press_key(KEY_F11, false, true)
+ popup._process(.25)
+ popup._process(.25)
+ check(not popup.running and popup.garden.turn == 5 and "Step out · line 13" in popup.status.text and popup.garden.local_frames.is_empty() and popup.variables_text.text == "total = 10", "Stepping out of the outer call marks the next top-level command and displays the result")
+ press_key(KEY_F11, false, true)
+ check(not popup.running and popup.garden.turn == 5 and not popup.steps.is_empty() and "Pause inside a Python function" in popup.status.text, "Step out leaves a paused top-level command in place")
+ press_key(KEY_F10)
+ check(popup.steps.is_empty() and popup.garden.turn == 6 and popup.step_out_frame.is_empty(), "A normal step runs the command after the returned call")
+
+ popup._reset()
+ popup.source.set_caret_line(1)
+ press_key(KEY_F10, true)
+ popup._process(.25)
+ popup.source.set_caret_line(2)
+ press_key(KEY_F9)
+ press_key(KEY_F11, false, true)
+ popup._process(.25)
+ popup._process(.25)
+ press_key(KEY_F9)
+ popup.source.set_caret_line(8)
+ press_key(KEY_F10, true)
+ for action in 4:
+  popup._process(.25)
+ check(not popup.running and popup.garden.turn == 4 and "Cursor · line 9" in popup.status.text and popup.step_out_frame.is_empty(), "Run to cursor can replace a pending Step out destination")
+
+ popup._reset()
+ popup.source.text = "def child():\n    wait()\ndef parent():\n    wait()\n    child()\n    wait()\nparent()\nwait()\n"
+ popup.source.set_caret_line(3)
+ press_key(KEY_F10, true)
+ popup._process(.25)
+ press_key(KEY_F11, false, true)
+ for action in 4:
+  popup._process(.25)
+ check(not popup.running and popup.garden.turn == 3 and "Step out · line 8" in popup.status.text and popup.garden.local_frames.is_empty(), "Step out keeps running through a nested call until the selected parent itself returns")
+
+ popup._reset()
+ popup.source.text = "def finish():\n    wait()\n    wait()\nfinish()\n"
+ press_key(KEY_F10)
+ press_key(KEY_F11, false, true)
+ popup._process(.25)
+ check(popup.steps.is_empty() and popup.garden.turn == 2 and popup.step_out_frame.is_empty() and "Program ended" in popup.status.text, "Step out completes normally when the function ends the program")
+
+ popup._reset()
+ var at_limit := "def rest():\n    wait()\n" + "rest()\n".repeat(Program.MAX_STEPS)
+ popup.source.text = at_limit
+ popup.check_button.pressed.emit()
+ var full_preview: bool = popup.checked_route.get("actions", []).size() == Program.MAX_STEPS and not popup.checked_route.get("limited", true)
+ popup.source.text = at_limit + "rest()\n"
+ popup.check_button.pressed.emit()
+ check(full_preview and "beyond 256 instructions" in popup.status.text and popup.garden.turn == 0, "Call boundaries preserve the expansion limit for board-only Python functions")
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -2715,6 +2809,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   await check_comparison_totals_at_target(popup)
   await check_alder_crossing(popup)
   check_run_to_cursor(popup)
+  check_step_out(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

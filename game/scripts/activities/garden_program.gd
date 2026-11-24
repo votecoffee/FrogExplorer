@@ -448,7 +448,15 @@ var local_frames: Array[Dictionary] = []
 var variable_revision := 0
 var module_revision := 0
 
-static func compile(source: String, case_sensitive := false, details: Dictionary = {}) -> Dictionary:
+static func _instruction_count(instructions: Array) -> int:
+ # A scope used only to track a call does not consume the program's instruction budget.
+ var count := 0
+ for instruction: Dictionary in instructions:
+  if not instruction.has("debug_boundary"):
+   count += 1
+ return count
+
+static func compile(source: String, case_sensitive := false, details: Dictionary = {}, track_calls := false) -> Dictionary:
  if source.length() > 8192:
   return {"error":"Programs can contain up to 8,192 characters.", "line":0}
  var blocks: Array[Dictionary] = [{"steps":[]}]
@@ -540,7 +548,8 @@ static func compile(source: String, case_sensitive := false, details: Dictionary
     var then_steps: Array = inner.get("then_steps", inner.steps)
     var else_steps: Array = inner.steps if has_else else []
     var skip := then_steps.size() + int(has_else or is_loop)
-    if outer.size() + 1 + skip + else_steps.size() > MAX_STEPS:
+    var count := _instruction_count(outer) + 1 + _instruction_count(then_steps) + int(has_else or is_loop) + _instruction_count(else_steps)
+    if count > MAX_STEPS:
      return _error(index, "This %s block exceeds the 256-instruction limit." % kind)
     # Relative jumps still work when a repeat or routine copies these instructions.
     var header := {"skip":skip, "line":inner.line}
@@ -560,7 +569,7 @@ static func compile(source: String, case_sensitive := false, details: Dictionary
       outer.append_array(else_steps)
     continue
    var loop_end: int = outer.size() + inner.steps.size() * inner.times
-   if loop_end > MAX_STEPS:
+   if _instruction_count(outer) + _instruction_count(inner.steps) * int(inner.times) > MAX_STEPS:
     return _error(index, "This loop expands beyond 256 instructions.")
    for count in inner.times:
     _append_loop_body(outer, inner.steps, loop_end)
@@ -580,7 +589,7 @@ static func compile(source: String, case_sensitive := false, details: Dictionary
     return _error(index, "Routine %s expects %d%s %s." % [words[1], targets.size(), kind, unit])
    var capture: Dictionary = detail.get("capture", {})
    var keeps_scope: bool = routine.scope or not capture.is_empty()
-   if steps.size() + routine.steps.size() + 2 * int(keeps_scope) > MAX_STEPS:
+   if _instruction_count(steps) + _instruction_count(routine.steps) + 2 * int(keeps_scope) > MAX_STEPS:
     return _error(index, "This call expands the program beyond 256 instructions.")
    var bindings: Dictionary = {}
    var value_args: Dictionary = detail.get("value_args", {})
@@ -597,11 +606,18 @@ static func compile(source: String, case_sensitive := false, details: Dictionary
     if not _is_direction(argument, parameters):
      return _error(index, "Argument %s needs a compass direction or a routine parameter." % parameter)
     bindings[parameter] = argument
-   if keeps_scope:
-    steps.append({"enter_scope":words[1], "inputs":inputs, "line":index})
+   var debug_scope := track_calls and not keeps_scope
+   if keeps_scope or debug_scope:
+    var enter := {"enter_scope":words[1], "inputs":inputs, "line":index}
+    if debug_scope:
+     enter.debug_boundary = true
+    steps.append(enter)
    steps.append_array(_bind_directions(routine.steps, bindings))
-   if keeps_scope:
-    steps.append({"leave_scope":true, "capture":capture, "line":index})
+   if keeps_scope or debug_scope:
+    var leave := {"leave_scope":true, "capture":capture, "line":index}
+    if debug_scope:
+     leave.debug_boundary = true
+    steps.append(leave)
    continue
   var instruction := {"command":command, "direction":"", "line":index}
   if (command == "diagnostic" and detail.has("output")) or (command == "assign" and detail.has("assign")):
@@ -624,7 +640,7 @@ static func compile(source: String, case_sensitive := false, details: Dictionary
    instruction = detail.merged({"line":index})
   elif words.size() != 1 or command not in ["fill", "plant", "water", "wait", "gather"]:
    return _error(index, "Use hop, fill, plant, water, wait, gather, repeat, routine, call, if, while, break, or continue.")
-  if steps.size() >= MAX_STEPS:
+  if _instruction_count(steps) >= MAX_STEPS:
    return _error(index, "Programs can contain up to 256 instructions after expansion.")
   steps.append(instruction)
  if blocks.size() > 1:
@@ -669,7 +685,7 @@ static func compile_python(source: String) -> Dictionary:
  if lowered.has("error"):
   return _error(int(lowered.line), lowered.error)
  var locations: Array = lowered.lines
- var result := compile(lowered.source, true, lowered.get("details", {}))
+ var result := compile(lowered.source, true, lowered.get("details", {}), true)
  if result.has("error"):
   var index: int = result.line
   var message: String = result.error.trim_prefix("Line %d · " % (index + 1))
@@ -907,11 +923,13 @@ func next_action_index(instructions: Array, first: int) -> int:
  var computed := 0
  while index < instructions.size() and runtime_error.is_empty():
   var instruction: Dictionary = instructions[index]
-  if computed >= MAX_COMPUTATION_STEPS:
-   runtime_error = "The program computed too many steps without doing an action."
-   runtime_error_line = instruction.line
-   break
-  computed += 1
+  var debug_boundary := instruction.has("debug_boundary")
+  if not debug_boundary:
+   if computed >= MAX_COMPUTATION_STEPS:
+    runtime_error = "The program computed too many steps without doing an action."
+    runtime_error_line = instruction.line
+    break
+   computed += 1
   if instruction.has("back"):
    index -= int(instruction.back)
    continue
@@ -936,12 +954,14 @@ func next_action_index(instructions: Array, first: int) -> int:
     runtime_error_line = instruction.line
     break
    local_frames.append({"function":instruction.enter_scope, "locals":locals, "revision":0})
-   variable_revision += 1
+   if not debug_boundary:
+    variable_revision += 1
    index += 1
    continue
   if instruction.has("leave_scope"):
    var frame: Dictionary = local_frames.pop_back()
-   variable_revision += 1
+   if not debug_boundary:
+    variable_revision += 1
    var capture: Dictionary = instruction.capture
    if not capture.is_empty():
     var value: Variant = frame.get("result")

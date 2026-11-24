@@ -291,6 +291,8 @@ Save a numeric reading or a Boolean in a Python variable, such as `start = colum
 
 Press **F7** or choose **Variables** to inspect the current Python values. The panel labels local variables with their function name. **Check** shows the final simulated values. In **Review** and **Best program**, move the action slider to see which values the program had at each point. The initial position includes assignments made before Pondbot's first action.
 
+While paused inside a Python function, press **Shift+F11** in the editor to **Step out**. Pondbot finishes that call and pauses before the next board command so you can see the caller's variables and any returned value. If a breakpoint pauses the run before the function returns, choose **Resume** to continue stepping out. **Step**, **Stop**, and **Reset board** clear the request.
+
 ```python
 start = column()
 hops = 0

@@ -13,7 +13,7 @@ enum ComparisonView { BOARDS, VARIABLES, PRINT_OUTPUT, SOURCE, RESULTS }
 enum ComparisonStart { LIVE, FRESH }
 enum ComparisonTotals { SELECTED_ACTION, FIRST_TARGET }
 const CLASSIC_GUIDE := "hop north / east / south / west\nfill     plant     water     wait     gather\nrepeat N … end     # comment\nroutine NAME heading · call NAME east\nif / while CONDITION … end\nelse · not · and · or · break · continue\nLook ahead with clear east or lily north\nF9 toggles a breakpoint\nCtrl+F10 runs to cursor"
-const PYTHON_GUIDE := "hop(east)    fill()    water()\nplant()       wait()       gather()\nfor bed in range(2):\nif water_level() < tank_capacity():\nwhile clear(east):\ndef walk(heading, steps: int):\nstart = column()    print(start)\nTab indents · Shift+Tab unindents\nF9 toggles a breakpoint\nCtrl+F10 runs to cursor"
+const PYTHON_GUIDE := "hop(east)    fill()    water()\nplant()       wait()       gather()\nfor bed in range(2):\nif water_level() < tank_capacity():\nwhile clear(east):\ndef walk(heading, steps: int):\nstart = column()    print(start)\nTab indents · Shift+Tab unindents\nF9 toggles a breakpoint\nCtrl+F10 runs to cursor\nShift+F11 steps out of a function"
 var hud: ExplorerHUD
 var garden := Programs.new()
 var world: ExplorerActivityWorld
@@ -111,6 +111,7 @@ var submitted_program := ""
 var offset := 0
 var breakpoint_offset := -1
 var run_to_line := -1
+var step_out_frame: Dictionary = {}
 var interval := 0.0
 var running := false
 var checked_source: Variant = null
@@ -1308,6 +1309,7 @@ func _clear_program() -> void:
  offset = 0
  breakpoint_offset = -1
  run_to_line = -1
+ step_out_frame = {}
 
 func _reset() -> void:
  _discard_check()
@@ -1562,6 +1564,7 @@ func _run(target_line := -1) -> void:
  elif _prepare_program(target_line):
   if target_line >= 0:
    run_to_line = target_line
+   step_out_frame = {}
   interval = 0
   running = true
  else:
@@ -1571,7 +1574,19 @@ func _run(target_line := -1) -> void:
 
 func _step() -> void:
  if not running and _prepare_program():
+  step_out_frame = {}
   _advance()
+
+func _step_out() -> void:
+ if running:
+  return
+ if steps.is_empty() or garden.local_frames.is_empty():
+  status.text = "Pause inside a Python function to step out."
+  return
+ # Retain this call's frame. A new call to the same function may be active at the next action.
+ step_out_frame = garden.local_frames.back()
+ run_to_line = -1
+ _run()
 
 func _show_progress() -> void:
  var next: Dictionary = steps[offset]
@@ -1582,6 +1597,8 @@ func _show_progress() -> void:
   status.text += " · %d / %d lilies this run" % [garden.run_harvest_count(), garden.harvest_target]
  if run_to_line >= 0:
   status.text += " · Cursor line %d" % (run_to_line + 1)
+ elif not step_out_frame.is_empty():
+  status.text += " · Stepping out of %s()" % step_out_frame.function
 
 func _mark_line(editor: CodeEdit, line: int) -> void:
  var marked := clampi(line, 0, editor.get_line_count() - 1)
@@ -1607,12 +1624,17 @@ func _process(delta: float) -> void:
  interval = maxf(0.0, interval + RUN_INTERVAL)
  var action: Dictionary = steps[offset]
  var cursor_reached: bool = action.line == run_to_line
- if cursor_reached or (breakpoint_offset != offset and source.is_line_breakpointed(action.line)):
+ var call_returned := not step_out_frame.is_empty() and not garden.local_frames.any(func(frame): return is_same(frame, step_out_frame))
+ if cursor_reached or call_returned or (breakpoint_offset != offset and source.is_line_breakpointed(action.line)):
   running = false
   breakpoint_offset = offset
-  var reason := "Cursor" if cursor_reached else "Breakpoint"
+  var reason := "Breakpoint"
   if cursor_reached:
+   reason = "Cursor"
    run_to_line = -1
+  elif call_returned:
+   reason = "Step out"
+   step_out_frame = {}
   var actions_count := garden.run_action_count()
   var unit := "action" if actions_count == 1 else "actions"
   status.text = "%s · line %d · %d %s" % [reason, action.line + 1, actions_count, unit]
@@ -1910,4 +1932,7 @@ func _input(event: InputEvent) -> void:
     _run(source.get_caret_line())
    else:
     _step()
+   get_viewport().set_input_as_handled()
+  elif python_mode and event.keycode == KEY_F11 and event.get_modifiers_mask() == KEY_MASK_SHIFT and source.has_focus():
+   _step_out()
    get_viewport().set_input_as_handled()
