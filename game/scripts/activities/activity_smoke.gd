@@ -384,9 +384,10 @@ for stop in range(1, 3):
   if history[action - 1].get("stop") == 1 and history[action].get("stop") == 2:
    second_stop = action
    break
- popup.review_slider.value = second_stop
+ popup.review_slider.value = maxi(0, second_stop - 1)
  press_key(KEY_F7, true)
- check(second_stop > 0 and popup.variables_title.text == "Best run changes" and popup.variables_text.text == "stop = 1 → 2" and popup.garden.turn == 36, "Best program shows the counter change at its recorded action without moving the live board")
+ press_key(KEY_PAGEDOWN)
+ check(second_stop > 0 and popup.review_slider.value == second_stop and popup.review_slider.has_focus() and popup.variables_title.text == "Best run changes" and popup.variables_text.text == "stop = 1 → 2" and popup.garden.turn == 36, "Best program can jump to the counter change at its recorded action without moving the live board")
  press_key(KEY_F7, true)
 
 func check_nursery_storage() -> void:
@@ -2156,6 +2157,60 @@ wait()
  press_key(KEY_F10)
  check(popup.garden.turn == 1 and "Line 4" in popup.status.text and popup.variables_text.text == "reading = 0 → 1", "A blocked command leaves the changes from the last successful action visible")
 
+func check_review_change_navigation(popup) -> void:
+ popup._reset()
+ popup.variables_button.set_pressed_no_signal(false)
+ var route := """count = 0
+wait()
+wait()
+count += 1
+wait()
+wait()
+count += 1
+wait()
+count += 1
+wait()
+"""
+ popup.source.text = route
+ popup.check_button.pressed.emit()
+ press_key(KEY_F7)
+ popup.review_button.pressed.emit()
+ var slider: HSlider = popup.review_slider
+ var previous: Button = popup.review_previous_change
+ var next: Button = popup.review_next_change
+ var hidden_in_values: bool = not popup.review_change_row.is_visible_in_tree()
+ press_key(KEY_F7, true)
+ check(hidden_in_values and previous.is_visible_in_tree() and previous.disabled and not next.disabled and slider.value == 0 and slider.has_focus(), "Change navigation opens with Changes and starts with only the next direction available")
+
+ press_key(KEY_PAGEDOWN)
+ check(slider.value == 2 and popup.variables_text.text == "count = 0 → 1" and slider.has_focus(), "Page Down skips the first unchanged action and shows the first variable change")
+ next.grab_focus()
+ press_key(KEY_ENTER)
+ check(slider.value == 4 and popup.variables_text.text == "count = 1 → 2" and slider.has_focus(), "Next change skips unchanged actions and restores timeline focus")
+ press_key(KEY_PAGEDOWN)
+ press_key(KEY_PAGEDOWN)
+ check(slider.value == 5 and next.disabled and not previous.disabled and popup.variables_text.text == "count = 2 → 3", "Adjacent changes remain separate stops and there is no jump past the last change")
+ slider.value = 6
+ press_key(KEY_PAGEUP)
+ var from_end := slider.value == 5
+ previous.grab_focus()
+ press_key(KEY_ENTER)
+ var from_button := slider.value == 4 and slider.has_focus()
+ press_key(KEY_PAGEUP)
+ press_key(KEY_PAGEUP)
+ check(from_end and from_button and slider.value == 2 and previous.disabled and not next.disabled and popup.garden.turn == 0, "Previous change skips unchanged actions and stops at the first change without updating the live board")
+ press_key(KEY_RIGHT)
+ check(slider.value == 3 and popup.variables_text.text == "No variable changes" and not previous.disabled and not next.disabled, "The right arrow still visits the individual unchanged action")
+ press_key(KEY_F7)
+ check(not popup.review_change_row.is_visible_in_tree() and slider.value == 3 and slider.has_focus() and popup.variables_text.text == "count = 1", "Switching to Variables hides navigation without changing the timeline")
+
+ popup.review_button.pressed.emit()
+ popup.source.text = "wait()\nwait()\n"
+ popup.check_button.pressed.emit()
+ press_key(KEY_F7, true)
+ popup.review_button.pressed.emit()
+ check(slider.max_value == 2 and not popup.review_change_row.is_visible_in_tree() and popup.variables_text.text == "No variable changes", "Opening a route with no changes clears earlier jump destinations")
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -3022,6 +3077,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   await check_call_stack(popup)
   check_frame_variables(popup)
   check_variable_changes(popup)
+  check_review_change_navigation(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

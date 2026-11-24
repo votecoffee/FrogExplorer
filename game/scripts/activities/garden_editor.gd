@@ -113,6 +113,10 @@ var review_button: Button
 var review_controls: VBoxContainer
 var review_position: Label
 var review_slider: HSlider
+var review_change_row: HBoxContainer
+var review_previous_change: Button
+var review_next_change: Button
+var review_change_actions := PackedInt32Array()
 var run_button: Button
 var speed_choice: OptionButton
 var step_button: Button
@@ -348,9 +352,16 @@ func _ready() -> void:
  review_slider = HSlider.new()
  review_slider.step = 1
  review_slider.focus_mode = Control.FOCUS_ALL
- review_slider.tooltip_text = "Drag or use Left and Right to choose an action"
+ review_slider.tooltip_text = "Drag or use Left and Right to choose an action. In Changes, use Page Up or Page Down to jump."
  review_slider.value_changed.connect(_draw_review)
  review_controls.add_child(review_slider)
+ review_change_row = HBoxContainer.new()
+ review_controls.add_child(review_change_row)
+ review_previous_change = _button(review_change_row, "Previous change", _jump_to_review_change.bind(false))
+ review_next_change = _button(review_change_row, "Next change", _jump_to_review_change.bind(true))
+ review_previous_change.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ review_next_change.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ review_change_row.hide()
  review_controls.hide()
  board = _board_grid(right)
  hint = hud.label("", 15)
@@ -1527,12 +1538,31 @@ func _toggle_review() -> void:
  _open_review(checked_route.actions.size())
 
 func _open_review(length: int) -> void:
+ var route := best_route if best_panel.visible else checked_route
+ var history: Array = route.variable_history
+ review_change_actions.clear()
+ for index in range(1, history.size()):
+  var before: Dictionary = history[index - 1]
+  var after: Dictionary = history[index]
+  if not is_same(before, after) and not _variable_mismatches(before, after).is_empty():
+   review_change_actions.append(index)
  review_slider.max_value = length
  review_slider.set_value_no_signal(0)
  review_slider.visible = length > 0
  review_controls.show()
  _draw_review(0)
  if review_slider.visible:
+  review_slider.grab_focus()
+
+func _review_change_index(forward: bool) -> int:
+ var action := roundi(review_slider.value)
+ var index := review_change_actions.bsearch(action, not forward)
+ return index if forward else index - 1
+
+func _jump_to_review_change(forward: bool) -> void:
+ var index := _review_change_index(forward)
+ if review_change_row.is_visible_in_tree() and index >= 0 and index < review_change_actions.size():
+  review_slider.value = review_change_actions[index]
   review_slider.grab_focus()
 
 func _close_review() -> void:
@@ -1904,6 +1934,10 @@ func _refresh_variables() -> void:
  variables_panel.visible = variables_button.visible and variables_button.button_pressed
  var show_calls := call_stack_button.button_pressed
  var show_changes := variable_changes_button.button_pressed
+ review_change_row.visible = review_controls.visible and variables_panel.visible and show_changes and not review_change_actions.is_empty()
+ if review_change_row.visible:
+  review_previous_change.disabled = _review_change_index(false) < 0
+  review_next_change.disabled = _review_change_index(true) >= review_change_actions.size()
  var view_name := "changes" if show_changes else "variables"
  if show_calls:
   view_name = "call stack"
@@ -2050,6 +2084,9 @@ func _input(event: InputEvent) -> void:
    get_viewport().set_input_as_handled()
   elif comparison_slider.has_focus() and not comparison_differences.is_empty() and event.get_modifiers_mask() == 0 and event.keycode in [KEY_PAGEUP, KEY_PAGEDOWN]:
    _jump_to_adjacent_comparison_difference(event.keycode == KEY_PAGEDOWN)
+   get_viewport().set_input_as_handled()
+  elif review_slider.has_focus() and review_change_row.is_visible_in_tree() and event.get_modifiers_mask() == 0 and event.keycode in [KEY_PAGEUP, KEY_PAGEDOWN]:
+   _jump_to_review_change(event.keycode == KEY_PAGEDOWN)
    get_viewport().set_input_as_handled()
   elif event.keycode == KEY_F7 and variables_button.visible:
    var show_calls: bool = event.shift_pressed
