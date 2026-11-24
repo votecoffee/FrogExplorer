@@ -513,6 +513,9 @@ func _buy_nursery_upgrade() -> void:
  elif upgrade == Progress.SPEED_CONTROL_MARKER:
   _refresh_speed_choice()
   status.text = "Speed control fitted. Choose a speed or press F8."
+ elif upgrade == Progress.ALDER_CROSSING_MARKER:
+  _choose(Programs.GARDENS.find(Programs.ALDER_CROSSING))
+  status.text = "Alder Crossing unlocked. Run the starter to tend the bank by your spring."
  else:
   _apply_nursery_tools()
   if upgrade == Progress.RESERVOIR_MARKER:
@@ -1697,6 +1700,8 @@ func _draw() -> void:
     label = "Unlock Stone ring nursery"
    Progress.SPEED_CONTROL_MARKER:
     label = "Buy speed control"
+   Progress.ALDER_CROSSING_MARKER:
+    label = "Unlock Alder Crossing"
   nursery_upgrade_button.text = "%s · %d lilies" % [label, cost]
   nursery_upgrade_button.disabled = active or best_panel.visible or balance < cost
  best_button.visible = not nursery_record.get("source", "").is_empty() if garden.practice else progress.garden_best_programs.has(item.id)

@@ -438,7 +438,12 @@ func check_nursery_storage() -> void:
  var speed := second.buy_nursery_upgrade(Progress.SPEED_CONTROL_MARKER)
  var speed_again := first.buy_nursery_upgrade(Progress.SPEED_CONTROL_MARKER)
  reopened.load_from(path)
- check(saved and speed == OK and speed_again == OK and reopened.nursery_balance() == 3 and reopened.has_nursery_upgrade(Progress.SPEED_CONTROL_MARKER) and reopened.next_nursery_upgrade().is_empty(), "Speed control persists and charges its price once across sessions")
+ check(saved and speed == OK and speed_again == OK and reopened.nursery_balance() == 3 and reopened.has_nursery_upgrade(Progress.SPEED_CONTROL_MARKER) and reopened.next_nursery_upgrade() == Progress.ALDER_CROSSING_MARKER, "Speed control persists and charges its price once across sessions")
+ saved = first.record_nursery_harvest(Progress.ALDER_CROSSING_COST) == OK
+ var alder := second.buy_nursery_upgrade(Progress.ALDER_CROSSING_MARKER)
+ var alder_again := first.buy_nursery_upgrade(Progress.ALDER_CROSSING_MARKER)
+ reopened.load_from(path)
+ check(saved and alder == OK and alder_again == OK and reopened.nursery_balance() == 3 and reopened.lesson_available(Program.ALDER_CROSSING, 0) and reopened.next_nursery_upgrade().is_empty(), "Alder Crossing unlocks once and persists across sessions")
  var ring_id: String = Program.STONE_RING_NURSERY.id
  var marsh_id: String = Program.LOTUS_MARSH.id
  var written := first.set_nursery_target(ring_id, 48)
@@ -1740,6 +1745,52 @@ func check_comparison_totals_at_target(popup) -> void:
  slider.value = 1
  check(popup.comparison_difference_button.visible and values.map(func(label): return label.text) == ["1", "0", "-1", "1", "1", "0", "0", "0", "0", "0", "0", "0"] and popup.garden.turn == 5 and popup.garden.tank == 5 and popup.garden.plant_status(Vector2i(1, 0)) == "Ripe" and popup.progress.nursery_balance() == balance and popup.source.text == current, "Switching back restores shared step totals without changing the live nursery")
 
+func check_alder_crossing(popup) -> void:
+ press_key(KEY_ESCAPE)
+ var ring := Program.GARDENS.find(Program.STONE_RING_NURSERY)
+ var alder := Program.GARDENS.find(Program.ALDER_CROSSING)
+ popup.chooser.item_selected.emit(ring)
+ popup.chooser.item_selected.emit(alder)
+ check(popup.puzzle == ring and popup.chooser.is_item_disabled(alder) and "128 nursery lilies" in popup.chooser.get_item_text(alder), "Alder Crossing stays locked until its purchase")
+ var needed := maxi(1, Progress.ALDER_CROSSING_COST - popup.progress.nursery_balance())
+ var saved: Error = popup.progress.record_nursery_harvest(needed)
+ popup._draw()
+ var balance: int = popup.progress.nursery_balance() - Progress.ALDER_CROSSING_COST
+ var buy: Button = popup.nursery_upgrade_button
+ var offer := buy.visible and not buy.disabled and buy.text == "Unlock Alder Crossing · 128 lilies"
+ buy.pressed.emit()
+ var starter: String = Program.ALDER_CROSSING.python_draft
+ check(saved == OK and offer and popup.puzzle == alder and not popup.chooser.is_item_disabled(alder) and popup.source.text == starter and popup.garden.cell == Vector2i(3, 3) and popup.garden.water_capacity == 6 and popup.garden.reach_tool and popup.garden.harvest_hook and popup.speed_choice.visible and popup.garden.plants.size() == 7 and popup.world.garden_root.get_child_count() > 25 and popup.progress.nursery_balance() == balance, "Buying Alder Crossing opens seven beds and both banks with its starter and prior tools")
+
+ popup.check_button.pressed.emit()
+ var south: Program = popup.checked_route.get("preview")
+ check(south != null and south.run_harvest_count() == 5 and south.run_action_count() == 21 and south.run_water_used == 4 and south.run_fills == 1 and south.cell == Vector2i(0, 1) and popup.garden.turn == 0, "Check predicts the starter will harvest the south bank on four doses and reach the west spring in 21 actions")
+ await finish_by_steps(popup, starter)
+ check(popup.garden.harvested == 5 and popup.garden.cell == Vector2i(0, 1) and popup.garden.tank == 2 and popup.garden.turn == 21 and popup.progress.nursery_balance() == balance + 5, "The Python starter harvests the south bank and leaves two doses before the next fill")
+ popup.check_button.pressed.emit()
+ var north: Program = popup.checked_route.get("preview")
+ var northern_forecast := north != null and north.run_harvest_count() == 8 and north.run_action_count() == 25 and north.run_water_used == 6 and north.run_fills == 1 and north.cell == Vector2i(3, 3)
+ await finish_by_steps(popup, starter)
+ check(northern_forecast and popup.garden.harvested == 13 and popup.garden.cell == Vector2i(3, 3) and popup.garden.tank == 0 and popup.garden.turn == 46 and popup.progress.nursery_balance() == balance + 13, "A rerun from the west spring harvests eight more on six doses and returns south in 25 actions")
+
+ popup.language.item_selected.emit(1)
+ popup.nursery_target.value = 13
+ popup._reset()
+ var classic_loop: String = Program.ALDER_CROSSING.draft.replace("\nif spring\n", "\nwhile spring and harvest_count < harvest_target\n")
+ popup.source.text = classic_loop
+ popup.check_button.pressed.emit()
+ var circuit: Program = popup.checked_route.get("preview")
+ check(circuit != null and circuit.run_harvest_count() == 13 and circuit.run_action_count() == 46 and circuit.run_water_used == 10 and circuit.run_fills == 2 and circuit.cell == Vector2i(3, 3) and popup.garden.turn == 0 and popup.progress.nursery_balance() == balance + 13, "The Classic starter loops to the 13-lily target in two fills without changing the live nursery during Check")
+ await finish_by_steps(popup, classic_loop)
+ var id: String = Program.ALDER_CROSSING.id
+ check(popup.garden.harvested == 13 and popup.progress.nursery_best(id, popup.garden) == Vector3i(46, 10, 2) and popup.progress.nursery_record(id, popup.garden).get("source") == classic_loop and popup.progress.nursery_balance() == balance + 26, "A two-bank run saves its target record and source")
+ popup.compare_drafts_button.pressed.emit()
+ popup.comparison_view.select(2)
+ popup.comparison_view.item_selected.emit(2)
+ popup.comparison_totals_choice.select(1)
+ popup.comparison_totals_choice.item_selected.emit(1)
+ check(popup.comparison_panel.visible and popup.comparison_goal_actions == Vector2i(42, 42) and popup.comparison_goal_delta.text == "0" and popup.garden.turn == 46 and popup.progress.nursery_balance() == balance + 26, "Alder Crossing comparison finds the target four steps before either route returns to the spring")
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -2600,6 +2651,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   await check_extended_comparison(popup)
   await check_comparison_results(popup)
   await check_comparison_totals_at_target(popup)
+  await check_alder_crossing(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

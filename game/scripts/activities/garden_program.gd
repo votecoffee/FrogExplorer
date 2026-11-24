@@ -286,7 +286,122 @@ if spring():
         sweep(west, south)
 """,
 }
-const GARDENS := PUZZLES + [OPEN_NURSERY, WILLOW_NURSERY, LOTUS_MARSH, STONE_RING_NURSERY]
+const ALDER_CROSSING := {
+ "id":"alder_crossing", "name":"Alder Crossing", "practice":true,
+ "rows":[".BXX#", "~...B", "##.#.", "...~.", "BXB##"],
+ "hint":"The south bank takes four doses and the north takes six. Tend the bank by your spring, then take the central crossing to the other one.",
+ "draft":"""# Harvest the bank by your spring, then cross to the next one.
+routine tend heading
+  if empty_bed heading
+    plant heading
+  end
+  while thirsty heading and has_water
+    water heading
+  end
+end
+
+routine collect heading
+  while growing heading
+    wait
+  end
+  if ripe heading
+    gather heading
+  end
+end
+
+routine south_bank
+  repeat 3
+    hop west
+    call tend south
+  end
+  repeat 2
+    call collect south
+    hop east
+  end
+  call collect south
+  hop north
+  hop north
+  hop west
+  hop west
+end
+
+routine north_bank
+  repeat 3
+    hop east
+    call tend north
+  end
+  call tend east
+  call collect east
+  call collect north
+  repeat 2
+    hop west
+    call collect north
+  end
+  hop east
+  hop south
+  hop south
+  hop east
+end
+
+if spring
+  fill
+  if row == 3
+    call south_bank
+  else
+    call north_bank
+  end
+end
+""",
+ "python_draft":"""# Harvest the bank by your spring, then cross to the next one.
+def tend(heading):
+    if empty_bed(heading):
+        plant(heading)
+    while thirsty(heading) and has_water():
+        water(heading)
+
+def collect(heading):
+    while growing(heading):
+        wait()
+    if ripe(heading):
+        gather(heading)
+
+def south_bank():
+    for _ in range(3):
+        hop(west)
+        tend(south)
+    for _ in range(2):
+        collect(south)
+        hop(east)
+    collect(south)
+    hop(north)
+    hop(north)
+    hop(west)
+    hop(west)
+
+def north_bank():
+    for _ in range(3):
+        hop(east)
+        tend(north)
+    tend(east)
+    collect(east)
+    collect(north)
+    for _ in range(2):
+        hop(west)
+        collect(north)
+    hop(east)
+    hop(south)
+    hop(south)
+    hop(east)
+
+if spring():
+    fill()
+    if row() == 3:
+        south_bank()
+    else:
+        north_bank()
+""",
+}
+const GARDENS := PUZZLES + [OPEN_NURSERY, WILLOW_NURSERY, LOTUS_MARSH, STONE_RING_NURSERY, ALDER_CROSSING]
 const DIRECTIONS = {"north":Vector2i(0,-1), "east":Vector2i(1,0), "south":Vector2i(0,1), "west":Vector2i(-1,0)}
 const CONDITIONS := ["always", "spring", "has_water", "empty_bed", "lily", "thirsty", "growing", "ripe", "has_reach_tool", "has_harvest_hook"]
 const NUMERIC_SENSORS := ["water_level", "tank_capacity", "row", "column", "harvest_count", "action_count", "harvest_target"]
