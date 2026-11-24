@@ -83,6 +83,10 @@ var variables_title: Label
 var variables_text: RichTextLabel
 var call_stack_button: Button
 var call_stack_list: ItemList
+var call_stack_row: HBoxContainer
+var frame_variables_panel: VBoxContainer
+var frame_variables_title: Label
+var frame_variables_text: RichTextLabel
 var displayed_variables: Dictionary = {}
 var displayed_calls: Array = []
 var diagnostics_context := ""
@@ -256,16 +260,33 @@ func _ready() -> void:
  variables_text.add_theme_font_size_override("normal_font_size", 15)
  variables_text.selection_enabled = true
  variables_stack.add_child(variables_text)
+ call_stack_row = HBoxContainer.new()
+ variables_stack.add_child(call_stack_row)
  call_stack_list = ItemList.new()
+ call_stack_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ call_stack_list.size_flags_stretch_ratio = 1.25
  call_stack_list.custom_minimum_size.y = variables_text.custom_minimum_size.y
  call_stack_list.add_theme_font_override("font", source.get_theme_font("font"))
  call_stack_list.add_theme_font_size_override("font_size", 15)
  call_stack_list.focus_mode = Control.FOCUS_ALL
  call_stack_list.tooltip_text = "Press Enter or double-click a call to open its source line."
  call_stack_list.item_activated.connect(_open_call_site)
+ call_stack_list.item_selected.connect(func(_index: int): _refresh_frame_variables())
  call_stack_list.add_item("Top level", null, false)
- variables_stack.add_child(call_stack_list)
- call_stack_list.hide()
+ call_stack_row.add_child(call_stack_list)
+ frame_variables_panel = VBoxContainer.new()
+ frame_variables_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ call_stack_row.add_child(frame_variables_panel)
+ frame_variables_title = hud.label("", 15, Color("#b9dccc"))
+ frame_variables_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+ frame_variables_panel.add_child(frame_variables_title)
+ frame_variables_text = RichTextLabel.new()
+ frame_variables_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
+ frame_variables_text.add_theme_font_override("normal_font", source.get_theme_font("font"))
+ frame_variables_text.add_theme_font_size_override("normal_font_size", 15)
+ frame_variables_text.selection_enabled = true
+ frame_variables_panel.add_child(frame_variables_text)
+ call_stack_row.hide()
  variables_panel.hide()
  var sidebar := VBoxContainer.new()
  sidebar.custom_minimum_size.x = 285
@@ -1853,8 +1874,10 @@ func _draw_diagnostics(view: Programs, context := "Program", through_turn := -1,
 func _show_variables(values: Dictionary, context: String, calls: Array = []) -> void:
  displayed_variables = values
  if displayed_calls != calls:
+  var selected := call_stack_list.get_selected_items()
+  var selected_call: Dictionary = displayed_calls[selected[0]] if not selected.is_empty() else {}
   displayed_calls = calls
-  _refresh_call_stack_list()
+  _refresh_call_stack_list(displayed_calls.find(selected_call))
  diagnostics_context = context
  _refresh_variables()
 
@@ -1864,20 +1887,40 @@ func _refresh_variables() -> void:
  var show_calls := call_stack_button.button_pressed
  variables_title.text = diagnostics_context + (" call stack" if show_calls else " variables")
  variables_text.visible = not show_calls
- call_stack_list.visible = show_calls
- if not variables_panel.visible or show_calls:
+ call_stack_row.visible = show_calls
+ variables_panel.size_flags_stretch_ratio = 2.0 if show_calls and not displayed_calls.is_empty() else 1.0
+ if not variables_panel.visible:
+  return
+ if show_calls:
+  _refresh_frame_variables()
   return
  var content := _format_program_variables(displayed_variables)
  if variables_text.text != content:
   variables_text.text = content
 
-func _refresh_call_stack_list() -> void:
+func _refresh_call_stack_list(selection: int) -> void:
  call_stack_list.clear()
  for call: Dictionary in displayed_calls:
   call_stack_list.add_item("%s() · called at line %d" % [call.function, int(call.line) + 1])
  call_stack_list.add_item("Top level", null, false)
  if not displayed_calls.is_empty():
-  call_stack_list.select(0)
+  call_stack_list.select(maxi(0, selection))
+
+func _refresh_frame_variables() -> void:
+ var selected := call_stack_list.get_selected_items()
+ frame_variables_panel.visible = not selected.is_empty()
+ if selected.is_empty():
+  return
+ var function: String = displayed_calls[selected[0]].function
+ var prefix := Programs.local_variable_prefix(function)
+ var locals: Dictionary = {}
+ for variable: String in displayed_variables:
+  if variable.begins_with(prefix):
+   locals[variable.trim_prefix(prefix)] = displayed_variables[variable]
+ frame_variables_title.text = "%s() locals" % function
+ var content := _format_program_variables(locals)
+ if frame_variables_text.text != content:
+  frame_variables_text.text = content
 
 func _open_call_site(index: int) -> void:
  if index < 0 or index >= displayed_calls.size():

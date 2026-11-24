@@ -2025,6 +2025,7 @@ wait()
  popup.best_button.pressed.emit()
  slider.value = 7
  check(popup.best_panel.visible and popup.best_source.text == route and popup.variables_title.text == "Best run call stack" and call_stack_labels(calls) == second_call and popup.garden.turn == 12 and popup.progress.nursery_balance() == balance, "Best program replays the saved call stack without changing the live nursery or balance")
+ check(popup.frame_variables_panel.is_visible_in_tree() and popup.frame_variables_title.text == "tend() locals" and popup.frame_variables_text.text == "No variables assigned", "A saved replay can inspect a board-only function with no locals")
  var draft_line: int = popup.source.get_caret_line()
  var replay_mark: PackedInt32Array = popup.best_source.get_executing_lines()
  calls.item_activated.emit(0)
@@ -2039,6 +2040,60 @@ wait()
  popup.check_button.pressed.emit()
  popup.review_button.pressed.emit()
  check("Blocked" in popup.review_position.text and call_stack_labels(calls) == "cross() · called at line 3\nTop level" and popup.garden.turn == 0, "Review retains the call site when a command fails before the first action")
+
+func check_frame_variables(popup) -> void:
+ popup._reset()
+ popup.variables_button.set_pressed_no_signal(false)
+ var route := """shared = 9
+def probe(count: int):
+    shared = count
+    wait()
+    shared += 1
+    wait()
+def sweep():
+    shared = 20
+    probe(2)
+    wait()
+sweep()
+wait()
+"""
+ popup.source.text = route
+ popup.check_button.pressed.emit()
+ press_key(KEY_F7, false, true)
+ check(popup.variables_title.text == "Check call stack" and not popup.frame_variables_panel.is_visible_in_tree(), "A finished Check hides the locals pane at top level")
+ popup.review_button.pressed.emit()
+ var slider: HSlider = popup.review_slider
+ var calls: ItemList = popup.call_stack_list
+ check(popup.frame_variables_panel.is_visible_in_tree() and popup.frame_variables_title.text == "probe() locals" and popup.frame_variables_text.text == "count = 2\nshared = 2", "Review defaults to the innermost frame and shows its parameter and local value")
+
+ press_key(KEY_F7, false, true)
+ press_key(KEY_DOWN)
+ check(calls.has_focus() and calls.is_selected(1) and popup.frame_variables_title.text == "sweep() locals" and popup.frame_variables_text.text == "shared = 20" and slider.value == 0, "Selecting a caller shows only that frame's values without advancing Review")
+ slider.value = 1
+ var still_selected := calls.is_selected(1)
+ slider.value = 2
+ var after_return := calls.is_selected(0)
+ slider.value = 0
+ check(still_selected and after_return and calls.is_selected(1) and popup.frame_variables_text.text == "shared = 20" and popup.garden.turn == 0, "The caller selection survives a nested return and rewind without changing the live board")
+ press_key(KEY_UP)
+ var before_update: String = popup.frame_variables_text.text
+ slider.value = 1
+ check(calls.is_selected(0) and before_update == "count = 2\nshared = 2" and popup.frame_variables_text.text == "count = 2\nshared = 3", "A selected frame's locals update even when the call stack stays the same")
+ slider.value = 4
+ check(not popup.frame_variables_panel.is_visible_in_tree() and call_stack_labels(calls) == "Top level", "Returning from the last call hides the locals pane")
+ slider.value = 1
+ press_key(KEY_F7)
+ var all_values := "probe() · count = 2\nprobe() · shared = 3\nshared = 9\nsweep() · shared = 20"
+ check(popup.variables_text.is_visible_in_tree() and popup.variables_text.text == all_values and slider.value == 1, "F7 still shows all scopes together after inspecting a single frame")
+
+ popup.review_button.pressed.emit()
+ popup.source.grab_focus()
+ popup.source.set_caret_line(3)
+ press_key(KEY_F10, true)
+ popup._process(.25)
+ press_key(KEY_F7, false, true)
+ press_key(KEY_F10)
+ check(not popup.running and popup.garden.turn == 1 and popup.variables_title.text == "Program call stack" and popup.frame_variables_text.text == "count = 2\nshared = 3", "Stepping the live program updates the selected function's locals")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)
@@ -2904,6 +2959,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   check_run_to_cursor(popup)
   check_step_out(popup)
   await check_call_stack(popup)
+  check_frame_variables(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

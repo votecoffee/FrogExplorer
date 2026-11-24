@@ -870,10 +870,13 @@ func run_action_count() -> int:
 func inspect_variables() -> Dictionary:
  var visible_values := variables.duplicate()
  for frame: Dictionary in local_frames:
+  var prefix := local_variable_prefix(frame.function)
   for variable: String in frame.locals:
-   var label := "%s() · %s" % [frame.function, variable]
-   visible_values[label] = frame.locals[variable]
+   visible_values[prefix + variable] = frame.locals[variable]
  return visible_values
+
+static func local_variable_prefix(function_name: String) -> String:
+ return "%s() · " % function_name
 
 func inspect_call_stack() -> Array[Dictionary]:
  var calls: Array[Dictionary] = []
