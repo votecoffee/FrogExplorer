@@ -1189,6 +1189,19 @@ func check_draft_comparison(popup) -> void:
  var current_board: GridContainer = popup.comparison_current_board
  var other_board: GridContainer = popup.comparison_other_board
  check(current_board.columns == 3 and other_board.columns == 3 and current_board.get_child_count() == 9 and other_board.get_child_count() == 9 and popup.comparison_board_key.visible, "Both previews draw the nursery layout")
+ var slider: HSlider = popup.comparison_slider
+ var playback: Button = popup.comparison_playback_button
+ press_key(KEY_SPACE)
+ var restarted := slider.value == 0 and playback.text == "Pause"
+ popup._process(.25)
+ check(restarted and slider.value == 1 and "Harvested 1 in 1 action" in popup.comparison_current.text and "Harvested 0 in 1 action" in popup.comparison_other.text and popup.garden.turn == 5, "Space restarts a finished comparison and plays both drafts at the same action")
+ playback.grab_focus()
+ press_key(KEY_ENTER)
+ popup._process(.50)
+ check(playback.text == "Play" and slider.value == 1 and slider.has_focus(), "The comparison Pause button holds both drafts on the current action")
+ press_key(KEY_SPACE)
+ popup._process(.25)
+ check(playback.text == "Play" and slider.value == 2 and "Finished · 1 / 1 actions" in popup.comparison_current.text and "Harvested 1 in 2 actions" in popup.comparison_other.text and current_board.get_child(1).get_child(0).text == Program.EMPTY_BED, "Comparison playback holds the shorter draft and stops when both previews have ended")
  popup.comparison_difference_button.grab_focus()
  press_key(KEY_ENTER)
  check(popup.comparison_slider.value == 1 and popup.comparison_slider.has_focus() and "gather east" in popup.comparison_current.text and "Line 1 · wait" in popup.comparison_other.text, "Enter jumps to the first different command and returns focus to the slider")
@@ -1202,14 +1215,19 @@ func check_draft_comparison(popup) -> void:
  check(popup.comparison_slider.value == 2 and "Finished · 1 / 1 actions" in popup.comparison_current.text and "Harvested 1 in 2 actions" in popup.comparison_other.text, "Advancing past the short route leaves its completed state visible")
  check(current_board.get_child(1).get_child(0).text == Program.EMPTY_BED and other_board.get_child(1).get_child(0).text == Program.EMPTY_BED and other_board.get_child(1).get_theme_stylebox("panel").get_margin(SIDE_LEFT) == 0 and popup.board.get_child(1).get_child(0).text == "Ripe" and popup.world.garden_root.get_child(0) == live_plot, "Matching endpoints clear the outline and leave the live boards untouched")
  check(popup.draft_choice.selected == 0 and popup.source.text == current and popup.progress.python_drafts.get(id) == setup and popup.garden.turn == 5 and popup.garden.tank == 5 and popup.garden.plant_status(Vector2i(1, 0)) == "Ripe" and popup.progress.nursery_balance() == balance, "A comparison leaves the unsaved edit, saved draft, live bed, and wallet intact")
+ press_key(KEY_SPACE)
  popup.comparison_choice.select(1)
  popup.comparison_choice.item_selected.emit(1)
+ check(playback.text == "Play" and slider.value == slider.max_value, "Choosing another draft stops playback before rebuilding the comparison")
  check("Blocked · Line 2 · This plot does not need water." in popup.comparison_other.text and "Harvested 1 in 1 action" in popup.comparison_current.text, "A blocked comparison draft does not hide the other result")
  check("●" in current_board.get_child(0).get_child(0).text and "●" in other_board.get_child(1).get_child(0).text and other_board.get_child(1).get_theme_stylebox("panel").bg_color == Color("#784b30") and other_board.get_child(0).get_theme_stylebox("panel").get_margin(SIDE_LEFT) == 2 and other_board.get_child(1).get_theme_stylebox("panel").get_margin(SIDE_LEFT) == 2, "Different Pondbot positions outline both tiles and show where the other draft blocked")
  popup.comparison_slider.value = 0
  check("Blocked" not in popup.comparison_other.text and "Start" in popup.comparison_other.text and "Harvested 0" in popup.comparison_current.text, "Rewinding the comparison puts the blocked action back in the future")
+ slider.grab_focus()
+ press_key(KEY_SPACE)
  press_key(KEY_ESCAPE)
- check(popup.visible and not popup.comparison_panel.visible and current_board.get_child_count() == 0 and other_board.get_child_count() == 0, "Escape closes the comparison and stays in the editor")
+ popup._process(.25)
+ check(popup.visible and not popup.comparison_panel.visible and playback.text == "Play" and slider.value == 0 and current_board.get_child_count() == 0 and other_board.get_child_count() == 0, "Escape closes the comparison, stops playback, and stays in the editor")
  popup.compare_drafts_button.pressed.emit()
  popup.source.text = "wait()\n"
  popup._queue_save()
@@ -1221,6 +1239,9 @@ func check_draft_comparison(popup) -> void:
  popup.compare_drafts_button.pressed.emit()
  check(recorded.error == OK and popup.comparison_panel.visible and "Fresh lesson" in popup.comparison_context.text and not popup.comparison_start.visible and "Harvested 0 of 2 in 1 action" in popup.comparison_current.text and "Check the arguments for fill()" in popup.comparison_other.text and popup.garden.turn == 0, "Lesson comparisons start fresh and report each draft's compile result")
  check(current_board.get_child_count() == 3 and other_board.get_child_count() == 0 and not popup.comparison_board_key.visible and not popup.comparison_difference_button.visible, "A draft that cannot compile has no board or first difference control")
+ press_key(KEY_SPACE)
+ popup._process(.25)
+ check(slider.value == 1 and playback.text == "Play" and "Check the arguments for fill()" in popup.comparison_other.text and other_board.get_child_count() == 0, "Playback advances the valid draft and keeps the other draft's compile error visible")
  press_key(KEY_ENTER, true)
  check(not popup.comparison_panel.visible and popup.compare_drafts_button.disabled and popup.running, "Starting a run closes the comparison and locks it while the program runs")
  popup.stop_button.pressed.emit()
@@ -1240,7 +1261,6 @@ func check_draft_comparison(popup) -> void:
 
  popup.comparison_difference_button.pressed.emit()
  check(popup.comparison_slider.value == 2 and "hop north" in popup.comparison_current.text and "hop east" in popup.comparison_other.text, "The first difference skips a shared fill and finds the first different direction")
- var slider: HSlider = popup.comparison_slider
  var previous: Button = popup.comparison_previous_difference_button
  var next: Button = popup.comparison_next_difference_button
  press_key(KEY_PAGEUP)
@@ -1287,11 +1307,19 @@ func check_comparison_stopping_points(popup) -> void:
    3:
     difference.pressed.emit()
     check(slider.value == 0 and difference.text == "First difference · Start" and "Blocked · Line 1" in popup.comparison_other.text and "Start" in popup.comparison_current.text, "The first difference can occur before either draft completes an action")
+    press_key(KEY_SPACE)
+    popup._process(.25)
+    check(slider.value == 1 and "Line 1 · fill" in popup.comparison_current.text and "Blocked · Line 1" in popup.comparison_other.text, "Playback holds the blocked draft at its failure while the other advances")
    4:
     difference.pressed.emit()
     check(slider.value == 4 and "Finished" in popup.comparison_current.text and "Line 4 · wait" in popup.comparison_other.text and "Difference 1 of 2" in popup.comparison_board_key.text, "The longer route first diverges by continuing after the shorter route")
     press_key(KEY_PAGEDOWN)
     check(slider.value == 5 and "Blocked · Line 6 · Fill at the spring." in popup.comparison_other.text and "Difference 2 of 2" in popup.comparison_board_key.text, "A later blocked command remains a separate difference")
+    press_key(KEY_SPACE)
+    popup._process(.25)
+    press_key(KEY_RIGHT)
+    popup._process(.50)
+    check(slider.value == 2 and popup.comparison_playback_button.text == "Play" and "Line 2 · hop east" in popup.comparison_other.text, "Seeking with the keyboard pauses the comparison at the selected action")
 
 func select_comparison_copy(choice: OptionButton, key: String) -> void:
  for index in choice.item_count:
@@ -1709,9 +1737,13 @@ func check_extended_comparison(popup) -> void:
 
  view.select(2)
  view.item_selected.emit(2)
+ slider.value = Program.MAX_STEPS - 1
+ slider.grab_focus()
+ press_key(KEY_SPACE)
+ var playing: bool = popup.comparison_playback_button.text == "Pause"
  extend.grab_focus()
  press_key(KEY_ENTER)
- check(slider.has_focus() and slider.value == Program.MAX_STEPS and slider.max_value == 270 and view.selected == 2 and not extend.visible and popup.comparison_current_route.actions.size() == 268 and popup.comparison_current_route.preview.run_harvest_count() == 2 and popup.comparison_other_route.preview.run_harvest_count() == 2, "Extending from the keyboard completes both traces and keeps the selected action and view")
+ check(playing and popup.comparison_playback_button.text == "Play" and slider.has_focus() and slider.value == Program.MAX_STEPS - 1 and slider.max_value == 270 and view.selected == 2 and not extend.visible and popup.comparison_current_route.actions.size() == 268 and popup.comparison_current_route.preview.run_harvest_count() == 2 and popup.comparison_other_route.preview.run_harvest_count() == 2, "Extending from the keyboard pauses playback, completes both traces, and keeps the selected action and view")
  check(popup.comparison_goal_actions == Vector2i(268, 270) and popup.comparison_goal_delta.text == "+2", "Extending reveals when each long draft first reaches the harvest target")
 
  slider.value = 258

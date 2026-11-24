@@ -34,6 +34,8 @@ var comparison_context: Label
 var comparison_start: OptionButton
 var comparison_timeline: HBoxContainer
 var comparison_slider: HSlider
+var comparison_playback_button: Button
+var comparison_playback_boards: Array[Programs] = []
 var comparison_position: Label
 var comparison_difference_button: Button
 var comparison_previous_difference_button: Button
@@ -131,7 +133,7 @@ var review_position: Label
 var review_slider: HSlider
 var review_playback_button: Button
 var review_playback_board: Programs
-var review_playback_interval := 0.0
+var playback_interval := 0.0
 var review_run_to_action: Button
 var review_variable_row: HBoxContainer
 var review_variable_filter: OptionButton
@@ -937,12 +939,15 @@ func _add_draft_comparison(parent: Container) -> void:
  comparison_panel.add_child(comparison_timeline)
  comparison_position = hud.label("", 14)
  comparison_timeline.add_child(comparison_position)
+ comparison_playback_button = _button(comparison_timeline, "Play", _toggle_comparison_playback)
+ comparison_playback_button.custom_minimum_size.x = 66
+ comparison_playback_button.tooltip_text = "Play or pause both previews. Press Space with the timeline focused."
  comparison_slider = HSlider.new()
  comparison_slider.step = 1
  comparison_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  comparison_slider.focus_mode = Control.FOCUS_ALL
  comparison_slider.tooltip_text = "Drag or use Left and Right to review both drafts at the same action."
- comparison_slider.value_changed.connect(_show_comparison_step)
+ comparison_slider.value_changed.connect(_seek_comparison)
  comparison_timeline.add_child(comparison_slider)
  comparison_difference_button = _button(comparison_timeline, "First difference", func(): _jump_to_comparison_difference(0))
  comparison_previous_difference_button = _button(comparison_timeline, "Previous", func(): _jump_to_adjacent_comparison_difference(false))
@@ -1176,6 +1181,7 @@ func _retrace_comparison() -> void:
 func _compare_drafts(index: int, action := -1) -> void:
  if not comparison_panel.visible:
   return
+ _pause_comparison_playback()
  var other: String = comparison_choice.get_item_metadata(index)
  var is_best := other == COMPARISON_BEST
  var other_source := comparison_best_source if is_best else _draft_source(other)
@@ -1213,6 +1219,7 @@ func _update_comparison_differences() -> void:
    ComparisonView.RESULTS:
     comparison_differences = _find_result_differences(comparison_current_route.totals_history, comparison_other_route.totals_history)
  comparison_slider.visible = comparison_slider.max_value > 0
+ comparison_playback_button.visible = comparison_slider.visible
  comparison_timeline.visible = comparison_slider.visible or not comparison_differences.is_empty()
  comparison_difference_button.visible = both_compiled and follows_slider
  match view:
@@ -1394,13 +1401,57 @@ func _trace_draft(text: String) -> Dictionary:
  var fresh := garden.practice and comparison_start.get_selected_id() == ComparisonStart.FRESH
  return result if result.has("error") else _trace(result.steps, fresh, comparison_limit, true)
 
+func _toggle_comparison_playback() -> void:
+ if not comparison_slider.is_visible_in_tree():
+  return
+ comparison_slider.grab_focus()
+ if not comparison_playback_boards.is_empty():
+  _pause_comparison_playback()
+  return
+ if comparison_slider.value == comparison_slider.max_value:
+  comparison_slider.value = 0
+ var index := roundi(comparison_slider.value)
+ comparison_playback_boards = [
+  _comparison_board_at(comparison_current_route, index),
+  _comparison_board_at(comparison_other_route, index),
+ ]
+ playback_interval = RUN_INTERVAL
+ comparison_playback_button.text = "Pause"
+
+func _pause_comparison_playback() -> void:
+ comparison_playback_boards.clear()
+ comparison_playback_button.text = "Play"
+
+func _seek_comparison(value: float) -> void:
+ _pause_comparison_playback()
+ _show_comparison_step(value)
+
+func _advance_comparison_board(route: Dictionary, board_snapshot: Programs, action: int) -> Programs:
+ var actions: Array = route.get("actions", [])
+ if action + 1 == actions.size():
+  return route.preview
+ if action < actions.size():
+  board_snapshot.step(actions[action])
+ return board_snapshot
+
+func _advance_comparison_playback() -> void:
+ var action := roundi(comparison_slider.value)
+ comparison_playback_boards[0] = _advance_comparison_board(comparison_current_route, comparison_playback_boards[0], action)
+ comparison_playback_boards[1] = _advance_comparison_board(comparison_other_route, comparison_playback_boards[1], action)
+ var next := action + 1
+ comparison_slider.set_value_no_signal(next)
+ _show_comparison_step(next)
+ if next >= comparison_slider.max_value:
+  _pause_comparison_playback()
+
 func _show_comparison_step(value: float) -> void:
  if not comparison_panel.visible:
   return
  var index := roundi(value)
  comparison_position.text = "%d / %d actions" % [index, int(comparison_slider.max_value)]
- var current := _comparison_board_at(comparison_current_route, index)
- var other := _comparison_board_at(comparison_other_route, index)
+ var playing := not comparison_playback_boards.is_empty()
+ var current := comparison_playback_boards[0] if playing else _comparison_board_at(comparison_current_route, index)
+ var other := comparison_playback_boards[1] if playing else _comparison_board_at(comparison_other_route, index)
  var view := comparison_view.get_selected_id()
  var show_results := view == ComparisonView.RESULTS
  comparison_current.text = draft_choice.get_item_text(draft_choice.selected) + "\n" + _comparison_snapshot(comparison_current_route, index, current, not show_results)
@@ -1555,6 +1606,7 @@ func _comparison_position_for(other: String) -> Dictionary:
 
 func _close_draft_comparison() -> void:
  if comparison_panel.visible:
+  _pause_comparison_playback()
   var other: String = comparison_choice.get_item_metadata(comparison_choice.selected)
   comparison_positions[comparison_key] = _comparison_position_for(other)
   comparison_panel.hide()
@@ -1994,7 +2046,7 @@ func _toggle_review_playback() -> void:
   review_slider.value = 0
  var route := best_route if best_panel.visible else checked_route
  review_playback_board = _board_after_actions(route, roundi(review_slider.value))
- review_playback_interval = RUN_INTERVAL
+ playback_interval = RUN_INTERVAL
  review_playback_button.text = "Pause"
 
 func _pause_review_playback() -> void:
@@ -2005,11 +2057,7 @@ func _seek_review(value: float) -> void:
  _pause_review_playback()
  _draw_review(value)
 
-func _advance_review_playback(delta: float) -> void:
- review_playback_interval -= delta
- if review_playback_interval > 0:
-  return
- review_playback_interval = maxf(0.0, review_playback_interval + RUN_INTERVAL)
+func _advance_review_playback() -> void:
  var route := best_route if best_panel.visible else checked_route
  var action := roundi(review_slider.value)
  var next := action + 1
@@ -2176,8 +2224,14 @@ func _line_error(message: String, line: int, report: Programs = null) -> void:
 func _process(delta: float) -> void:
  if not visible:
   return
- if review_playback_board != null:
-  _advance_review_playback(delta)
+ if review_playback_board != null or not comparison_playback_boards.is_empty():
+  playback_interval -= delta
+  if playback_interval <= 0:
+   playback_interval = maxf(0.0, playback_interval + RUN_INTERVAL)
+   if review_playback_board != null:
+    _advance_review_playback()
+   else:
+    _advance_comparison_playback()
   return
  if not running:
   return
@@ -2740,6 +2794,9 @@ func _input(event: InputEvent) -> void:
    get_viewport().set_input_as_handled()
   elif event.ctrl_pressed and event.keycode == KEY_PAGEDOWN and next_lesson_button.visible:
    _continue_lessons()
+   get_viewport().set_input_as_handled()
+  elif event.keycode == KEY_SPACE and comparison_slider.has_focus() and event.get_modifiers_mask() == 0:
+   _toggle_comparison_playback()
    get_viewport().set_input_as_handled()
   elif comparison_slider.has_focus() and not comparison_differences.is_empty() and event.get_modifiers_mask() == 0 and event.keycode in [KEY_PAGEUP, KEY_PAGEDOWN]:
    _jump_to_adjacent_comparison_difference(event.keycode == KEY_PAGEDOWN)
