@@ -82,7 +82,7 @@ var variables_panel: PanelContainer
 var variables_title: Label
 var variables_text: RichTextLabel
 var review_history_list: ItemList
-var review_history_source_button: Button
+var variable_source_button: Button
 var variable_changes_button: Button
 var call_stack_button: Button
 var call_stack_list: ItemList
@@ -136,6 +136,7 @@ var breakpoint_offset := -1
 var run_to_line := -1
 var watched_variable := ""
 var watchpoint_active := false
+var live_change_source_line := -1
 var step_out_frame: Dictionary = {}
 var interval := 0.0
 var running := false
@@ -293,11 +294,11 @@ func _ready() -> void:
  review_history_list.focus_mode = Control.FOCUS_ALL
  review_history_list.tooltip_text = "Press Enter or double-click an entry to jump to that action."
  review_history_list.item_activated.connect(_jump_to_history_action)
- review_history_list.item_selected.connect(func(_row: int): _refresh_history_source_button())
+ review_history_list.item_selected.connect(func(_row: int): _refresh_variable_source_button())
  variables_stack.add_child(review_history_list)
  review_history_list.hide()
- review_history_source_button = _button(variables_stack, "Source line · F12", _jump_to_history_source)
- review_history_source_button.hide()
+ variable_source_button = _button(variables_stack, "Source line · F12", _jump_to_variable_source)
+ variable_source_button.hide()
  call_stack_row = HBoxContainer.new()
  variables_stack.add_child(call_stack_row)
  call_stack_list = ItemList.new()
@@ -1416,6 +1417,7 @@ func _clear_program() -> void:
  run_to_line = -1
  watched_variable = ""
  watchpoint_active = false
+ live_change_source_line = -1
  step_out_frame = {}
 
 func _reset() -> void:
@@ -1657,18 +1659,19 @@ func _add_review_history_entry(label: String, sources: Dictionary) -> void:
  if line >= 0:
   review_history_list.set_item_tooltip(row, "Source line %d" % (line + 1))
 
-func _review_history_source_line() -> int:
+func _selected_variable_source_line() -> int:
+ if not review_history_list.is_visible_in_tree():
+  return live_change_source_line
  var selected := review_history_list.get_selected_items()
  return -1 if selected.is_empty() else int(review_history_list.get_item_metadata(selected[0]))
 
-func _refresh_history_source_button() -> void:
- var line := _review_history_source_line()
- review_history_source_button.disabled = line < 0
- review_history_source_button.text = "Source line %d · F12" % (line + 1) if line >= 0 else "Source line · F12"
+func _refresh_variable_source_button() -> void:
+ var line := _selected_variable_source_line()
+ variable_source_button.disabled = line < 0
+ variable_source_button.text = "Source line %d · F12" % (line + 1) if line >= 0 else "Source line · F12"
 
-func _jump_to_history_source() -> void:
- if review_history_list.is_visible_in_tree():
-  _focus_source_line(_review_history_source_line())
+func _jump_to_variable_source() -> void:
+ _focus_source_line(_selected_variable_source_line())
 
 func _jump_to_history_action(row: int) -> void:
  if not review_history_list.is_visible_in_tree() or row < 0 or row >= review_history_list.item_count:
@@ -1799,6 +1802,7 @@ func _run(target_line := -1, target_variable := "") -> void:
    return
   running = false
  elif _prepare_program(target_line):
+  live_change_source_line = -1
   if has_destination:
    run_to_line = target_line
    watchpoint_active = not target_variable.is_empty()
@@ -1889,6 +1893,7 @@ func _process(delta: float) -> void:
 
 func _advance() -> void:
  breakpoint_offset = -1
+ live_change_source_line = -1
  var action: Dictionary = steps[offset]
  if action.line == run_to_line:
   run_to_line = -1
@@ -1915,7 +1920,9 @@ func _advance() -> void:
    if previous > garden.turn:
     status.text += " · New personal best"
   else:
+   garden.track_variable_sources = watchpoint_active
    offset = garden.next_action_index(steps, offset + 1)
+   garden.track_variable_sources = false
    if offset == steps.size():
     _finish_incomplete()
    elif not _pause_on_variable_change(before_variables):
@@ -1930,6 +1937,7 @@ func _pause_on_variable_change(before: Dictionary) -> bool:
   return false
  var change := _format_variable_transition(before, after, watched_variable)
  status.text = "Variable changed · %s = %s · %d actions" % [watched_variable, change, garden.run_action_count()]
+ live_change_source_line = garden.variable_sources.get(watched_variable, -1)
  watchpoint_active = false
  running = false
  _mark_line(source, steps[offset].line)
@@ -2106,7 +2114,8 @@ func _refresh_variables() -> void:
   review_history_button.set_pressed_no_signal(false)
  var show_history := review_history_button.visible and review_history_button.button_pressed
  review_history_list.visible = show_history
- review_history_source_button.visible = show_history
+ var show_live_source := variables_panel.visible and not review_controls.visible and live_change_source_line >= 0
+ variable_source_button.visible = show_history or show_live_source
  review_change_row.visible = show_review_changes and not review_change_actions.is_empty()
  if review_change_row.visible:
   review_previous_change.disabled = _review_change_index(false) < 0
@@ -2126,8 +2135,10 @@ func _refresh_variables() -> void:
   var row := review_change_actions.bsearch(roundi(review_slider.value), false)
   review_history_list.select(row)
   review_history_list.ensure_current_is_visible()
-  _refresh_history_source_button()
+  _refresh_variable_source_button()
   return
+ if show_live_source:
+  _refresh_variable_source_button()
  if show_calls:
   _refresh_frame_variables()
   return
@@ -2311,8 +2322,8 @@ func _input(event: InputEvent) -> void:
     elif return_to_timeline:
      _focus_review_timeline()
    get_viewport().set_input_as_handled()
-  elif event.keycode == KEY_F12 and review_history_list.has_focus():
-   _jump_to_history_source()
+  elif event.keycode == KEY_F12 and (review_history_list.has_focus() or (source.has_focus() and live_change_source_line >= 0)):
+   _jump_to_variable_source()
    get_viewport().set_input_as_handled()
   elif best_panel.visible:
    return

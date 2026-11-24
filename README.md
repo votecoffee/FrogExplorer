@@ -309,6 +309,8 @@ In **Review**, follow a variable and choose **Run to change** to start the draft
 
 Once a live run has a followed variable, choose **Next change** while paused to watch the same variable again from the current board. **Ctrl+Shift+Enter** works for both **Run to change** and **Next change**. You can step between stops and continue watching later in the same run.
 
+After a live variable stop, choose **Source line** in the inspector or press **F12** from the editor to open the assignment or call site that triggered it. Pondbot stays paused at the next board command.
+
 While paused inside a Python function, press **Shift+F11** in the editor to **Step out**. Pondbot finishes that call and pauses before the next board command so you can see the caller's variables and any returned value. If a breakpoint pauses the run before the function returns, choose **Resume** to continue stepping out. **Step**, **Stop**, and **Reset board** clear the request.
 
 ```python
