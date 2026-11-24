@@ -378,7 +378,16 @@ for stop in range(1, 3):
  check(popup.variables_panel.visible and popup.variables_title.text == "Best run variables" and popup.variables_text.text == "spring_column = 2\nstop = 2", "F7 shows the loop counter and starting position from the recorded best")
  popup.review_slider.value = 0
  check(popup.variables_text.text == "spring_column = 2", "Best program shows the variables at the beginning of the recorded run")
- press_key(KEY_F7)
+ var history: Array = popup.best_route.variable_history
+ var second_stop := 0
+ for action in range(1, history.size()):
+  if history[action - 1].get("stop") == 1 and history[action].get("stop") == 2:
+   second_stop = action
+   break
+ popup.review_slider.value = second_stop
+ press_key(KEY_F7, true)
+ check(second_stop > 0 and popup.variables_title.text == "Best run changes" and popup.variables_text.text == "stop = 1 → 2" and popup.garden.turn == 36, "Best program shows the counter change at its recorded action without moving the live board")
+ press_key(KEY_F7, true)
 
 func check_nursery_storage() -> void:
  var temporary := DirAccess.create_temp("frog-nursery-progress")
@@ -2095,6 +2104,58 @@ wait()
  press_key(KEY_F10)
  check(not popup.running and popup.garden.turn == 1 and popup.variables_title.text == "Program call stack" and popup.frame_variables_text.text == "count = 2\nshared = 3", "Stepping the live program updates the selected function's locals")
 
+func check_variable_changes(popup) -> void:
+ popup._reset()
+ popup.variables_button.set_pressed_no_signal(false)
+ var route := """def check_bed():
+    sample = 0
+    wait()
+    sample += 1
+    wait()
+ready = True
+check_bed()
+ready = 1
+added = 4
+wait()
+"""
+ var changed := "check_bed() · sample = 0 → 1"
+ var returned := "added = unassigned → 4\ncheck_bed() · sample = 1 → out of scope\nready = True → 1"
+ popup.source.text = route
+ popup.check_button.pressed.emit()
+ press_key(KEY_F7, true)
+ check(popup.variables_panel.visible and popup.variable_changes_button.button_pressed and popup.variables_title.text == "Check changes" and popup.variables_text.text == "No variable changes" and popup.source.has_focus(), "Ctrl+F7 shows changes from the last Check action while keeping code focus")
+ popup.review_button.pressed.emit()
+ var slider: HSlider = popup.review_slider
+ check(popup.variables_text.text == "No variable changes" and slider.value == 0, "The initial Review position has no preceding board action")
+ slider.value = 1
+ check(popup.variables_text.text == changed and popup.garden.turn == 0, "Review shows a local's old and new values for the selected action")
+ slider.value = 2
+ check(popup.variables_text.text == returned, "Review distinguishes an assignment, a function return, and a change from Boolean to integer")
+ slider.value = 3
+ var final: String = popup.variables_text.text
+ slider.value = 1
+ check(final == "No variable changes" and popup.variables_text.text == changed and slider.has_focus(), "Rewinding shows the same change as stepping forward to the action")
+ press_key(KEY_F7)
+ check(popup.variables_title.text == "Check variables" and popup.variables_text.text == "check_bed() · sample = 1\nready = True" and slider.value == 1 and slider.has_focus(), "F7 returns to current values without moving Review")
+ press_key(KEY_F7, false, true)
+ var was_stack: bool = popup.call_stack_list.is_visible_in_tree()
+ popup.variable_changes_button.grab_focus()
+ press_key(KEY_SPACE)
+ check(was_stack and popup.variable_changes_button.button_pressed and not popup.call_stack_button.button_pressed and popup.variables_text.text == changed and slider.value == 1, "The Changes button switches from the stack at the same timeline position")
+
+ popup.review_button.pressed.emit()
+ popup.source.grab_focus()
+ press_key(KEY_F10)
+ var live_first: bool = popup.variables_title.text == "Program changes" and popup.variables_text.text == changed
+ press_key(KEY_F10)
+ check(live_first and popup.garden.turn == 2 and popup.variables_text.text == returned, "Stepping live shows the same assignment and scope changes as Review")
+
+ popup._reset()
+ popup.source.text = "reading = 0\nwait()\nreading = 1\nhop(west)\n"
+ press_key(KEY_F10)
+ press_key(KEY_F10)
+ check(popup.garden.turn == 1 and "Line 4" in popup.status.text and popup.variables_text.text == "reading = 0 → 1", "A blocked command leaves the changes from the last successful action visible")
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -2960,6 +3021,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   check_step_out(popup)
   await check_call_stack(popup)
   check_frame_variables(popup)
+  check_variable_changes(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

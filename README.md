@@ -297,6 +297,8 @@ Double-click a call stack entry to open the call site in the source. From the op
 
 Select a call to see its local variables beside the stack. The selection follows that call as you step or scrub while it stays active. Press **F7** to see all active local values and top-level variables together.
 
+Press **Ctrl+F7** or choose **Changes** in the inspector to see assignments, value changes, and locals that went out of scope after the last board action. **Check** shows the last previewed action. In **Review** and **Best program**, each slider position compares with the preceding action, so rewinding shows the same changes as stepping forward.
+
 While paused inside a Python function, press **Shift+F11** in the editor to **Step out**. Pondbot finishes that call and pauses before the next board command so you can see the caller's variables and any returned value. If a breakpoint pauses the run before the function returns, choose **Resume** to continue stepping out. **Step**, **Stop**, and **Reset board** clear the request.
 
 ```python

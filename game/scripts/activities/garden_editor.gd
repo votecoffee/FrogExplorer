@@ -81,6 +81,7 @@ var variables_button: Button
 var variables_panel: PanelContainer
 var variables_title: Label
 var variables_text: RichTextLabel
+var variable_changes_button: Button
 var call_stack_button: Button
 var call_stack_list: ItemList
 var call_stack_row: HBoxContainer
@@ -88,6 +89,8 @@ var frame_variables_panel: VBoxContainer
 var frame_variables_title: Label
 var frame_variables_text: RichTextLabel
 var displayed_variables: Dictionary = {}
+var displayed_previous_variables: Dictionary = {}
+var live_previous_variables: Variant = null
 var displayed_calls: Array = []
 var diagnostics_context := ""
 var status: Label
@@ -151,7 +154,7 @@ func _ready() -> void:
  top.add_child(language)
  variables_button = _button(top, "Variables · F7", _refresh_variables)
  variables_button.toggle_mode = true
- variables_button.tooltip_text = "F7 shows variables. Shift+F7 shows or focuses the Python call stack."
+ variables_button.tooltip_text = "F7 shows variables. Ctrl+F7 shows changes. Shift+F7 shows or focuses the Python call stack."
  _button(top, "Close · Esc", _close)
  var pair := HBoxContainer.new()
  pair.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -251,8 +254,15 @@ func _ready() -> void:
  variables_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  variables_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  variables_header.add_child(variables_title)
+ var inspector_views := ButtonGroup.new()
+ inspector_views.allow_unpress = true
+ variable_changes_button = _button(variables_header, "Changes", _refresh_variables)
+ variable_changes_button.toggle_mode = true
+ variable_changes_button.button_group = inspector_views
+ variable_changes_button.tooltip_text = "Show assignments, new values, and locals that left scope after the selected action."
  call_stack_button = _button(variables_header, "Call stack", _refresh_variables)
  call_stack_button.toggle_mode = true
+ call_stack_button.button_group = inspector_views
  call_stack_button.tooltip_text = "Show the active Python calls and their source lines."
  variables_text = RichTextLabel.new()
  variables_text.custom_minimum_size.y = output_text.custom_minimum_size.y
@@ -1356,6 +1366,7 @@ func _clear_program() -> void:
  step_out_frame = {}
 
 func _reset() -> void:
+ live_previous_variables = null
  _discard_check()
  _clear_program()
  source.clear_executing_lines()
@@ -1442,7 +1453,8 @@ func _check_code() -> void:
  else:
   var unit := "action" if preview.turn == 1 else "actions"
   status.text = "Check · %d of %d lilies harvested in %d %s" % [preview.harvested, preview.plants.size(), preview.turn, unit]
- _draw_diagnostics(preview, "Check")
+ var history: Array = checked_route.variable_history
+ _draw_diagnostics(preview, "Check", -1, history[-1], null, history[maxi(0, history.size() - 2)])
  if not checked_route.actions.is_empty() or line >= 0:
   review_button.show()
 
@@ -1576,7 +1588,7 @@ func _draw_review(value: float) -> void:
   review_position.text += "\n" + _water_summary(preview)
  _draw_board(preview, blocked)
  _draw_diagnostics(route.preview, "Best run" if replaying_best else "Check", preview.turn,
-                   route.variable_history[count], route.call_history[count])
+                   route.variable_history[count], route.call_history[count], route.variable_history[maxi(0, count - 1)])
 
 func _prepare_program(target_line := -1) -> bool:
  if best_panel.visible:
@@ -1590,6 +1602,7 @@ func _prepare_program(target_line := -1) -> bool:
  if commands.is_empty() or not _can_run_to(commands, target_line):
   return false
  steps = commands
+ live_previous_variables = null
  submitted_program = source.text
  if garden.practice:
   garden.reset_program()
@@ -1702,11 +1715,13 @@ func _advance() -> void:
  if action.line == run_to_line:
   run_to_line = -1
  var before := garden.harvested
+ var before_variables := garden.inspect_variables()
  var error: String = garden.step(action)
  if not error.is_empty():
   _clear_program()
   _line_error("Line %d · %s" % [action.line + 1, error], action.line, garden)
  else:
+  live_previous_variables = before_variables
   _mark_line(source, action.line)
   var harvest := garden.harvested - before
   if garden.practice and harvest > 0 and progress.record_nursery_harvest(harvest) != OK:
@@ -1862,17 +1877,20 @@ func _print_line(entry: Dictionary) -> String:
  return "Line %d · %s" % [entry.line + 1, entry.text]
 
 func _draw_diagnostics(view: Programs, context := "Program", through_turn := -1,
-                       snapshot: Variant = null, calls: Variant = null) -> void:
+                       snapshot: Variant = null, calls: Variant = null, previous: Variant = null) -> void:
  var transcript := _format_program_output(view.output, through_turn)
  output_panel.visible = not transcript.is_empty()
  output_title.text = context + " output"
  if output_text.text != transcript:
   output_text.text = transcript
- _show_variables(view.inspect_variables() if snapshot == null else snapshot, context,
-                 view.inspect_call_stack() if calls == null else calls)
+ var values: Dictionary = view.inspect_variables() if snapshot == null else snapshot
+ var baseline: Variant = live_previous_variables if view == garden else previous
+ _show_variables(values, context, view.inspect_call_stack() if calls == null else calls,
+                 values if baseline == null else baseline)
 
-func _show_variables(values: Dictionary, context: String, calls: Array = []) -> void:
+func _show_variables(values: Dictionary, context: String, calls: Array = [], previous: Dictionary = {}) -> void:
  displayed_variables = values
+ displayed_previous_variables = previous
  if displayed_calls != calls:
   var selected := call_stack_list.get_selected_items()
   var selected_call: Dictionary = displayed_calls[selected[0]] if not selected.is_empty() else {}
@@ -1885,7 +1903,11 @@ func _refresh_variables() -> void:
  variables_button.visible = best_python if best_panel.visible else python_mode
  variables_panel.visible = variables_button.visible and variables_button.button_pressed
  var show_calls := call_stack_button.button_pressed
- variables_title.text = diagnostics_context + (" call stack" if show_calls else " variables")
+ var show_changes := variable_changes_button.button_pressed
+ var view_name := "changes" if show_changes else "variables"
+ if show_calls:
+  view_name = "call stack"
+ variables_title.text = "%s %s" % [diagnostics_context, view_name]
  variables_text.visible = not show_calls
  call_stack_row.visible = show_calls
  variables_panel.size_flags_stretch_ratio = 2.0 if show_calls and not displayed_calls.is_empty() else 1.0
@@ -1894,7 +1916,7 @@ func _refresh_variables() -> void:
  if show_calls:
   _refresh_frame_variables()
   return
- var content := _format_program_variables(displayed_variables)
+ var content := _format_variable_changes() if show_changes else _format_program_variables(displayed_variables)
  if variables_text.text != content:
   variables_text.text = content
 
@@ -1943,6 +1965,18 @@ func _format_program_variables(values: Dictionary) -> String:
  for variable: String in names:
   lines.append("%s = %s" % [variable, Programs.python_value_text(values[variable])])
  return "\n".join(lines) if not lines.is_empty() else "No variables assigned"
+
+func _format_variable_changes() -> String:
+ var before := displayed_previous_variables
+ var after := displayed_variables
+ var names := _variable_mismatches(before, after).keys()
+ names.sort()
+ var lines := PackedStringArray()
+ for variable: String in names:
+  var old := Programs.python_value_text(before[variable]) if before.has(variable) else "unassigned"
+  var new := Programs.python_value_text(after[variable]) if after.has(variable) else "out of scope"
+  lines.append("%s = %s → %s" % [variable, old, new])
+ return "\n".join(lines) if not lines.is_empty() else "No variable changes"
 
 func _board_grid(parent: Container) -> GridContainer:
  var grid := GridContainer.new()
@@ -2018,12 +2052,16 @@ func _input(event: InputEvent) -> void:
    _jump_to_adjacent_comparison_difference(event.keycode == KEY_PAGEDOWN)
    get_viewport().set_input_as_handled()
   elif event.keycode == KEY_F7 and variables_button.visible:
-   if event.shift_pressed and variables_panel.visible and call_stack_button.button_pressed:
+   var show_calls: bool = event.shift_pressed
+   var show_changes: bool = event.ctrl_pressed and not show_calls
+   if show_calls and variables_panel.visible and call_stack_button.button_pressed:
     call_stack_list.grab_focus()
    else:
     var return_focus := call_stack_list.has_focus()
-    var reveal: bool = not variables_button.button_pressed or call_stack_button.button_pressed != event.shift_pressed
-    call_stack_button.set_pressed_no_signal(event.shift_pressed)
+    var different_view := call_stack_button.button_pressed != show_calls or variable_changes_button.button_pressed != show_changes
+    var reveal := not variables_button.button_pressed or different_view
+    call_stack_button.set_pressed_no_signal(show_calls)
+    variable_changes_button.set_pressed_no_signal(show_changes)
     variables_button.set_pressed_no_signal(reveal)
     _refresh_variables()
     if return_focus:
