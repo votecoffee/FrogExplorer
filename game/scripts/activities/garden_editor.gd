@@ -88,6 +88,7 @@ var watch_condition_row: HBoxContainer
 var watch_condition_choice: OptionButton
 var watch_target_edit: LineEdit
 var review_history_list: ItemList
+var review_history_matches_button: Button
 var variable_source_button: Button
 var variable_changes_button: Button
 var call_stack_button: Button
@@ -333,8 +334,15 @@ func _ready() -> void:
  review_history_list.item_selected.connect(func(_row: int): _refresh_variable_source_button())
  variables_stack.add_child(review_history_list)
  review_history_list.hide()
- variable_source_button = _button(variables_stack, "Source line · F12", _jump_to_variable_source)
+ var variable_source_row := HBoxContainer.new()
+ variables_stack.add_child(variable_source_row)
+ variable_source_button = _button(variable_source_row, "Source line · F12", _jump_to_variable_source)
+ variable_source_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  variable_source_button.hide()
+ review_history_matches_button = _button(variable_source_row, "Matches only", _filter_review_history)
+ review_history_matches_button.toggle_mode = true
+ review_history_matches_button.tooltip_text = "Show actions where the watch condition became true."
+ review_history_matches_button.hide()
  call_stack_row = HBoxContainer.new()
  variables_stack.add_child(call_stack_row)
  call_stack_list = ItemList.new()
@@ -1700,18 +1708,32 @@ func _rebuild_review_history(history: Array, source_history: Array) -> void:
  review_history_list.clear()
  if review_variable_name.is_empty():
   return
- var initial: Dictionary = history[0]
- var value := Programs.python_value_text(initial[review_variable_name]) if initial.has(review_variable_name) else "unassigned"
- _add_review_history_entry("Start · %s" % value, source_history[0])
- for action in review_change_actions:
+ var matches_only := _history_matches_only()
+ var actions := review_match_actions if matches_only else review_change_actions
+ if not matches_only:
+  var initial: Dictionary = history[0]
+  var value := Programs.python_value_text(initial[review_variable_name]) if initial.has(review_variable_name) else "unassigned"
+  _add_review_history_entry("Start · %s" % value, 0, source_history[0])
+ elif actions.is_empty():
+  var message := "Enter a valid watch value" if watch_target == null else "No matching actions"
+  review_history_list.add_item(message, null, false)
+ for action in actions:
   var transition := _format_variable_transition(history[action - 1], history[action], review_variable_name)
-  _add_review_history_entry("Action %d · %s" % [action, transition], source_history[action])
+  _add_review_history_entry("Action %d · %s" % [action, transition], action, source_history[action])
 
-func _add_review_history_entry(label: String, sources: Dictionary) -> void:
+func _history_matches_only() -> bool:
+ return review_history_matches_button.button_pressed and watch_condition != WatchCondition.CHANGES
+
+func _filter_review_history() -> void:
+ var route := best_route if best_panel.visible else checked_route
+ _rebuild_review_history(route.variable_history, route.variable_source_history)
+ _refresh_variables()
+
+func _add_review_history_entry(label: String, action: int, sources: Dictionary) -> void:
  var row := review_history_list.item_count
  var line: int = sources.get(review_variable_name, -1)
  review_history_list.add_item(label)
- review_history_list.set_item_metadata(row, line)
+ review_history_list.set_item_metadata(row, {"action": action, "line": line})
  if line >= 0:
   review_history_list.set_item_tooltip(row, "Source line %d" % (line + 1))
 
@@ -1719,7 +1741,7 @@ func _selected_variable_source_line() -> int:
  if not review_history_list.is_visible_in_tree():
   return live_change_source_line
  var selected := review_history_list.get_selected_items()
- return -1 if selected.is_empty() else int(review_history_list.get_item_metadata(selected[0]))
+ return -1 if selected.is_empty() else int(review_history_list.get_item_metadata(selected[0]).line)
 
 func _refresh_variable_source_button() -> void:
  var line := _selected_variable_source_line()
@@ -1732,7 +1754,9 @@ func _jump_to_variable_source() -> void:
 func _jump_to_history_action(row: int) -> void:
  if not review_history_list.is_visible_in_tree() or row < 0 or row >= review_history_list.item_count:
   return
- review_slider.value = 0 if row == 0 else review_change_actions[row - 1]
+ if not review_history_list.is_item_selectable(row):
+  return
+ review_slider.value = review_history_list.get_item_metadata(row).action
  _focus_review_timeline()
 
 func _focus_review_timeline() -> void:
@@ -2180,8 +2204,10 @@ func _refresh_variables() -> void:
  var show_live_source := variables_panel.visible and not review_controls.visible and live_change_source_line >= 0
  variable_source_button.visible = show_history or show_live_source
  var matches := watch_condition != WatchCondition.CHANGES
+ review_history_matches_button.visible = show_history and matches
+ var matches_only := _history_matches_only()
  var destinations := _review_jump_actions()
- review_match_status.visible = review_history_button.visible and matches and watch_target != null and destinations.is_empty()
+ review_match_status.visible = review_history_button.visible and matches and watch_target != null and destinations.is_empty() and not (show_history and matches_only)
  review_change_row.visible = show_review_changes and not destinations.is_empty()
  if review_change_row.visible:
   review_previous_change.text = "Previous match" if matches else "Previous change"
@@ -2200,9 +2226,13 @@ func _refresh_variables() -> void:
  if not variables_panel.visible:
   return
  if show_history:
-  var row := review_change_actions.bsearch(roundi(review_slider.value), false)
-  review_history_list.select(row)
-  review_history_list.ensure_current_is_visible()
+  var history_actions := review_match_actions if matches_only else review_change_actions
+  var row := history_actions.bsearch(roundi(review_slider.value), false) - int(matches_only)
+  if row < 0:
+   review_history_list.deselect_all()
+  else:
+   review_history_list.select(row)
+   review_history_list.ensure_current_is_visible()
   _refresh_variable_source_button()
   return
  if show_live_source:
@@ -2256,6 +2286,7 @@ func _reset_watch_condition() -> void:
  watch_target = null
  watch_condition_choice.select(WatchCondition.CHANGES)
  watch_target_edit.text = ""
+ review_history_matches_button.set_pressed_no_signal(false)
 
 func _select_watch_condition(index: int) -> void:
  watch_condition = index
@@ -2268,6 +2299,8 @@ func _update_watch_target() -> void:
  if review_controls.visible and not review_variable_name.is_empty():
   var route := best_route if best_panel.visible else checked_route
   _index_review_matches(route.variable_history)
+  if review_history_matches_button.button_pressed:
+   _rebuild_review_history(route.variable_history, route.variable_source_history)
   _refresh_variables()
  else:
   _refresh_watch_condition()

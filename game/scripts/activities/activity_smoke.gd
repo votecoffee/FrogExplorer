@@ -413,6 +413,15 @@ for stop in range(1, 3):
  popup.review_slider.grab_focus()
  press_key(KEY_PAGEDOWN)
  check(popup.watch_condition_row.is_visible_in_tree() and popup.review_slider.value == second_stop and popup.variables_text.text == "stop = 1 → 2" and not popup.review_run_to_change.is_visible_in_tree(), "Best program can find a matching condition while keeping the replay read-only")
+ press_key(KEY_F7, true, true)
+ var only_matches: Button = popup.review_history_matches_button
+ only_matches.grab_focus()
+ press_key(KEY_ENTER)
+ var first_entry := events.get_item_text(0)
+ popup.review_slider.value = 0
+ events.item_activated.emit(0)
+ check(only_matches.button_pressed and first_entry == "Action %d · 1 → 2" % second_stop and popup.review_slider.value == second_stop and popup.best_panel.visible and not popup.best_source.editable and not popup.review_run_to_change.is_visible_in_tree() and popup.garden.turn == 36, "Filtered Best program history jumps to a recorded match without changing the live board")
+ press_key(KEY_F7, true)
  press_key(KEY_F7, true)
 
 func check_nursery_storage() -> void:
@@ -2305,7 +2314,7 @@ wait()
  press_key(KEY_F7, true, true)
  var events: ItemList = popup.review_history_list
  var local_entries := "Start · unassigned\nAction 1 · unassigned → 10\nAction 2 · 10 → 11\nAction 3 · 11 → out of scope"
- check(chose_history and events.has_focus() and events.is_selected(0) and popup.variables_title.text == "Check history" and item_list_labels(events) == local_entries and slider.value == 0 and popup.variable_source_button.disabled and events.get_item_metadata(1) == 7 and events.get_item_metadata(3) == 7, "History shows every transition, with call-site sources for the parameter and scope exit")
+ check(chose_history and events.has_focus() and events.is_selected(0) and popup.variables_title.text == "Check history" and item_list_labels(events) == local_entries and slider.value == 0 and popup.variable_source_button.disabled and events.get_item_metadata(1).line == 7 and events.get_item_metadata(3).line == 7, "History shows every transition, with call-site sources for the parameter and scope exit")
  press_key(KEY_DOWN)
  press_key(KEY_DOWN)
  var original_marker: PackedInt32Array = popup.source.get_executing_lines()
@@ -2661,7 +2670,39 @@ wait()
  check(first_match and slider.value == 5 and popup.variables_text.text == "count = 1 → 3" and popup.review_next_change.disabled and popup.review_previous_change.text == "Previous match" and slider.has_focus(), "Replay jumps skip both nonmatching actions and changes that leave the condition true")
  press_key(KEY_PAGEUP)
  press_key(KEY_F7, true, true)
- check(slider.value == 2 and popup.review_history_list.item_count == 6 and popup.review_history_list.get_item_text(3) == "Action 3 · 3 → 4" and popup.garden.turn == 0, "History retains every variable change alongside condition-based navigation")
+ var events: ItemList = popup.review_history_list
+ var only_matches: Button = popup.review_history_matches_button
+ check(slider.value == 2 and events.item_count == 6 and events.get_item_text(3) == "Action 3 · 3 → 4" and only_matches.is_visible_in_tree() and not only_matches.button_pressed and popup.garden.turn == 0, "History shows all variable changes by default when a condition is set")
+
+ only_matches.grab_focus()
+ press_key(KEY_ENTER)
+ var match_entries := "Action 2 · 1 → 3\nAction 5 · 1 → 3"
+ check(only_matches.button_pressed and item_list_labels(events) == match_entries and events.is_selected(0) and slider.value == 2, "Matches only shows each action that makes the condition true and keeps the current action")
+ press_key(KEY_F7, true, true)
+ press_key(KEY_DOWN)
+ press_key(KEY_ENTER)
+ check(slider.value == 5 and slider.has_focus() and events.is_selected(1) and popup.garden.turn == 0, "The keyboard jumps directly to a nonconsecutive matching action")
+ var marker: PackedInt32Array = popup.source.get_executing_lines()
+ press_key(KEY_F7, true, true)
+ press_key(KEY_F12)
+ check(popup.source.has_focus() and popup.source.get_caret_line() == 12 and popup.source.get_executing_lines() == marker and slider.value == 5, "F12 opens the matching assignment without moving the timeline or execution marker")
+
+ slider.value = 0
+ check(events.get_selected_items().is_empty() and popup.variable_source_button.disabled, "Filtered history has no selected action before the first match")
+ set_watch_target(popup, "9")
+ check(item_list_labels(events) == "No matching actions" and not events.is_item_selectable(0) and not popup.review_match_status.is_visible_in_tree() and popup.variable_source_button.disabled and slider.value == 0, "Editing the target updates filtered history and leaves an empty result unselectable")
+ set_watch_target(popup, "3")
+ var repopulated := item_list_labels(events) == match_entries
+ condition.select(0)
+ condition.item_selected.emit(0)
+ var changes_restored: bool = not only_matches.is_visible_in_tree() and events.item_count == 6
+ condition.select(2)
+ condition.item_selected.emit(2)
+ only_matches.grab_focus()
+ press_key(KEY_ENTER)
+ check(repopulated and changes_restored and not only_matches.button_pressed and events.item_count == 6 and events.is_selected(0) and slider.value == 0, "Returning to Changes or turning off the filter restores full history and the starting entry")
+ slider.value = 2
+ press_key(KEY_F7, true, true)
  press_key(KEY_ESCAPE)
  press_key(KEY_F7, true)
  set_watch_target(popup, "9")
