@@ -129,6 +129,9 @@ var review_button: Button
 var review_controls: VBoxContainer
 var review_position: Label
 var review_slider: HSlider
+var review_playback_button: Button
+var review_playback_board: Programs
+var review_playback_interval := 0.0
 var review_run_to_action: Button
 var review_variable_row: HBoxContainer
 var review_variable_filter: OptionButton
@@ -434,12 +437,18 @@ func _ready() -> void:
  right.add_child(review_controls)
  review_position = hud.label("", 15, Color("#b9dccc"))
  review_controls.add_child(review_position)
+ var review_timeline := HBoxContainer.new()
+ review_controls.add_child(review_timeline)
+ review_playback_button = _button(review_timeline, "Play", _toggle_review_playback)
+ review_playback_button.custom_minimum_size.x = 66
+ review_playback_button.tooltip_text = "Play or pause the preview. Press Space with the timeline focused."
  review_slider = HSlider.new()
  review_slider.step = 1
  review_slider.focus_mode = Control.FOCUS_ALL
+ review_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  review_slider.tooltip_text = "Drag or use Left and Right to choose an action. In Changes, use Page Up or Page Down to jump."
- review_slider.value_changed.connect(_draw_review)
- review_controls.add_child(review_slider)
+ review_slider.value_changed.connect(_seek_review)
+ review_timeline.add_child(review_slider)
  review_variable_row = HBoxContainer.new()
  review_controls.add_child(review_variable_row)
  review_variable_filter = OptionButton.new()
@@ -746,6 +755,7 @@ func _open_draft_copy(text: String, copy_python: bool) -> void:
 func _close_best_program() -> void:
  if not best_panel.visible:
   return
+ _pause_review_playback()
  best_panel.hide()
  best_route.clear()
  review_controls.hide()
@@ -1771,6 +1781,7 @@ func _toggle_review() -> void:
  _open_review(checked_route.actions.size())
 
 func _open_review(length: int) -> void:
+ _pause_review_playback()
  var route := best_route if best_panel.visible else checked_route
  var history: Array = route.variable_history
  _populate_review_variables(history)
@@ -1778,6 +1789,7 @@ func _open_review(length: int) -> void:
  review_slider.max_value = length
  review_slider.set_value_no_signal(0)
  review_slider.visible = length > 0
+ review_playback_button.visible = review_slider.visible
  review_controls.show()
  _index_review_breakpoints()
  _draw_review(0)
@@ -1943,6 +1955,7 @@ func _jump_to_review_breakpoint(forward: bool) -> void:
 func _close_review() -> void:
  if best_panel.visible or not review_controls.visible:
   return
+ _pause_review_playback()
  review_controls.hide()
  review_button.text = "Review"
  source.clear_executing_lines()
@@ -1970,7 +1983,45 @@ func _board_after_actions(route: Dictionary, count: int) -> Programs:
   preview.step(traced[index])
  return preview
 
-func _draw_review(value: float) -> void:
+func _toggle_review_playback() -> void:
+ if not review_slider.is_visible_in_tree():
+  return
+ review_slider.grab_focus()
+ if review_playback_board != null:
+  _pause_review_playback()
+  return
+ if review_slider.value == review_slider.max_value:
+  review_slider.value = 0
+ var route := best_route if best_panel.visible else checked_route
+ review_playback_board = _board_after_actions(route, roundi(review_slider.value))
+ review_playback_interval = RUN_INTERVAL
+ review_playback_button.text = "Pause"
+
+func _pause_review_playback() -> void:
+ review_playback_board = null
+ review_playback_button.text = "Play"
+
+func _seek_review(value: float) -> void:
+ _pause_review_playback()
+ _draw_review(value)
+
+func _advance_review_playback(delta: float) -> void:
+ review_playback_interval -= delta
+ if review_playback_interval > 0:
+  return
+ review_playback_interval = maxf(0.0, review_playback_interval + RUN_INTERVAL)
+ var route := best_route if best_panel.visible else checked_route
+ var action := roundi(review_slider.value)
+ var next := action + 1
+ review_slider.set_value_no_signal(next)
+ if next >= route.actions.size():
+  _pause_review_playback()
+  _draw_review(next)
+ else:
+  review_playback_board.step(route.actions[action])
+  _draw_review(next, review_playback_board)
+
+func _draw_review(value: float, snapshot: Programs = null) -> void:
  var replaying_best := best_panel.visible
  if not review_controls.visible or (not replaying_best and checked_source != source.text):
   return
@@ -1983,7 +2034,7 @@ func _draw_review(value: float) -> void:
  review_run_to_action.disabled = count == 0
  review_run_to_action.text = "Run to action %d" % count if count > 0 else "Run to action"
  _refresh_review_breakpoints()
- var preview := _board_after_actions(route, count)
+ var preview := snapshot if snapshot != null else _board_after_actions(route, count)
  var blocked := line >= 0 and count == traced.size()
  review_position.text = "%s · %d / %d actions" % ["Best run" if replaying_best else "Preview", count, traced.size()]
  if blocked:
@@ -2123,7 +2174,12 @@ func _line_error(message: String, line: int, report: Programs = null) -> void:
  source.grab_focus()
 
 func _process(delta: float) -> void:
- if not visible or not running:
+ if not visible:
+  return
+ if review_playback_board != null:
+  _advance_review_playback(delta)
+  return
+ if not running:
   return
  var speed := speed_choice.get_selected_id() if speed_choice.visible else 1
  interval -= delta * speed
@@ -2687,6 +2743,9 @@ func _input(event: InputEvent) -> void:
    get_viewport().set_input_as_handled()
   elif comparison_slider.has_focus() and not comparison_differences.is_empty() and event.get_modifiers_mask() == 0 and event.keycode in [KEY_PAGEUP, KEY_PAGEDOWN]:
    _jump_to_adjacent_comparison_difference(event.keycode == KEY_PAGEDOWN)
+   get_viewport().set_input_as_handled()
+  elif event.keycode == KEY_SPACE and review_slider.has_focus() and event.get_modifiers_mask() == 0:
+   _toggle_review_playback()
    get_viewport().set_input_as_handled()
   elif review_slider.has_focus() and (review_change_row.is_visible_in_tree() or review_variable_row.is_visible_in_tree()) and event.get_modifiers_mask() == 0 and event.keycode in [KEY_PAGEUP, KEY_PAGEDOWN]:
    _jump_to_review_change(event.keycode == KEY_PAGEDOWN)

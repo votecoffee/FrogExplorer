@@ -372,6 +372,9 @@ for stop in range(1, 3):
  await finish_by_steps(popup, full_route)
  check(popup.garden.turn == 36 and popup.garden.harvested == 4 and popup.progress.earned_lilies() == earned + 4 and popup.progress.garden_best_python.get("switchback_beds", false), "Completing Switchback beds earns four lilies and saves the Python best")
  popup.best_button.pressed.emit()
+ press_key(KEY_SPACE)
+ popup._process(.25)
+ check(popup.review_slider.value == 1 and popup.review_playback_button.text == "Pause" and popup.best_source.get_executing_lines().size() == 1 and popup.garden.turn == 36 and popup.progress.earned_lilies() == earned + 4, "Best program plays its recorded route without changing the completed live run")
  popup.review_slider.value = popup.review_slider.max_value
  check(popup.best_source.text == full_route and "Best run · 36 / 36 actions" == popup.review_position.text and "Lilies 4 / 4" in popup.info.text, "Best program replays the saved switchback route")
  press_key(KEY_F7)
@@ -426,6 +429,11 @@ for stop in range(1, 3):
  check(only_matches.button_pressed and first_entry == "Action %d · 1 → 2" % second_stop and popup.review_slider.value == second_stop and popup.best_panel.visible and not popup.best_source.editable and not popup.review_run_to_change.is_visible_in_tree() and not popup.review_run_to_action.is_visible_in_tree() and not popup.review_breakpoint_row.is_visible_in_tree() and not popup.breakpoints_panel.is_visible_in_tree() and not popup.breakpoints_button.is_visible_in_tree() and not popup.running and popup.garden.turn == 36, "Filtered Best program history jumps to a recorded match and keeps the replay read-only")
  press_key(KEY_F7, true)
  press_key(KEY_F7, true)
+ popup.review_slider.grab_focus()
+ press_key(KEY_SPACE)
+ popup.best_button.pressed.emit()
+ popup._process(.25)
+ check(not popup.best_panel.visible and not popup.review_controls.visible and popup.review_playback_button.text == "Play" and popup.review_slider.value == second_stop, "Closing Best program stops the preview clock")
 
 func check_nursery_storage() -> void:
  var temporary := DirAccess.create_temp("frog-nursery-progress")
@@ -2889,6 +2897,52 @@ func check_breakpoint_panel(popup) -> void:
  press_key(KEY_ESCAPE)
  check(not popup.breakpoints_panel.is_visible_in_tree() and not popup.breakpoints_button.button_pressed and popup.source.has_focus() and popup.review_controls.is_visible_in_tree() and slider.value == 2, "Escape closes the focused breakpoint panel and returns to the source")
 
+func check_review_playback(popup) -> void:
+ popup.language.item_selected.emit(0)
+ popup._reset()
+ popup.source.text = "fill()\nhop(east)\nprint('At the bed')\nwait()\nfill()\n"
+ popup.source.clear_breakpointed_lines()
+ popup.check_button.pressed.emit()
+ popup.review_button.pressed.emit()
+ var slider: HSlider = popup.review_slider
+ var playback: Button = popup.review_playback_button
+ var capacity: int = popup.garden.water_capacity
+ press_key(KEY_SPACE)
+ popup._process(.10)
+ var waited: bool = slider.value == 0 and playback.text == "Pause"
+ popup._process(.15)
+ check(waited and slider.value == 1 and "Water %d / %d" % [capacity, capacity] in popup.info.text and popup.source.get_executing_lines() == PackedInt32Array([0]) and popup.garden.turn == 0 and popup.garden.tank == 0, "Space plays the Review timeline at its own pace and shows the preview's water supply")
+
+ playback.grab_focus()
+ press_key(KEY_ENTER)
+ popup._process(.50)
+ check(playback.text == "Play" and slider.value == 1 and slider.has_focus(), "The Pause button holds the selected action and returns focus to the timeline")
+ press_key(KEY_SPACE)
+ popup._process(.25)
+ var advanced: bool = slider.value == 2 and "At the bed" in popup.output_text.text and popup.source.get_executing_lines() == PackedInt32Array([1])
+ press_key(KEY_LEFT)
+ popup._process(.50)
+ check(advanced and slider.value == 1 and playback.text == "Play" and "At the bed" not in popup.output_text.text, "Seeking during playback pauses it and rewinds the diagnostics")
+
+ slider.value = 2
+ press_key(KEY_SPACE)
+ popup._process(.25)
+ check(playback.text == "Play" and slider.value == 3 and "3 / 3 actions · Blocked" in popup.review_position.text and popup.source.get_executing_lines() == PackedInt32Array([4]) and popup.garden.turn == 0, "Playback stops at the blocked command with its preview marker")
+ press_key(KEY_SPACE)
+ var restarted: bool = slider.value == 0 and playback.text == "Pause"
+ popup._process(.25)
+ popup.review_button.pressed.emit()
+ popup._process(.25)
+ check(restarted and slider.value == 1 and playback.text == "Play" and not popup.review_controls.visible and "Water 0 / %d" % capacity in popup.info.text, "Play restarts at the end and Back to board stops the clock")
+
+ popup.review_button.pressed.emit()
+ press_key(KEY_SPACE)
+ popup._process(.25)
+ press_key(KEY_F10, true)
+ popup._process(.25)
+ check(playback.text == "Play" and not popup.review_controls.visible and not popup.running and popup.garden.turn == 1 and popup.garden.tank == capacity and "Reached action 1" in popup.status.text, "Run to action stops playback and executes the selected live action")
+ popup.stop_button.pressed.emit()
+
 func check_muted_breakpoints(popup) -> void:
  popup.language.item_selected.emit(0)
  popup._reset()
@@ -3251,7 +3305,7 @@ func run(game) -> void:
   popup.source.text = "hop north"
   popup.check_button.pressed.emit()
   popup.review_button.pressed.emit()
-  check(popup.review_controls.visible and not popup.review_slider.visible and "0 / 0 actions · Blocked" in popup.review_position.text, "A command blocked on the first action still shows the starting tile")
+  check(popup.review_controls.visible and not popup.review_slider.visible and not popup.review_playback_button.visible and "0 / 0 actions · Blocked" in popup.review_position.text, "A command blocked on the first action still shows the starting tile")
   popup.source.text = "fill\nunknown"
   popup.check_button.pressed.emit()
   check("Line 2" in popup.status.text and popup.source.get_executing_lines() == PackedInt32Array([1]) and not popup.review_button.visible, "A compile error marks the line and clears the preview")
@@ -3825,6 +3879,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   check_review_watch_conditions(popup)
   check_run_to_review_action(popup)
   check_breakpoint_panel(popup)
+  check_review_playback(popup)
   check_muted_breakpoints(popup)
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
