@@ -1947,6 +1947,73 @@ wait()
  popup.check_button.pressed.emit()
  check(full_preview and "beyond 256 instructions" in popup.status.text and popup.garden.turn == 0, "Call boundaries preserve the expansion limit for board-only Python functions")
 
+func check_call_stack(popup) -> void:
+ popup._reset()
+ popup.nursery_target.value = 2
+ var route := """def tend(heading):
+    plant(heading)
+    water(heading)
+    wait()
+    gather(heading)
+def bank():
+    tend(north)
+    hop(east)
+    tend(north)
+fill()
+hop(east)
+bank()
+wait()
+"""
+ var bank_call := "bank() · called at line 12\nTop level"
+ var first_call := "tend() · called at line 7\n" + bank_call
+ var second_call := "tend() · called at line 9\n" + bank_call
+ popup.source.text = route
+ popup.check_button.pressed.emit()
+ press_key(KEY_F7, false, true)
+ check(popup.variables_panel.visible and popup.call_stack_button.button_pressed and popup.variables_title.text == "Check call stack" and popup.variables_text.text == "Top level" and popup.source.has_focus(), "Shift+F7 shows the final Check call stack while keeping keyboard focus in the editor")
+ popup.review_button.pressed.emit()
+ var slider: HSlider = popup.review_slider
+ var initial: String = popup.variables_text.text
+ slider.value = 2
+ check(initial == "Top level" and popup.variables_text.text == first_call and popup.garden.turn == 0, "Review shows nested calls even when both functions only perform board actions")
+ slider.value = 6
+ var between: String = popup.variables_text.text
+ slider.value = 7
+ check(between == bank_call and popup.variables_text.text == second_call, "Review distinguishes calls to the same function by the call site")
+ slider.value = 12
+ var ending: String = popup.variables_text.text
+ slider.value = 2
+ check(ending == "Top level" and popup.variables_text.text == first_call and slider.has_focus(), "Rewinding restores the selected call stack while keeping slider focus")
+ press_key(KEY_F7)
+ check(popup.variables_panel.visible and not popup.call_stack_button.button_pressed and popup.variables_title.text == "Check variables" and popup.variables_text.text == "No variables assigned" and slider.value == 2 and slider.has_focus(), "F7 switches back to values without moving the review position")
+ popup.call_stack_button.set_pressed_no_signal(true)
+ popup.call_stack_button.pressed.emit()
+ check(popup.variables_title.text == "Check call stack" and popup.variables_text.text == first_call, "The inspector can switch views at the same review position")
+
+ popup.review_button.pressed.emit()
+ popup.source.grab_focus()
+ popup.source.set_caret_line(1)
+ press_key(KEY_F10, true)
+ for action in 3:
+  popup._process(.25)
+ check(not popup.running and popup.garden.turn == 2 and popup.variables_title.text == "Program call stack" and popup.variables_text.text == first_call, "A live pause shows the active function and its caller")
+ press_key(KEY_F11, false, true)
+ for action in 5:
+  popup._process(.25)
+ check(not popup.running and popup.garden.turn == 6 and popup.variables_text.text == bank_call, "Step out removes the finished call from the inspector")
+
+ await finish_by_steps(popup, route)
+ var balance: int = popup.progress.nursery_balance()
+ popup.best_button.pressed.emit()
+ slider.value = 7
+ check(popup.best_panel.visible and popup.best_source.text == route and popup.variables_title.text == "Best run call stack" and popup.variables_text.text == second_call and popup.garden.turn == 12 and popup.progress.nursery_balance() == balance, "Best program replays the saved call stack without changing the live nursery or balance")
+ press_key(KEY_ESCAPE)
+ popup._reset()
+ popup.source.text = "def cross():\n    hop(west)\ncross()\n"
+ popup.check_button.pressed.emit()
+ popup.review_button.pressed.emit()
+ check("Blocked" in popup.review_position.text and popup.variables_text.text == "cross() · called at line 3\nTop level" and popup.garden.turn == 0, "Review retains the call site when a command fails before the first action")
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -2810,6 +2877,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   await check_alder_crossing(popup)
   check_run_to_cursor(popup)
   check_step_out(popup)
+  await check_call_stack(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

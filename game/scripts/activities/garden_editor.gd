@@ -81,7 +81,10 @@ var variables_button: Button
 var variables_panel: PanelContainer
 var variables_title: Label
 var variables_text: RichTextLabel
+var call_stack_button: Button
 var displayed_variables: Dictionary = {}
+var displayed_calls := "Top level"
+var diagnostics_context := ""
 var status: Label
 var board: GridContainer
 var info: Label
@@ -143,6 +146,7 @@ func _ready() -> void:
  top.add_child(language)
  variables_button = _button(top, "Variables · F7", _refresh_variables)
  variables_button.toggle_mode = true
+ variables_button.tooltip_text = "F7 shows variables. Shift+F7 shows the Python call stack."
  _button(top, "Close · Esc", _close)
  var pair := HBoxContainer.new()
  pair.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -235,8 +239,15 @@ func _ready() -> void:
  diagnostics.add_child(variables_panel)
  var variables_stack := VBoxContainer.new()
  variables_panel.add_child(variables_stack)
+ var variables_header := HBoxContainer.new()
+ variables_stack.add_child(variables_header)
  variables_title = hud.label("", 15, Color("#b9dccc"))
- variables_stack.add_child(variables_title)
+ variables_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ variables_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+ variables_header.add_child(variables_title)
+ call_stack_button = _button(variables_header, "Call stack", _refresh_variables)
+ call_stack_button.toggle_mode = true
+ call_stack_button.tooltip_text = "Show the active Python calls and their source lines."
  variables_text = RichTextLabel.new()
  variables_text.custom_minimum_size.y = output_text.custom_minimum_size.y
  variables_text.add_theme_font_override("normal_font", source.get_theme_font("font"))
@@ -1417,6 +1428,9 @@ func _trace(commands: Array, fresh_board := false, practice_limit := Programs.MA
  var index := preview.next_action_index(commands, 0)
  # Review position zero includes assignments before the first board action.
  var variable_history: Array[Dictionary] = [preview.inspect_variables()]
+ var call_history := PackedStringArray()
+ if not capture_comparison:
+  call_history.append(preview.inspect_call_stack())
  var output_history: Array[Array] = []
  var totals_history: Array[Vector4i] = []
  var capture_output := capture_comparison and python_mode
@@ -1430,14 +1444,18 @@ func _trace(commands: Array, fresh_board := false, practice_limit := Programs.MA
   if not error.is_empty():
    return {"actions":traced, "initial":initial, "preview":preview, "line":action.line,
            "error":error, "variable_history":variable_history, "output_history":output_history,
-           "totals_history":totals_history}
+           "totals_history":totals_history, "call_history":call_history}
   traced.append(action)
   var complete := preview.is_complete()
   var revision := preview.variable_revision
+  var call_revision := preview.call_revision
   if not complete:
    index = preview.next_action_index(commands, index + 1)
   var values: Dictionary = variable_history.back() if preview.variable_revision == revision else preview.inspect_variables()
   variable_history.append(values)
+  if not capture_comparison:
+   var calls := call_history[-1] if preview.call_revision == call_revision else preview.inspect_call_stack()
+   call_history.append(calls)
   if capture_comparison:
    totals_history.append(_comparison_totals(preview))
   if capture_output:
@@ -1448,7 +1466,8 @@ func _trace(commands: Array, fresh_board := false, practice_limit := Programs.MA
    break
  return {"actions":traced, "initial":initial, "preview":preview, "line":preview.runtime_error_line,
          "error":preview.runtime_error, "limited":preview.practice and index < commands.size(),
-         "variable_history":variable_history, "output_history":output_history, "totals_history":totals_history}
+         "variable_history":variable_history, "output_history":output_history, "totals_history":totals_history,
+         "call_history":call_history}
 
 func _toggle_review() -> void:
  if best_panel.visible:
@@ -1523,7 +1542,8 @@ func _draw_review(value: float) -> void:
  if preview.practice:
   review_position.text += "\n" + _water_summary(preview)
  _draw_board(preview, blocked)
- _draw_diagnostics(route.preview, "Best run" if replaying_best else "Check", preview.turn, route.variable_history[count])
+ _draw_diagnostics(route.preview, "Best run" if replaying_best else "Check", preview.turn,
+                   route.variable_history[count], route.call_history[count])
 
 func _prepare_program(target_line := -1) -> bool:
  if best_panel.visible:
@@ -1808,25 +1828,30 @@ func _format_program_output(entries: Array, through_turn := -1) -> String:
 func _print_line(entry: Dictionary) -> String:
  return "Line %d · %s" % [entry.line + 1, entry.text]
 
-func _draw_diagnostics(view: Programs, context := "Program", through_turn := -1, snapshot: Variant = null) -> void:
+func _draw_diagnostics(view: Programs, context := "Program", through_turn := -1,
+                       snapshot: Variant = null, calls := "") -> void:
  var transcript := _format_program_output(view.output, through_turn)
  output_panel.visible = not transcript.is_empty()
  output_title.text = context + " output"
  if output_text.text != transcript:
   output_text.text = transcript
- _show_variables(view.inspect_variables() if snapshot == null else snapshot, context)
+ _show_variables(view.inspect_variables() if snapshot == null else snapshot, context,
+                 view.inspect_call_stack() if calls.is_empty() else calls)
 
-func _show_variables(values: Dictionary, context: String) -> void:
+func _show_variables(values: Dictionary, context: String, calls := "Top level") -> void:
  displayed_variables = values
- variables_title.text = context + " variables"
+ displayed_calls = calls
+ diagnostics_context = context
  _refresh_variables()
 
 func _refresh_variables() -> void:
  variables_button.visible = best_python if best_panel.visible else python_mode
  variables_panel.visible = variables_button.visible and variables_button.button_pressed
+ var show_calls := call_stack_button.button_pressed
+ variables_title.text = diagnostics_context + (" call stack" if show_calls else " variables")
  if not variables_panel.visible:
   return
- var content := _format_program_variables(displayed_variables)
+ var content := displayed_calls if show_calls else _format_program_variables(displayed_variables)
  if variables_text.text != content:
   variables_text.text = content
 
@@ -1910,7 +1935,9 @@ func _input(event: InputEvent) -> void:
    _jump_to_adjacent_comparison_difference(event.keycode == KEY_PAGEDOWN)
    get_viewport().set_input_as_handled()
   elif event.keycode == KEY_F7 and variables_button.visible:
-   variables_button.set_pressed_no_signal(not variables_button.button_pressed)
+   var reveal: bool = not variables_button.button_pressed or call_stack_button.button_pressed != event.shift_pressed
+   call_stack_button.set_pressed_no_signal(event.shift_pressed)
+   variables_button.set_pressed_no_signal(reveal)
    _refresh_variables()
    get_viewport().set_input_as_handled()
   elif best_panel.visible:

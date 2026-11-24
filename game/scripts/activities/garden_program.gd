@@ -445,6 +445,7 @@ var loop_entries: Dictionary = {}
 var output: Array[Dictionary] = []
 var variables: Dictionary = {}
 var local_frames: Array[Dictionary] = []
+var call_revision := 0
 var variable_revision := 0
 var module_revision := 0
 
@@ -856,6 +857,7 @@ func reset_program() -> void:
  output.clear()
  variables.clear()
  local_frames.clear()
+ call_revision = 0
  variable_revision = 0
  module_revision = 0
 
@@ -872,6 +874,14 @@ func inspect_variables() -> Dictionary:
    var label := "%s() · %s" % [frame.function, variable]
    visible_values[label] = frame.locals[variable]
  return visible_values
+
+func inspect_call_stack() -> String:
+ var calls := PackedStringArray()
+ for index in range(local_frames.size() - 1, -1, -1):
+  var frame := local_frames[index]
+  calls.append("%s() · called at line %d" % [frame.function, int(frame.line) + 1])
+ calls.append("Top level")
+ return "\n".join(calls)
 
 func configure_nursery_tools(has_reservoir: bool, has_reach_tool: bool, has_harvest_hook: bool) -> void:
  water_capacity = RESERVOIR_CAPACITY if practice and has_reservoir else CAPACITY
@@ -953,13 +963,15 @@ func next_action_index(instructions: Array, first: int) -> int:
    if not runtime_error.is_empty():
     runtime_error_line = instruction.line
     break
-   local_frames.append({"function":instruction.enter_scope, "locals":locals, "revision":0})
+   local_frames.append({"function":instruction.enter_scope, "line":instruction.line, "locals":locals, "revision":0})
+   call_revision += 1
    if not debug_boundary:
     variable_revision += 1
    index += 1
    continue
   if instruction.has("leave_scope"):
    var frame: Dictionary = local_frames.pop_back()
+   call_revision += 1
    if not debug_boundary:
     variable_revision += 1
    var capture: Dictionary = instruction.capture
