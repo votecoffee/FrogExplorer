@@ -875,13 +875,12 @@ func inspect_variables() -> Dictionary:
    visible_values[label] = frame.locals[variable]
  return visible_values
 
-func inspect_call_stack() -> String:
- var calls := PackedStringArray()
+func inspect_call_stack() -> Array[Dictionary]:
+ var calls: Array[Dictionary] = []
  for index in range(local_frames.size() - 1, -1, -1):
   var frame := local_frames[index]
-  calls.append("%s() · called at line %d" % [frame.function, int(frame.line) + 1])
- calls.append("Top level")
- return "\n".join(calls)
+  calls.append({"function":frame.function, "line":frame.line})
+ return calls
 
 func configure_nursery_tools(has_reservoir: bool, has_reach_tool: bool, has_harvest_hook: bool) -> void:
  water_capacity = RESERVOIR_CAPACITY if practice and has_reservoir else CAPACITY

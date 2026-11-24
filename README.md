@@ -293,6 +293,8 @@ Press **F7** or choose **Variables** to inspect the current Python values. The p
 
 Press **Shift+F7** or choose **Call stack** in the inspector to see the active Python functions, with the innermost call first. Each entry gives the line where that function was called, including functions with no local variables. In **Review** and **Best program**, the call stack follows the action slider. Press **F7** to return to variable values.
 
+Double-click a call stack entry to open the call site in the source. From the open stack, press **Shift+F7** again to focus the list, then use **Up/Down** and **Enter**. **Esc** returns focus to the source. Opening a call site keeps the execution marker and replay position in place.
+
 While paused inside a Python function, press **Shift+F11** in the editor to **Step out**. Pondbot finishes that call and pauses before the next board command so you can see the caller's variables and any returned value. If a breakpoint pauses the run before the function returns, choose **Resume** to continue stepping out. **Step**, **Stop**, and **Reset board** clear the request.
 
 ```python

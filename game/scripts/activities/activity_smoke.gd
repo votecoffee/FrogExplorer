@@ -1947,6 +1947,12 @@ wait()
  popup.check_button.pressed.emit()
  check(full_preview and "beyond 256 instructions" in popup.status.text and popup.garden.turn == 0, "Call boundaries preserve the expansion limit for board-only Python functions")
 
+func call_stack_labels(list: ItemList) -> String:
+ var labels := PackedStringArray()
+ for index in list.item_count:
+  labels.append(list.get_item_text(index))
+ return "\n".join(labels)
+
 func check_call_stack(popup) -> void:
  popup._reset()
  popup.nursery_target.value = 2
@@ -1970,25 +1976,29 @@ wait()
  popup.source.text = route
  popup.check_button.pressed.emit()
  press_key(KEY_F7, false, true)
- check(popup.variables_panel.visible and popup.call_stack_button.button_pressed and popup.variables_title.text == "Check call stack" and popup.variables_text.text == "Top level" and popup.source.has_focus(), "Shift+F7 shows the final Check call stack while keeping keyboard focus in the editor")
+ var calls: ItemList = popup.call_stack_list
+ check(calls.is_visible_in_tree() and popup.call_stack_button.button_pressed and popup.variables_title.text == "Check call stack" and call_stack_labels(calls) == "Top level" and not calls.is_item_selectable(0) and popup.source.has_focus(), "Shift+F7 shows the final Check call stack while keeping keyboard focus in the editor")
  popup.review_button.pressed.emit()
  var slider: HSlider = popup.review_slider
- var initial: String = popup.variables_text.text
+ var initial := call_stack_labels(calls)
  slider.value = 2
- check(initial == "Top level" and popup.variables_text.text == first_call and popup.garden.turn == 0, "Review shows nested calls even when both functions only perform board actions")
+ check(initial == "Top level" and call_stack_labels(calls) == first_call and popup.garden.turn == 0, "Review shows nested calls even when both functions only perform board actions")
  slider.value = 6
- var between: String = popup.variables_text.text
+ var between := call_stack_labels(calls)
  slider.value = 7
- check(between == bank_call and popup.variables_text.text == second_call, "Review distinguishes calls to the same function by the call site")
+ check(between == bank_call and call_stack_labels(calls) == second_call, "Review distinguishes calls to the same function by the call site")
  slider.value = 12
- var ending: String = popup.variables_text.text
+ var ending := call_stack_labels(calls)
  slider.value = 2
- check(ending == "Top level" and popup.variables_text.text == first_call and slider.has_focus(), "Rewinding restores the selected call stack while keeping slider focus")
+ check(ending == "Top level" and call_stack_labels(calls) == first_call and slider.has_focus(), "Rewinding restores the selected call stack while keeping slider focus")
  press_key(KEY_F7)
  check(popup.variables_panel.visible and not popup.call_stack_button.button_pressed and popup.variables_title.text == "Check variables" and popup.variables_text.text == "No variables assigned" and slider.value == 2 and slider.has_focus(), "F7 switches back to values without moving the review position")
  popup.call_stack_button.set_pressed_no_signal(true)
  popup.call_stack_button.pressed.emit()
- check(popup.variables_title.text == "Check call stack" and popup.variables_text.text == first_call, "The inspector can switch views at the same review position")
+ check(popup.variables_title.text == "Check call stack" and call_stack_labels(calls) == first_call, "The inspector can switch views at the same review position")
+ var review_mark: PackedInt32Array = popup.source.get_executing_lines()
+ calls.item_activated.emit(1)
+ check(popup.source.has_focus() and popup.source.get_caret_line() == 11 and popup.source.get_executing_lines() == review_mark and slider.value == 2 and popup.garden.turn == 0, "Activating the caller in Review opens its line and preserves the timeline and last action marker")
 
  popup.review_button.pressed.emit()
  popup.source.grab_focus()
@@ -1996,23 +2006,39 @@ wait()
  press_key(KEY_F10, true)
  for action in 3:
   popup._process(.25)
- check(not popup.running and popup.garden.turn == 2 and popup.variables_title.text == "Program call stack" and popup.variables_text.text == first_call, "A live pause shows the active function and its caller")
+ check(not popup.running and popup.garden.turn == 2 and popup.variables_title.text == "Program call stack" and call_stack_labels(calls) == first_call, "A live pause shows the active function and its caller")
+ press_key(KEY_F7, false, true)
+ var innermost_focused := calls.has_focus() and calls.is_selected(0)
+ press_key(KEY_DOWN)
+ var caller_selected := calls.is_selected(1)
+ press_key(KEY_ENTER)
+ check(innermost_focused and caller_selected and popup.source.has_focus() and popup.source.get_caret_line() == 11 and not popup.running and popup.garden.turn == 2 and popup.source.get_executing_lines() == PackedInt32Array([1]), "Keyboard navigation opens the selected caller without moving the live execution point")
+ calls.item_activated.emit(0)
+ check(popup.source.get_caret_line() == 6 and popup.source.get_executing_lines() == PackedInt32Array([1]) and popup.source.text == route, "Opening the inner call site moves the caret and preserves the source and paused command")
  press_key(KEY_F11, false, true)
  for action in 5:
   popup._process(.25)
- check(not popup.running and popup.garden.turn == 6 and popup.variables_text.text == bank_call, "Step out removes the finished call from the inspector")
+ check(not popup.running and popup.garden.turn == 6 and call_stack_labels(calls) == bank_call, "Step out removes the finished call from the inspector")
 
  await finish_by_steps(popup, route)
  var balance: int = popup.progress.nursery_balance()
  popup.best_button.pressed.emit()
  slider.value = 7
- check(popup.best_panel.visible and popup.best_source.text == route and popup.variables_title.text == "Best run call stack" and popup.variables_text.text == second_call and popup.garden.turn == 12 and popup.progress.nursery_balance() == balance, "Best program replays the saved call stack without changing the live nursery or balance")
+ check(popup.best_panel.visible and popup.best_source.text == route and popup.variables_title.text == "Best run call stack" and call_stack_labels(calls) == second_call and popup.garden.turn == 12 and popup.progress.nursery_balance() == balance, "Best program replays the saved call stack without changing the live nursery or balance")
+ var draft_line: int = popup.source.get_caret_line()
+ var replay_mark: PackedInt32Array = popup.best_source.get_executing_lines()
+ calls.item_activated.emit(0)
+ check(popup.best_source.has_focus() and popup.best_source.get_caret_line() == 8 and not popup.best_source.editable and popup.best_source.get_executing_lines() == replay_mark and popup.source.get_caret_line() == draft_line and slider.value == 7, "A saved call site opens in the read-only replay and leaves the main draft and action marker alone")
+ press_key(KEY_F7, false, true)
+ var stack_focused := calls.has_focus()
+ press_key(KEY_ESCAPE)
+ check(stack_focused and popup.best_panel.visible and popup.best_source.has_focus() and slider.value == 7, "Esc returns focus from the call stack to the saved source without closing the replay")
  press_key(KEY_ESCAPE)
  popup._reset()
  popup.source.text = "def cross():\n    hop(west)\ncross()\n"
  popup.check_button.pressed.emit()
  popup.review_button.pressed.emit()
- check("Blocked" in popup.review_position.text and popup.variables_text.text == "cross() · called at line 3\nTop level" and popup.garden.turn == 0, "Review retains the call site when a command fails before the first action")
+ check("Blocked" in popup.review_position.text and call_stack_labels(calls) == "cross() · called at line 3\nTop level" and popup.garden.turn == 0, "Review retains the call site when a command fails before the first action")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)

@@ -82,8 +82,9 @@ var variables_panel: PanelContainer
 var variables_title: Label
 var variables_text: RichTextLabel
 var call_stack_button: Button
+var call_stack_list: ItemList
 var displayed_variables: Dictionary = {}
-var displayed_calls := "Top level"
+var displayed_calls: Array = []
 var diagnostics_context := ""
 var status: Label
 var board: GridContainer
@@ -146,7 +147,7 @@ func _ready() -> void:
  top.add_child(language)
  variables_button = _button(top, "Variables · F7", _refresh_variables)
  variables_button.toggle_mode = true
- variables_button.tooltip_text = "F7 shows variables. Shift+F7 shows the Python call stack."
+ variables_button.tooltip_text = "F7 shows variables. Shift+F7 shows or focuses the Python call stack."
  _button(top, "Close · Esc", _close)
  var pair := HBoxContainer.new()
  pair.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -215,6 +216,7 @@ func _ready() -> void:
  edit_copy_button.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
  best_source = _code_edit()
  best_source.editable = false
+ best_source.highlight_current_line = true
  best_panel.add_child(best_source)
  best_panel.hide()
  var diagnostics := HBoxContainer.new()
@@ -254,6 +256,16 @@ func _ready() -> void:
  variables_text.add_theme_font_size_override("normal_font_size", 15)
  variables_text.selection_enabled = true
  variables_stack.add_child(variables_text)
+ call_stack_list = ItemList.new()
+ call_stack_list.custom_minimum_size.y = variables_text.custom_minimum_size.y
+ call_stack_list.add_theme_font_override("font", source.get_theme_font("font"))
+ call_stack_list.add_theme_font_size_override("font_size", 15)
+ call_stack_list.focus_mode = Control.FOCUS_ALL
+ call_stack_list.tooltip_text = "Press Enter or double-click a call to open its source line."
+ call_stack_list.item_activated.connect(_open_call_site)
+ call_stack_list.add_item("Top level", null, false)
+ variables_stack.add_child(call_stack_list)
+ call_stack_list.hide()
  variables_panel.hide()
  var sidebar := VBoxContainer.new()
  sidebar.custom_minimum_size.x = 285
@@ -1428,7 +1440,7 @@ func _trace(commands: Array, fresh_board := false, practice_limit := Programs.MA
  var index := preview.next_action_index(commands, 0)
  # Review position zero includes assignments before the first board action.
  var variable_history: Array[Dictionary] = [preview.inspect_variables()]
- var call_history := PackedStringArray()
+ var call_history: Array[Array] = []
  if not capture_comparison:
   call_history.append(preview.inspect_call_stack())
  var output_history: Array[Array] = []
@@ -1454,7 +1466,7 @@ func _trace(commands: Array, fresh_board := false, practice_limit := Programs.MA
   var values: Dictionary = variable_history.back() if preview.variable_revision == revision else preview.inspect_variables()
   variable_history.append(values)
   if not capture_comparison:
-   var calls := call_history[-1] if preview.call_revision == call_revision else preview.inspect_call_stack()
+   var calls: Array = call_history[-1] if preview.call_revision == call_revision else preview.inspect_call_stack()
    call_history.append(calls)
   if capture_comparison:
    totals_history.append(_comparison_totals(preview))
@@ -1829,18 +1841,20 @@ func _print_line(entry: Dictionary) -> String:
  return "Line %d · %s" % [entry.line + 1, entry.text]
 
 func _draw_diagnostics(view: Programs, context := "Program", through_turn := -1,
-                       snapshot: Variant = null, calls := "") -> void:
+                       snapshot: Variant = null, calls: Variant = null) -> void:
  var transcript := _format_program_output(view.output, through_turn)
  output_panel.visible = not transcript.is_empty()
  output_title.text = context + " output"
  if output_text.text != transcript:
   output_text.text = transcript
  _show_variables(view.inspect_variables() if snapshot == null else snapshot, context,
-                 view.inspect_call_stack() if calls.is_empty() else calls)
+                 view.inspect_call_stack() if calls == null else calls)
 
-func _show_variables(values: Dictionary, context: String, calls := "Top level") -> void:
+func _show_variables(values: Dictionary, context: String, calls: Array = []) -> void:
  displayed_variables = values
- displayed_calls = calls
+ if displayed_calls != calls:
+  displayed_calls = calls
+  _refresh_call_stack_list()
  diagnostics_context = context
  _refresh_variables()
 
@@ -1849,11 +1863,35 @@ func _refresh_variables() -> void:
  variables_panel.visible = variables_button.visible and variables_button.button_pressed
  var show_calls := call_stack_button.button_pressed
  variables_title.text = diagnostics_context + (" call stack" if show_calls else " variables")
- if not variables_panel.visible:
+ variables_text.visible = not show_calls
+ call_stack_list.visible = show_calls
+ if not variables_panel.visible or show_calls:
   return
- var content := displayed_calls if show_calls else _format_program_variables(displayed_variables)
+ var content := _format_program_variables(displayed_variables)
  if variables_text.text != content:
   variables_text.text = content
+
+func _refresh_call_stack_list() -> void:
+ call_stack_list.clear()
+ for call: Dictionary in displayed_calls:
+  call_stack_list.add_item("%s() · called at line %d" % [call.function, int(call.line) + 1])
+ call_stack_list.add_item("Top level", null, false)
+ if not displayed_calls.is_empty():
+  call_stack_list.select(0)
+
+func _open_call_site(index: int) -> void:
+ if index < 0 or index >= displayed_calls.size():
+  return
+ var editor := best_source if best_panel.visible else source
+ var line: int = displayed_calls[index].line
+ if not editor.is_visible_in_tree() or line < 0 or line >= editor.get_line_count():
+  return
+ # Navigation changes the caret without replacing the existing execution marker.
+ editor.grab_focus()
+ editor.deselect()
+ editor.remove_secondary_carets()
+ editor.set_caret_line(line)
+ editor.set_caret_column(0)
 
 func _format_program_variables(values: Dictionary) -> String:
  var names := values.keys()
@@ -1923,6 +1961,8 @@ func _input(event: InputEvent) -> void:
    elif comparison_panel.visible:
     _close_draft_comparison()
     source.grab_focus()
+   elif call_stack_list.has_focus():
+    (best_source if best_panel.visible else source).grab_focus()
    elif best_panel.visible:
     _close_best_program()
    else:
@@ -1935,10 +1975,16 @@ func _input(event: InputEvent) -> void:
    _jump_to_adjacent_comparison_difference(event.keycode == KEY_PAGEDOWN)
    get_viewport().set_input_as_handled()
   elif event.keycode == KEY_F7 and variables_button.visible:
-   var reveal: bool = not variables_button.button_pressed or call_stack_button.button_pressed != event.shift_pressed
-   call_stack_button.set_pressed_no_signal(event.shift_pressed)
-   variables_button.set_pressed_no_signal(reveal)
-   _refresh_variables()
+   if event.shift_pressed and variables_panel.visible and call_stack_button.button_pressed:
+    call_stack_list.grab_focus()
+   else:
+    var return_focus := call_stack_list.has_focus()
+    var reveal: bool = not variables_button.button_pressed or call_stack_button.button_pressed != event.shift_pressed
+    call_stack_button.set_pressed_no_signal(event.shift_pressed)
+    variables_button.set_pressed_no_signal(reveal)
+    _refresh_variables()
+    if return_focus:
+     (best_source if best_panel.visible else source).grab_focus()
    get_viewport().set_input_as_handled()
   elif best_panel.visible:
    return
