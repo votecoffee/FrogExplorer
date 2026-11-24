@@ -1372,6 +1372,44 @@ func check_duplicate_draft(popup) -> void:
  check(reopened.selected_draft(id, true) == second_copy and reopened.selected_draft(id, false) == classic_copy and reopened.python_drafts.get(id) == main_source and reopened.python_drafts.get(first_copy) == first_source and reopened.python_drafts.get(second_copy) == second_source and reopened.drafts.get(classic_copy) == classic_source, "Both copy families and their selected drafts reload from disk")
  popup.progress.folder = original_folder
 
+func check_comparison_source(popup) -> void:
+ popup.compare_drafts_button.pressed.emit()
+ var view: OptionButton = popup.comparison_view
+ var slider: HSlider = popup.comparison_slider
+ var current: CodeEdit = popup.comparison_current_code
+ var other: CodeEdit = popup.comparison_other_code
+ view.select(1)
+ view.item_selected.emit(1)
+ check(not popup.python_mode and view.item_count == 2 and view.get_item_text(1) == "Source" and current.is_visible_in_tree() and current.text == "wait\n" and current.get_executing_lines() == PackedInt32Array([0]), "Classic comparisons offer a source view with the selected command marked")
+
+ popup.language.item_selected.emit(0)
+ popup.chooser.item_selected.emit(0)
+ var current_source := "# Short route\nwait()\n"
+ var other_source := "# Longer route\n# Fill first\nfill()\nwait()\nhop(east)\nfill()\n"
+ var saved: Dictionary = popup.progress.create_draft_copy("first_bloom", other_source, true)
+ var invalid: Dictionary = popup.progress.create_draft_copy("first_bloom", "# Typo\nfill(east)\n", true)
+ popup._refresh_draft_choice()
+ popup.source.text = current_source
+ popup.source.set_caret_line(0)
+ popup.source.set_caret_column(4)
+ popup.compare_drafts_button.pressed.emit()
+ select_comparison_copy(popup.comparison_choice, saved.key)
+ view.select(3)
+ view.item_selected.emit(3)
+ check(saved.error == OK and view.get_item_text(3) == "Source" and not current.editable and not other.editable and current.text == current_source and other.text == other_source and slider.value == 3 and current.get_executing_lines() == PackedInt32Array([1]) and other.get_executing_lines() == PackedInt32Array([5]), "Both source panes are read-only and mark the short route's last action and the other route's blocked line")
+ slider.value = 0
+ check(current.get_executing_lines().is_empty() and other.get_executing_lines().is_empty(), "Rewinding unmarks both sources before the first action")
+ slider.grab_focus()
+ press_key(KEY_RIGHT)
+ check(slider.value == 1 and current.get_executing_lines() == PackedInt32Array([1]) and other.get_executing_lines() == PackedInt32Array([2]), "Keyboard stepping marks the two drafts' own source lines at the shared action")
+ press_key(KEY_PAGEDOWN)
+ check(slider.value == 2 and current.get_executing_lines() == PackedInt32Array([1]) and other.get_executing_lines() == PackedInt32Array([3]), "Difference navigation in Source follows different board actions")
+
+ select_comparison_copy(popup.comparison_choice, invalid.key)
+ check(invalid.error == OK and view.selected == 3 and other.text == "# Typo\nfill(east)\n" and other.get_executing_lines() == PackedInt32Array([1]) and "Check the arguments for fill()" in popup.comparison_other.text, "A compile failure displays the failing source line in its own pane")
+ press_key(KEY_ESCAPE)
+ check(not popup.comparison_panel.visible and current.text.is_empty() and other.text.is_empty() and popup.source.has_focus() and popup.source.text == current_source and popup.source.get_caret_column() == 4 and popup.garden.turn == 0, "Closing Source keeps the unsaved editor text, cursor, and live board")
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -2225,6 +2263,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   await check_comparison_python_details(popup)
   check_comparison_python_differences(popup)
   await check_duplicate_draft(popup)
+  check_comparison_source(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

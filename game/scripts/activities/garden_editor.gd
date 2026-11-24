@@ -7,7 +7,7 @@ const RUN_INTERVAL := .23
 const COMPARISON_BOARD_KEY := "Gold outline · Tile differs between drafts"
 const COMPARISON_GOLD := "#e8c879"
 const COMPARISON_HIGHLIGHT := "[color=" + COMPARISON_GOLD + "]"
-enum ComparisonView { BOARDS, VARIABLES, PRINT_OUTPUT }
+enum ComparisonView { BOARDS, VARIABLES, PRINT_OUTPUT, SOURCE }
 const CLASSIC_GUIDE := "hop north / east / south / west\nfill     plant     water     wait     gather\nrepeat N … end     # comment\nroutine NAME heading · call NAME east\nif / while CONDITION … end\nelse · not · and · or · break · continue\nLook ahead with clear east or lily north\nF9 toggles a breakpoint"
 const PYTHON_GUIDE := "hop(east)    fill()    water()\nplant()       wait()       gather()\nfor bed in range(2):\nif water_level() < tank_capacity():\nwhile clear(east):\ndef walk(heading, steps: int):\nstart = column()    print(start)\nTab indents · Shift+Tab unindents\nF9 toggles a breakpoint"
 var hud: ExplorerHUD
@@ -41,6 +41,8 @@ var comparison_board_key: Label
 var comparison_view: OptionButton
 var comparison_current_details: RichTextLabel
 var comparison_other_details: RichTextLabel
+var comparison_current_code: CodeEdit
+var comparison_other_code: CodeEdit
 var comparison_source := ""
 var rename_draft_button: Button
 var draft_name_edit: LineEdit
@@ -631,15 +633,14 @@ func _add_draft_comparison(parent: Container) -> void:
  comparison_other_board = _board_grid(results)
  comparison_current_details = _comparison_details_box(results)
  comparison_other_details = _comparison_details_box(results)
+ comparison_current_code = _comparison_code_box(results)
+ comparison_other_code = _comparison_code_box(results)
  var footer := HBoxContainer.new()
  comparison_panel.add_child(footer)
  comparison_board_key = hud.label(COMPARISON_BOARD_KEY, 13, Color(COMPARISON_GOLD))
  comparison_board_key.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  footer.add_child(comparison_board_key)
  comparison_view = OptionButton.new()
- comparison_view.add_item("Boards", ComparisonView.BOARDS)
- comparison_view.add_item("Variables", ComparisonView.VARIABLES)
- comparison_view.add_item("Print output", ComparisonView.PRINT_OUTPUT)
  comparison_view.tooltip_text = "Choose what to compare at this action."
  comparison_view.item_selected.connect(_select_comparison_view)
  footer.add_child(comparison_view)
@@ -664,6 +665,16 @@ func _comparison_details_box(parent: Container) -> RichTextLabel:
  panel.hide()
  return details
 
+func _comparison_code_box(parent: Container) -> CodeEdit:
+ var editor := _code_edit()
+ editor.editable = false
+ editor.custom_minimum_size.y = 144
+ editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ editor.add_theme_font_size_override("font_size", 14)
+ parent.add_child(editor)
+ editor.hide()
+ return editor
+
 func _toggle_draft_comparison() -> void:
  if comparison_panel.visible:
   _close_draft_comparison()
@@ -680,10 +691,18 @@ func _toggle_draft_comparison() -> void:
   comparison_choice.add_item(draft_choice.get_item_text(index))
   comparison_choice.set_item_metadata(comparison_choice.item_count - 1, draft_choice.get_item_metadata(index))
  comparison_choice.select(0)
- comparison_view.select(ComparisonView.BOARDS)
- comparison_view.visible = python_mode
+ comparison_view.clear()
+ comparison_view.add_item("Boards", ComparisonView.BOARDS)
+ if python_mode:
+  comparison_view.add_item("Variables", ComparisonView.VARIABLES)
+  comparison_view.add_item("Print output", ComparisonView.PRINT_OUTPUT)
+ comparison_view.add_item("Source", ComparisonView.SOURCE)
+ comparison_view.select(0)
+ for editor in [comparison_current_code, comparison_other_code]:
+  _color_code(editor, python_mode)
  comparison_context.text = "Starting board · Live nursery" if garden.practice else "Starting board · Fresh lesson"
  comparison_source = source.text
+ comparison_current_code.text = comparison_source
  comparison_current_route = _trace_draft(comparison_source)
  comparison_panel.show()
  compare_drafts_button.text = "Close comparison"
@@ -695,7 +714,9 @@ func _compare_drafts(index: int) -> void:
  if not comparison_panel.visible:
   return
  var other: String = comparison_choice.get_item_metadata(index)
- comparison_other_route = _trace_draft(_draft_source(other))
+ var other_source := _draft_source(other)
+ comparison_other_code.text = other_source
+ comparison_other_route = _trace_draft(other_source)
  var current_actions: Array = comparison_current_route.get("actions", [])
  var other_actions: Array = comparison_other_route.get("actions", [])
  var total := maxi(current_actions.size(), other_actions.size())
@@ -711,7 +732,7 @@ func _update_comparison_differences() -> void:
  comparison_differences.clear()
  if both_compiled:
   match view:
-   ComparisonView.BOARDS:
+   ComparisonView.BOARDS, ComparisonView.SOURCE:
     comparison_differences = _find_board_differences(comparison_current_route, comparison_other_route)
    ComparisonView.VARIABLES:
     comparison_differences = _find_variable_differences(comparison_current_route.variable_history, comparison_other_route.variable_history)
@@ -727,6 +748,8 @@ func _update_comparison_differences() -> void:
    comparison_difference_button.tooltip_text = "Compare new or changing differences in Python variables."
   ComparisonView.PRINT_OUTPUT:
    comparison_difference_button.tooltip_text = "Compare the messages printed at each action."
+  ComparisonView.SOURCE:
+   comparison_difference_button.tooltip_text = "Jump to the source for different board commands and stopping points."
  comparison_difference_button.disabled = comparison_differences.is_empty()
  comparison_previous_difference_button.visible = comparison_differences.size() > 1
  comparison_next_difference_button.visible = comparison_previous_difference_button.visible
@@ -841,12 +864,17 @@ func _show_comparison_step(value: float) -> void:
   _draw_grid(comparison_other_board, other, _comparison_blocked(comparison_other_route, index), current, Vector2(61, 36))
  _show_comparison_details(comparison_current_details, comparison_current_route, comparison_other_route, index, view)
  _show_comparison_details(comparison_other_details, comparison_other_route, comparison_current_route, index, view)
+ var show_source := view == ComparisonView.SOURCE
+ _show_comparison_source(comparison_current_code, comparison_current_route, index, show_source)
+ _show_comparison_source(comparison_other_code, comparison_other_route, index, show_source)
  var before := comparison_differences.bsearch(index)
  var after := comparison_differences.bsearch(index, false)
  comparison_previous_difference_button.disabled = before == 0
  comparison_next_difference_button.disabled = after == comparison_differences.size()
  var legend := ""
- if current != null and other != null:
+ if show_source:
+  legend = "Read-only source · Marked line follows the selected action"
+ elif current != null and other != null:
   match view:
    ComparisonView.BOARDS:
     legend = COMPARISON_BOARD_KEY
@@ -861,7 +889,7 @@ func _show_comparison_step(value: float) -> void:
 
 func _show_comparison_details(details: RichTextLabel, route: Dictionary, peer: Dictionary, index: int, view: int) -> void:
  var panel := details.get_parent() as PanelContainer
- panel.visible = view != ComparisonView.BOARDS
+ panel.visible = view in [ComparisonView.VARIABLES, ComparisonView.PRINT_OUTPUT]
  if not panel.visible:
   return
  var text := "Preview unavailable"
@@ -875,6 +903,22 @@ func _show_comparison_details(details: RichTextLabel, route: Dictionary, peer: D
   var first_highlight := text.find(COMPARISON_HIGHLIGHT)
   var paragraph := text.left(first_highlight).count("\n") if first_highlight >= 0 else 0
   details.scroll_to_paragraph(paragraph)
+
+func _show_comparison_source(editor: CodeEdit, route: Dictionary, index: int, show_source: bool) -> void:
+ editor.visible = show_source
+ if not show_source:
+  return
+ var line := -1
+ if not route.has("actions") or _comparison_blocked(route, index):
+  line = route.get("line", -1)
+ else:
+  var count := mini(index, route.actions.size())
+  if count > 0:
+   line = route.actions[count - 1].line
+ if line >= 0:
+  _mark_line(editor, line)
+ else:
+  editor.clear_executing_lines()
 
 func _comparison_variable_text(route: Dictionary, peer: Dictionary, index: int) -> String:
  var values: Dictionary = route.variable_history[mini(index, route.actions.size())]
@@ -955,6 +999,10 @@ func _close_draft_comparison() -> void:
   _draw_grid(comparison_other_board, null)
   comparison_current_details.text = ""
   comparison_other_details.text = ""
+  for editor in [comparison_current_code, comparison_other_code]:
+   editor.clear_executing_lines()
+   editor.text = ""
+  comparison_source = ""
   compare_drafts_button.text = "Compare drafts"
 
 func _draft_source(key: String) -> String:
