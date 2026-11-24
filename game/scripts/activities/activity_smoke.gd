@@ -1119,7 +1119,7 @@ func check_draft_comparison(popup) -> void:
  popup.source.text = current
  var live_plot: Node = popup.world.garden_root.get_child(0)
  popup.compare_drafts_button.pressed.emit()
- check(popup.comparison_panel.visible and popup.comparison_choice.item_count == 2 and "Live nursery" in popup.comparison_context.text and "Harvested 1 in 1 action · Target 1 met" in popup.comparison_current.text and "Harvested 1 in 2 actions · Target 1 met" in popup.comparison_other.text, "Compare forecasts both drafts from the same living nursery")
+ check(popup.comparison_panel.visible and popup.comparison_choice.item_count == 2 and popup.comparison_start.visible and popup.comparison_start.get_item_text(popup.comparison_start.selected) == "Live nursery" and "Harvested 1 in 1 action · Target 1 met" in popup.comparison_current.text and "Harvested 1 in 2 actions · Target 1 met" in popup.comparison_other.text, "Compare forecasts both drafts from the same living nursery")
  check(popup.comparison_slider.max_value == 2 and popup.comparison_slider.value == 2 and popup.comparison_slider.has_focus() and "Finished · 1 / 1 actions" in popup.comparison_current.text and "Line 2 · gather east" in popup.comparison_other.text, "The comparison holds the shorter draft at its endpoint")
  var current_board: GridContainer = popup.comparison_current_board
  var other_board: GridContainer = popup.comparison_other_board
@@ -1154,7 +1154,7 @@ func check_draft_comparison(popup) -> void:
  popup.chooser.item_selected.emit(0)
  popup.source.text = "fill()\n"
  popup.compare_drafts_button.pressed.emit()
- check(recorded.error == OK and popup.comparison_panel.visible and "Fresh lesson" in popup.comparison_context.text and "Harvested 0 of 2 in 1 action" in popup.comparison_current.text and "Check the arguments for fill()" in popup.comparison_other.text and popup.garden.turn == 0, "Lesson comparisons start fresh and report each draft's compile result")
+ check(recorded.error == OK and popup.comparison_panel.visible and "Fresh lesson" in popup.comparison_context.text and not popup.comparison_start.visible and "Harvested 0 of 2 in 1 action" in popup.comparison_current.text and "Check the arguments for fill()" in popup.comparison_other.text and popup.garden.turn == 0, "Lesson comparisons start fresh and report each draft's compile result")
  check(current_board.get_child_count() == 3 and other_board.get_child_count() == 0 and not popup.comparison_board_key.visible and not popup.comparison_difference_button.visible, "A draft that cannot compile has no board or first difference control")
  press_key(KEY_ENTER, true)
  check(not popup.comparison_panel.visible and popup.compare_drafts_button.disabled and popup.running, "Starting a run closes the comparison and locks it while the program runs")
@@ -1496,6 +1496,52 @@ func check_comparison_resume(popup) -> void:
  popup.source.text = "wait()\n"
  popup.compare_drafts_button.pressed.emit()
  check(slider.value == 0 and view.selected == 3 and choice.get_item_metadata(choice.selected) == spare.key and popup.garden.turn == 3 and "Row 1 · Column 1" in popup.comparison_current.text and "Row 1 · Column 1" in popup.comparison_other.text, "A restored comparison uses the nursery's new starting position")
+
+func check_comparison_starting_board(popup) -> void:
+ var id: String = Program.OPEN_NURSERY.id
+ popup.chooser.item_selected.emit(Program.GARDENS.find(Program.OPEN_NURSERY))
+ popup.draft_choice.item_selected.emit(0)
+ popup.nursery_target.value = 2
+ await finish_by_steps(popup, "fill()\nhop(north)\nplant(east)\nwater(east)\nwait()\n")
+ var own_source := "gather(east)\n"
+ var other: Dictionary = popup.progress.create_draft_copy(id, "wait()\ngather(east)\n", true)
+ popup._refresh_draft_choice()
+ popup.source.text = own_source
+ var live_tile: Node = popup.world.garden_root.get_child(0)
+ var balance: int = popup.progress.nursery_balance()
+ popup.compare_drafts_button.pressed.emit()
+ var choice: OptionButton = popup.comparison_choice
+ var start: OptionButton = popup.comparison_start
+ var view: OptionButton = popup.comparison_view
+ var slider: HSlider = popup.comparison_slider
+ select_comparison_copy(choice, other.key)
+ check(other.error == OK and start.is_visible_in_tree() and start.selected == 0 and slider.value == 2 and popup.comparison_current_route.initial.turn == 5 and popup.comparison_other_route.initial.tank == 5 and "Harvested 1" in popup.comparison_current.text and "Harvested 1" in popup.comparison_other.text, "Live nursery starts both drafts at the ripe bed with the current tank")
+
+ view.select(3)
+ view.item_selected.emit(3)
+ start.select(1)
+ start.item_selected.emit(1)
+ var left = popup.comparison_current_route.initial
+ var right = popup.comparison_other_route.initial
+ check(view.selected == 3 and slider.max_value == 1 and slider.value == 1 and left.turn == 0 and right.turn == 0 and left.cell == Vector2i(0, 1) and right.cell == left.cell and left.tank == 0 and right.tank == 0 and left.plant_status(Vector2i(1, 0)) == Program.EMPTY_BED and right.plant_status(Vector2i(1, 0)) == Program.EMPTY_BED and "Blocked" in popup.comparison_current.text and "Blocked" in popup.comparison_other.text, "Fresh nursery resets both preview boards and clamps the action to the shorter trace")
+ check(left.water_capacity == 6 and right.water_capacity == 6 and left.reach_tool and right.reach_tool and left.harvest_hook and right.harvest_hook and left.harvest_target == 2 and right.harvest_target == 2 and popup.garden.turn == 5 and popup.garden.tank == 5 and popup.garden.cell == Vector2i(0, 0) and popup.garden.plant_status(Vector2i(1, 0)) == "Ripe" and popup.progress.nursery_balance() == balance and popup.world.garden_root.get_child(0) == live_tile and popup.source.text == own_source, "Fresh previews retain the nursery tools and target and leave the live nursery untouched")
+
+ press_key(KEY_ESCAPE)
+ popup.compare_drafts_button.pressed.emit()
+ check(start.selected == 1 and view.selected == 3 and slider.value == 1 and choice.get_item_metadata(choice.selected) == other.key and popup.comparison_other_route.initial.turn == 0, "Reopening remembers the fresh starting board with the same partner, view, and action")
+ start.select(0)
+ start.item_selected.emit(0)
+ check(slider.max_value == 2 and slider.value == 1 and popup.comparison_current_route.initial.turn == 5 and popup.comparison_other_route.initial.turn == 5 and "Harvested 1" in popup.comparison_current.text and "Harvested 0" in popup.comparison_other.text, "Returning to the live nursery recalculates both forecasts at the current action")
+
+ popup.language.item_selected.emit(1)
+ var classic: Dictionary = popup.progress.create_draft_copy(id, "wait\nwait\n", false)
+ popup._refresh_draft_choice()
+ popup.source.text = "wait\n"
+ popup.compare_drafts_button.pressed.emit()
+ select_comparison_copy(choice, classic.key)
+ start.select(1)
+ start.item_selected.emit(1)
+ check(classic.error == OK and not popup.python_mode and start.is_visible_in_tree() and popup.comparison_current_route.initial.turn == 0 and popup.comparison_other_route.actions.size() == 2 and popup.garden.turn == 5, "Classic drafts can also compare from fresh nursery previews")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)
@@ -2352,6 +2398,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   await check_duplicate_draft(popup)
   check_comparison_source(popup)
   await check_comparison_resume(popup)
+  await check_comparison_starting_board(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

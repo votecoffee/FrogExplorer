@@ -8,6 +8,7 @@ const COMPARISON_BOARD_KEY := "Gold outline · Tile differs between drafts"
 const COMPARISON_GOLD := "#e8c879"
 const COMPARISON_HIGHLIGHT := "[color=" + COMPARISON_GOLD + "]"
 enum ComparisonView { BOARDS, VARIABLES, PRINT_OUTPUT, SOURCE }
+enum ComparisonStart { LIVE, FRESH }
 const CLASSIC_GUIDE := "hop north / east / south / west\nfill     plant     water     wait     gather\nrepeat N … end     # comment\nroutine NAME heading · call NAME east\nif / while CONDITION … end\nelse · not · and · or · break · continue\nLook ahead with clear east or lily north\nF9 toggles a breakpoint"
 const PYTHON_GUIDE := "hop(east)    fill()    water()\nplant()       wait()       gather()\nfor bed in range(2):\nif water_level() < tank_capacity():\nwhile clear(east):\ndef walk(heading, steps: int):\nstart = column()    print(start)\nTab indents · Shift+Tab unindents\nF9 toggles a breakpoint"
 var hud: ExplorerHUD
@@ -24,6 +25,7 @@ var compare_drafts_button: Button
 var comparison_panel: VBoxContainer
 var comparison_choice: OptionButton
 var comparison_context: Label
+var comparison_start: OptionButton
 var comparison_timeline: HBoxContainer
 var comparison_slider: HSlider
 var comparison_position: Label
@@ -602,8 +604,16 @@ func _add_draft_comparison(parent: Container) -> void:
  var choices := HBoxContainer.new()
  comparison_panel.add_child(choices)
  comparison_context = hud.label("", 14)
- comparison_context.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  choices.add_child(comparison_context)
+ comparison_start = OptionButton.new()
+ comparison_start.add_item("Live nursery", ComparisonStart.LIVE)
+ comparison_start.add_item("Fresh nursery", ComparisonStart.FRESH)
+ comparison_start.tooltip_text = "Choose the starting board for both previews."
+ comparison_start.item_selected.connect(_select_comparison_start)
+ choices.add_child(comparison_start)
+ var spacer := Control.new()
+ spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ choices.add_child(spacer)
  choices.add_child(hud.label("Compare with", 14))
  comparison_choice = OptionButton.new()
  comparison_choice.item_selected.connect(_compare_drafts)
@@ -739,7 +749,9 @@ func _toggle_draft_comparison() -> void:
  comparison_view.select(remembered.get("view", 0))
  for editor in [comparison_current_code, comparison_other_code]:
   _color_code(editor, python_mode)
- comparison_context.text = "Starting board · Live nursery" if garden.practice else "Starting board · Fresh lesson"
+ comparison_context.text = "Starting board" if garden.practice else "Starting board · Fresh lesson"
+ comparison_start.select(remembered.get("start", ComparisonStart.LIVE))
+ comparison_start.visible = garden.practice
  comparison_source = source.text
  comparison_current_code.text = comparison_source
  comparison_current_route = _trace_draft(comparison_source)
@@ -748,6 +760,11 @@ func _toggle_draft_comparison() -> void:
  _compare_drafts(selected, remembered.get("action", -1))
  if comparison_slider.is_visible_in_tree():
   comparison_slider.grab_focus()
+
+func _select_comparison_start(_index: int) -> void:
+ if comparison_panel.visible and garden.practice:
+  comparison_current_route = _trace_draft(comparison_source)
+  _compare_drafts(comparison_choice.selected, roundi(comparison_slider.value))
 
 func _compare_drafts(index: int, action := -1) -> void:
  if not comparison_panel.visible:
@@ -884,7 +901,8 @@ func _jump_to_adjacent_comparison_difference(forward: bool) -> void:
 
 func _trace_draft(text: String) -> Dictionary:
  var result := _compile(text, python_mode)
- return result if result.has("error") else _trace(result.steps, false, Programs.MAX_STEPS, python_mode)
+ var fresh := garden.practice and comparison_start.get_selected_id() == ComparisonStart.FRESH
+ return result if result.has("error") else _trace(result.steps, fresh, Programs.MAX_STEPS, python_mode)
 
 func _show_comparison_step(value: float) -> void:
  if not comparison_panel.visible:
@@ -1033,7 +1051,7 @@ func _comparison_key_for(draft: String) -> String:
  return ("python:" if python_mode else "classic:") + draft
 
 func _comparison_position_for(other: String) -> Dictionary:
- return {"other":other, "view":comparison_view.selected, "action":roundi(comparison_slider.value)}
+ return {"other":other, "view":comparison_view.selected, "action":roundi(comparison_slider.value), "start":comparison_start.selected}
 
 func _close_draft_comparison() -> void:
  if comparison_panel.visible:
