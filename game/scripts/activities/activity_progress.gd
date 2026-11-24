@@ -45,6 +45,7 @@ var drafts: Dictionary = {}
 var python_drafts: Dictionary = {}
 var draft_names: Dictionary = {}
 var draft_selections: Dictionary = {}
+var draft_breakpoint_records: Dictionary = {}
 var solved: Dictionary = {}
 var garden_best: Dictionary = {}
 var garden_best_programs: Dictionary = {}
@@ -70,6 +71,7 @@ func load_from(path: String) -> void:
  python_drafts.clear()
  draft_names.clear()
  draft_selections.clear()
+ draft_breakpoint_records.clear()
  if not DirAccess.dir_exists_absolute(folder):
   return
  var names := DirAccess.get_files_at(folder)
@@ -390,6 +392,41 @@ func edit_draft(id: String, text: String, python := false) -> Error:
  var saved := python_drafts if python else drafts
  saved[id] = text
  return _save("draft-" + _draft_file_key(id, python), text)
+
+func _draft_breakpoint_record(name: String) -> String:
+ if not draft_breakpoint_records.has(name) and not folder.is_empty():
+  var path := folder.path_join(name)
+  draft_breakpoint_records[name] = FileAccess.get_file_as_string(path) if FileAccess.file_exists(path) else ""
+ return draft_breakpoint_records.get(name, "")
+
+func draft_breakpoints(key: String, python: bool, text: String, line_count: int) -> PackedInt32Array:
+ var name := "draft-breakpoints-" + _draft_file_key(key, python) + ".txt"
+ var fields := _draft_breakpoint_record(name).split("\n", false)
+ var lines := PackedInt32Array()
+ # Match the exact saved source before applying its line numbers.
+ if fields.is_empty() or fields[0] != text.sha256_text():
+  return lines
+ for field in fields.slice(1):
+  if not field.is_valid_int():
+   continue
+  var line := int(field)
+  if line >= 0 and line < line_count and not lines.has(line):
+   lines.append(line)
+ lines.sort()
+ return lines
+
+func save_draft_breakpoints(key: String, python: bool, text: String, lines: PackedInt32Array) -> Error:
+ var name := "draft-breakpoints-" + _draft_file_key(key, python) + ".txt"
+ var record := ""
+ if not lines.is_empty():
+  var fields := PackedStringArray([text.sha256_text()])
+  for line in lines:
+   fields.append(str(line))
+  record = "\n".join(fields) + "\n"
+ if _draft_breakpoint_record(name) == record:
+  return OK
+ draft_breakpoint_records[name] = record
+ return _save(name, record)
 
 func complete_puzzle(id: String, actions: int, program: String, python := false) -> Error:
  if actions <= 0 or actions > Programs.MAX_STEPS or program.is_empty():

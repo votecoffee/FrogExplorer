@@ -1391,6 +1391,9 @@ func check_duplicate_draft(popup) -> void:
  check(button.is_visible_in_tree() and not button.disabled and choice.item_count == 1, "Duplicate draft is available before the first copy exists")
  var main_source := "# Main draft\nwait()\nwait()\n"
  popup.source.text = main_source
+ popup.source.grab_focus()
+ popup.source.set_caret_line(2)
+ press_key(KEY_F9)
  popup.source.set_caret_line(1)
  popup.source.set_caret_column(3)
  popup._queue_save()
@@ -1400,9 +1403,11 @@ func check_duplicate_draft(popup) -> void:
  var first_copy: String = popup.progress.selected_draft(id, true)
  check(waiting_for_autosave and first_copy != id and choice.selected == 1 and popup.progress.python_drafts.get(id) == main_source and popup.progress.python_drafts.get(first_copy) == main_source, "Enter duplicates the text before autosave and saves both drafts")
  check(popup.source.has_focus() and popup.source.get_caret_line() == 1 and popup.source.get_caret_column() == 3 and popup.garden.turn == 2 and popup.garden.cell == Vector2i(1, 1), "The new copy opens at the same cursor and keeps the live nursery")
+ check(popup.source.get_breakpointed_lines().is_empty() and popup.progress.draft_breakpoints(id, true, main_source, 4) == PackedInt32Array([2]), "Duplicating a draft preserves its marks and starts the new copy with its own empty breakpoint list")
 
  var first_source := "# Short variant\nwait()\n"
  popup.source.text = first_source
+ popup.source.set_line_as_breakpoint(1, true)
  button.pressed.emit()
  var second_copy: String = popup.progress.selected_draft(id, true)
  check(first_copy != second_copy and choice.item_count == 3 and popup.source.text == first_source and popup.progress.python_drafts.get(first_copy) == first_source and popup.progress.python_drafts.get(id) == main_source, "Duplicating a saved copy keeps its edits and the main draft independently")
@@ -1423,9 +1428,36 @@ func check_duplicate_draft(popup) -> void:
  button.pressed.emit()
  var classic_copy: String = popup.progress.selected_draft(id, false)
  check(not popup.python_mode and popup.source.text == classic_source and classic_copy != id and choice.item_count == 2 and popup.progress.selected_draft(id, true) == second_copy, "Classic copies and selections stay independent of Python")
+ popup.source.set_line_as_breakpoint(0, true)
+ popup.flush_draft()
  var reopened := Progress.new()
  reopened.load_from(temporary.get_current_dir())
  check(reopened.selected_draft(id, true) == second_copy and reopened.selected_draft(id, false) == classic_copy and reopened.python_drafts.get(id) == main_source and reopened.python_drafts.get(first_copy) == first_source and reopened.python_drafts.get(second_copy) == second_source and reopened.drafts.get(classic_copy) == classic_source, "Both copy families and their selected drafts reload from disk")
+ check(reopened.draft_breakpoints(id, true, main_source, 4) == PackedInt32Array([2]) and reopened.draft_breakpoints(first_copy, true, first_source, 3) == PackedInt32Array([1]) and reopened.draft_breakpoints(classic_copy, false, classic_source, 2) == PackedInt32Array([0]) and reopened.draft_breakpoints(second_copy, true, second_source, 4).is_empty(), "Main, copied, and Classic breakpoint sets reload independently from disk")
+ check(reopened.draft_breakpoints(id, true, "# Changed externally\n" + main_source, 5).is_empty(), "A breakpoint file for different source cannot mark a changed draft")
+
+ popup.language.item_selected.emit(0)
+ var blank_copy: bool = popup.source.get_breakpointed_lines().is_empty()
+ popup._open_saved_draft(id)
+ var main_lines: PackedInt32Array = popup.source.get_breakpointed_lines()
+ popup._open_saved_draft(first_copy)
+ check(blank_copy and main_lines == PackedInt32Array([2]) and popup.source.get_breakpointed_lines() == PackedInt32Array([1]), "Switching drafts restores each draft's marks in the editor")
+ popup.source.set_caret_line(0)
+ popup.source.set_caret_column(0)
+ popup.source.insert_text_at_caret("# Extra comment\n")
+ popup.flush_draft()
+ reopened.load_from(temporary.get_current_dir())
+ check(popup.source.get_breakpointed_lines() == PackedInt32Array([2]) and reopened.draft_breakpoints(first_copy, true, popup.source.text, 4) == PackedInt32Array([2]), "An inserted line moves the breakpoint and saves its new position")
+ popup.source.set_line_as_breakpoint(2, false)
+ popup.source.text = first_source
+ popup.flush_draft()
+ reopened.load_from(temporary.get_current_dir())
+ check(reopened.draft_breakpoints(first_copy, true, first_source, 3).is_empty(), "Removing the last breakpoint persists when the draft is reopened")
+ popup._open_saved_draft(second_copy)
+ popup.language.item_selected.emit(1)
+ check(popup.source.get_breakpointed_lines() == PackedInt32Array([0]), "Returning to Classic restores its own breakpoint")
+ popup.source.clear_breakpointed_lines()
+ popup.flush_draft()
  popup.progress.folder = original_folder
 
 func check_comparison_source(popup) -> void:
@@ -1893,6 +1925,7 @@ wait()
 
  popup.language.item_selected.emit(0)
  popup._reset()
+ popup.source.clear_breakpointed_lines()
  popup.source.text = "fill()\nif False:\n    wait()\nwait()\n"
  popup.source.set_caret_line(2)
  press_key(KEY_F10, true)

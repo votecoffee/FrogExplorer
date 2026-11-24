@@ -22,6 +22,8 @@ var puzzle := -1
 var progress: Progress
 var draft_timer: Timer
 var loaded_draft := ""
+var loaded_breakpoints := PackedInt32Array()
+var restoring_breakpoints := false
 var draft_bar: HBoxContainer
 var draft_choice: OptionButton
 var duplicate_draft_button: Button
@@ -467,7 +469,7 @@ func _ready() -> void:
  review_previous_breakpoint.tooltip_text = "Jump to the previous action on a marked line. Use Shift+Page Up from the timeline."
  review_next_breakpoint.tooltip_text = "Jump to the next action on a marked line. Use Shift+Page Down from the timeline."
  review_breakpoint_row.hide()
- source.breakpoint_toggled.connect(_index_review_breakpoints)
+ source.breakpoint_toggled.connect(_on_draft_breakpoint_toggled)
  review_controls.hide()
  board = _board_grid(right)
  hint = hud.label("", 15)
@@ -543,13 +545,29 @@ func _queue_save() -> void:
  if puzzle >= 0 and source.text != loaded_draft:
   draft_timer.start()
 
+func _on_draft_breakpoint_toggled(_line: int) -> void:
+ if not restoring_breakpoints and puzzle >= 0:
+  _index_review_breakpoints()
+  draft_timer.start()
+
 func flush_draft() -> void:
  draft_timer.stop()
- if puzzle >= 0 and source.text != loaded_draft:
-  loaded_draft = source.text
-  if progress.edit_draft(_draft_key(), loaded_draft, python_mode) != OK:
-   hud.toast("Could not save activity progress.")
- elif progress.flush() != OK:
+ var text := source.text
+ var lines := source.get_breakpointed_lines()
+ lines.sort()
+ var error := OK
+ if puzzle >= 0 and (text != loaded_draft or lines != loaded_breakpoints):
+  var key := _draft_key()
+  if text != loaded_draft:
+   loaded_draft = text
+   error = progress.edit_draft(key, text, python_mode)
+  loaded_breakpoints = lines
+  var breakpoint_error := progress.save_draft_breakpoints(key, python_mode, text, lines)
+  if breakpoint_error != OK:
+   error = breakpoint_error
+ else:
+  error = progress.flush()
+ if error != OK:
   hud.toast("Could not save activity progress.")
 
 func _toggle_best_program() -> void:
@@ -1464,8 +1482,13 @@ func _load_draft(reset_board := true) -> void:
  source.indent_automatic = python_mode
  source.placeholder_text = "Type Python for Pondbot" if python_mode else "Type Pondbot commands"
  guide.text = PYTHON_GUIDE if python_mode else CLASSIC_GUIDE
+ restoring_breakpoints = true
  source.clear_breakpointed_lines()
  source.text = loaded_draft
+ loaded_breakpoints = progress.draft_breakpoints(_draft_key(), python_mode, loaded_draft, source.get_line_count())
+ for line in loaded_breakpoints:
+  source.set_line_as_breakpoint(line, true)
+ restoring_breakpoints = false
  if reset_board:
   _reset()
  else:
@@ -1803,7 +1826,7 @@ func _jump_to_review_destination(destinations: PackedInt32Array, forward: bool) 
   review_slider.value = destinations[index]
   review_slider.grab_focus()
 
-func _index_review_breakpoints(_line := -1) -> void:
+func _index_review_breakpoints() -> void:
  review_breakpoint_actions.clear()
  if review_controls.visible and not best_panel.visible and checked_source == source.text:
   var traced: Array = checked_route.actions
