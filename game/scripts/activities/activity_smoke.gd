@@ -1695,6 +1695,51 @@ func check_comparison_results(popup) -> void:
  view.item_selected.emit(4)
  check(lesson_copy.error == OK and popup.comparison_goal_label.text == "First reaches 2 lilies" and current_goal.text == "Action 9" and other_goal.text == "Action 10" and popup.comparison_goal_delta.text == "+1" and popup.garden.turn == 0, "A lesson's milestone requires harvesting all of its lilies")
 
+func check_comparison_totals_at_target(popup) -> void:
+ var id: String = Program.OPEN_NURSERY.id
+ popup.chooser.item_selected.emit(Program.GARDENS.find(Program.OPEN_NURSERY))
+ popup.draft_choice.item_selected.emit(0)
+ popup.nursery_target.value = 1
+ await finish_by_steps(popup, "fill()\nhop(north)\nplant(east)\nwater(east)\nwait()\n")
+ var other: Dictionary = popup.progress.create_draft_copy(id, "hop(south)\nfill()\nhop(north)\nhop(east)\nplant(east)\nwater(east)\ngather()\nwait()\ngather(east)\n", true)
+ var short: Dictionary = popup.progress.create_draft_copy(id, "wait()\n", true)
+ popup._refresh_draft_choice()
+ var current := "gather(east)\nhop(south)\nfill()\n"
+ popup.source.text = current
+ var balance: int = popup.progress.nursery_balance()
+ popup.compare_drafts_button.pressed.emit()
+ var choice: OptionButton = popup.comparison_choice
+ var start: OptionButton = popup.comparison_start
+ var view: OptionButton = popup.comparison_view
+ var timing: OptionButton = popup.comparison_totals_choice
+ var slider: HSlider = popup.comparison_slider
+ var values: Array[Label] = popup.comparison_result_values
+ start.select(0)
+ start.item_selected.emit(0)
+ select_comparison_copy(choice, other.key)
+ view.select(4)
+ view.item_selected.emit(4)
+ check(other.error == OK and short.error == OK and timing.is_visible_in_tree() and timing.get_item_text(timing.selected) == "Selected action" and slider.value == 9 and values.map(func(label): return label.text) == ["1", "2", "+1", "3", "9", "+6", "0", "1", "+1", "1", "1", "0"], "Selected action still includes all work through the chosen step")
+
+ timing.select(1)
+ timing.item_selected.emit(1)
+ var at_target := ["1", "1", "0", "1", "7", "+6", "0", "1", "+1", "0", "1", "+1"]
+ check(slider.value == 9 and values.map(func(label): return label.text) == at_target and not popup.comparison_difference_button.visible, "First target action compares equal harvest goals and excludes work done after each milestone")
+ popup.comparison_other_goal.pressed.emit()
+ var jumped: bool = slider.value == 7 and slider.has_focus()
+ slider.value = 0
+ check(jumped and values.map(func(label): return label.text) == at_target, "Both milestone totals stay pinned while the shared slider jumps or rewinds")
+ press_key(KEY_ESCAPE)
+ popup.compare_drafts_button.pressed.emit()
+ check(view.selected == 4 and timing.selected == 1 and slider.value == 0 and values.map(func(label): return label.text) == at_target, "Reopening restores the target totals and slider independently")
+
+ select_comparison_copy(choice, short.key)
+ check(timing.selected == 1 and popup.comparison_other_goal.text == "Not reached" and values.map(func(label): return label.text) == ["1", "—", "—", "1", "—", "—", "0", "—", "—", "0", "—", "—"], "Target totals remain available for the draft that reaches its goal")
+ timing.select(0)
+ timing.item_selected.emit(0)
+ slider.value = 1
+ check(popup.comparison_difference_button.visible and values.map(func(label): return label.text) == ["1", "0", "-1", "1", "1", "0", "0", "0", "0", "0", "0", "0"] and popup.garden.turn == 5 and popup.garden.tank == 5 and popup.garden.plant_status(Vector2i(1, 0)) == "Ripe" and popup.progress.nursery_balance() == balance and popup.source.text == current, "Switching back restores shared step totals without changing the live nursery")
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -2554,6 +2599,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   check_compare_personal_best(popup)
   await check_extended_comparison(popup)
   await check_comparison_results(popup)
+  await check_comparison_totals_at_target(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

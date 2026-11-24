@@ -11,6 +11,7 @@ const COMPARISON_HIGHLIGHT := "[color=" + COMPARISON_GOLD + "]"
 const COMPARISON_TOTAL_NAMES := ["Lilies harvested", "Actions", "Water doses", "Fills"]
 enum ComparisonView { BOARDS, VARIABLES, PRINT_OUTPUT, SOURCE, RESULTS }
 enum ComparisonStart { LIVE, FRESH }
+enum ComparisonTotals { SELECTED_ACTION, FIRST_TARGET }
 const CLASSIC_GUIDE := "hop north / east / south / west\nfill     plant     water     wait     gather\nrepeat N … end     # comment\nroutine NAME heading · call NAME east\nif / while CONDITION … end\nelse · not · and · or · break · continue\nLook ahead with clear east or lily north\nF9 toggles a breakpoint"
 const PYTHON_GUIDE := "hop(east)    fill()    water()\nplant()       wait()       gather()\nfor bed in range(2):\nif water_level() < tank_capacity():\nwhile clear(east):\ndef walk(heading, steps: int):\nstart = column()    print(start)\nTab indents · Shift+Tab unindents\nF9 toggles a breakpoint"
 var hud: ExplorerHUD
@@ -50,7 +51,9 @@ var comparison_other_details: RichTextLabel
 var comparison_current_code: CodeEdit
 var comparison_other_code: CodeEdit
 var comparison_other_edit: Button
+var comparison_results_panel: VBoxContainer
 var comparison_results: GridContainer
+var comparison_totals_choice: OptionButton
 var comparison_result_values: Array[Label] = []
 var comparison_goal_label: Label
 var comparison_current_goal: Button
@@ -678,11 +681,22 @@ func _add_draft_comparison(parent: Container) -> void:
  comparison_panel.hide()
 
 func _add_comparison_results(parent: Container) -> void:
+ comparison_results_panel = VBoxContainer.new()
+ parent.add_child(comparison_results_panel)
+ var controls := HBoxContainer.new()
+ comparison_results_panel.add_child(controls)
+ controls.add_child(hud.label("Totals at", 14))
+ comparison_totals_choice = OptionButton.new()
+ comparison_totals_choice.add_item("Selected action", ComparisonTotals.SELECTED_ACTION)
+ comparison_totals_choice.add_item("First target action", ComparisonTotals.FIRST_TARGET)
+ comparison_totals_choice.tooltip_text = "Use the shared slider position or each draft's own harvest target action."
+ comparison_totals_choice.item_selected.connect(_select_comparison_view)
+ controls.add_child(comparison_totals_choice)
  comparison_results = GridContainer.new()
  comparison_results.columns = 4
  comparison_results.add_theme_constant_override("h_separation", 16)
  comparison_results.add_theme_constant_override("v_separation", 5)
- parent.add_child(comparison_results)
+ comparison_results_panel.add_child(comparison_results)
  for title in ["Total", "Current", "Other", "Other − current"]:
   var heading: Label = hud.label(title, 14, Color("#b9dccc"))
   comparison_results.add_child(heading)
@@ -706,7 +720,7 @@ func _add_comparison_results(parent: Container) -> void:
  comparison_goal_delta = hud.label("", 14)
  comparison_goal_delta.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
  comparison_results.add_child(comparison_goal_delta)
- comparison_results.hide()
+ comparison_results_panel.hide()
 
 func _select_comparison_view(_index: int) -> void:
  if comparison_panel.visible:
@@ -814,6 +828,7 @@ func _toggle_draft_comparison() -> void:
  comparison_view.add_item("Source", ComparisonView.SOURCE)
  comparison_view.add_item("Results", ComparisonView.RESULTS)
  comparison_view.select(remembered.get("view", 0))
+ comparison_totals_choice.select(remembered.get("totals", ComparisonTotals.SELECTED_ACTION))
  for editor in [comparison_current_code, comparison_other_code]:
   _color_code(editor, python_mode)
  comparison_context.text = "Starting board" if garden.practice else "Starting board · Fresh lesson"
@@ -886,8 +901,9 @@ func _compare_drafts(index: int, action := -1) -> void:
 func _update_comparison_differences() -> void:
  var both_compiled := comparison_current_route.has("actions") and comparison_other_route.has("actions")
  var view := comparison_view.get_selected_id()
+ var follows_slider := view != ComparisonView.RESULTS or comparison_totals_choice.selected == ComparisonTotals.SELECTED_ACTION
  comparison_differences.clear()
- if both_compiled:
+ if both_compiled and follows_slider:
   match view:
    ComparisonView.BOARDS, ComparisonView.SOURCE:
     comparison_differences = _find_board_differences(comparison_current_route, comparison_other_route)
@@ -899,7 +915,7 @@ func _update_comparison_differences() -> void:
     comparison_differences = _find_result_differences(comparison_current_route.totals_history, comparison_other_route.totals_history)
  comparison_slider.visible = comparison_slider.max_value > 0
  comparison_timeline.visible = comparison_slider.visible or not comparison_differences.is_empty()
- comparison_difference_button.visible = both_compiled
+ comparison_difference_button.visible = both_compiled and follows_slider
  match view:
   ComparisonView.BOARDS:
    comparison_difference_button.tooltip_text = "Compare board commands, directions, and stopping points."
@@ -1000,15 +1016,21 @@ func _find_result_differences(current: Array[Vector4i], other: Array[Vector4i]) 
 func _comparison_totals(board: Programs) -> Vector4i:
  return Vector4i(board.run_harvest_count(), board.run_action_count(), board.run_water_used, board.run_fills)
 
+func _totals_for_results(board: Programs, route: Dictionary, goal_action: int) -> Variant:
+ if comparison_totals_choice.selected == ComparisonTotals.FIRST_TARGET:
+  return route.totals_history[goal_action] if goal_action >= 0 else null
+ return _comparison_totals(board) if board != null else null
+
 func _show_comparison_results(current: Programs, other: Programs) -> void:
- var left := _comparison_totals(current) if current != null else Vector4i.ZERO
- var right := _comparison_totals(other) if other != null else Vector4i.ZERO
- var delta := right - left
+ var left: Variant = _totals_for_results(current, comparison_current_route, comparison_goal_actions.x)
+ var right: Variant = _totals_for_results(other, comparison_other_route, comparison_goal_actions.y)
+ var comparable: bool = left != null and right != null
+ var delta: Vector4i = right - left if comparable else Vector4i.ZERO
  for row in COMPARISON_TOTAL_NAMES.size():
   var offset := 3 * row
-  comparison_result_values[offset].text = str(left[row]) if current != null else "—"
-  comparison_result_values[offset + 1].text = str(right[row]) if other != null else "—"
-  _show_comparison_delta(comparison_result_values[offset + 2], delta[row], current != null and other != null)
+  comparison_result_values[offset].text = str(left[row]) if left != null else "—"
+  comparison_result_values[offset + 1].text = str(right[row]) if right != null else "—"
+  _show_comparison_delta(comparison_result_values[offset + 2], delta[row], comparable)
 
 func _show_comparison_delta(label: Label, delta: int, available: bool) -> void:
  if available:
@@ -1084,7 +1106,7 @@ func _show_comparison_step(value: float) -> void:
  var show_results := view == ComparisonView.RESULTS
  comparison_current.text = draft_choice.get_item_text(draft_choice.selected) + "\n" + _comparison_snapshot(comparison_current_route, index, current, not show_results)
  comparison_other.text = comparison_choice.get_item_text(comparison_choice.selected) + "\n" + _comparison_snapshot(comparison_other_route, index, other, not show_results)
- comparison_results.visible = show_results
+ comparison_results_panel.visible = show_results
  if show_results:
   _show_comparison_results(current, other)
  var show_boards := view == ComparisonView.BOARDS
@@ -1229,7 +1251,7 @@ func _comparison_key_for(draft: String) -> String:
 func _comparison_position_for(other: String) -> Dictionary:
  return {
   "other":other, "view":comparison_view.selected, "action":roundi(comparison_slider.value),
-  "start":comparison_start.selected, "limit":comparison_limit,
+  "start":comparison_start.selected, "limit":comparison_limit, "totals":comparison_totals_choice.selected,
  }
 
 func _close_draft_comparison() -> void:
