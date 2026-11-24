@@ -406,6 +406,13 @@ for stop in range(1, 3):
  var target_line: int = popup.best_source.get_caret_line()
  check(popup.best_source.has_focus() and not popup.best_source.editable and popup.best_source.get_line(target_line).strip_edges().begins_with("for stop in") and popup.best_source.get_executing_lines() == marker and popup.review_slider.value == second_stop, "A saved loop counter opens at its loop header in the read-only source without moving the replay")
  press_key(KEY_F7, true)
+ popup.watch_condition_choice.select(1)
+ popup.watch_condition_choice.item_selected.emit(1)
+ set_watch_target(popup, "2")
+ popup.review_slider.value = maxi(0, second_stop - 1)
+ popup.review_slider.grab_focus()
+ press_key(KEY_PAGEDOWN)
+ check(popup.watch_condition_row.is_visible_in_tree() and popup.review_slider.value == second_stop and popup.variables_text.text == "stop = 1 → 2" and not popup.review_run_to_change.is_visible_in_tree(), "Best program can find a matching condition while keeping the replay read-only")
  press_key(KEY_F7, true)
 
 func check_nursery_storage() -> void:
@@ -2616,6 +2623,70 @@ wait()
  popup._process(.25)
  check(boolean_skipped and not popup.running and popup.garden.turn == 3 and "Watch condition met · depth = False → -1" in popup.status.text, "At most ignores Booleans and stops when a signed integer reaches the target range")
 
+func check_review_watch_conditions(popup) -> void:
+ popup._reset()
+ popup.variables_button.set_pressed_no_signal(false)
+ popup.source.text = """other = 0
+count = 0
+wait()
+count = 1
+wait()
+count = 3
+wait()
+count = 4
+wait()
+count = 1
+other = 1
+wait()
+count = 3
+wait()
+wait()
+"""
+ popup.check_button.pressed.emit()
+ press_key(KEY_F7, true)
+ popup.review_button.pressed.emit()
+ var slider: HSlider = popup.review_slider
+ var filter: OptionButton = popup.review_variable_filter
+ var condition: OptionButton = popup.watch_condition_choice
+ var run_match: Button = popup.review_run_to_change
+ var following := select_review_variable(filter, "count")
+ condition.select(2)
+ condition.item_selected.emit(2)
+ check(following and popup.watch_condition_row.is_visible_in_tree() and popup.watch_target_edit.is_visible_in_tree() and run_match.disabled and not popup.review_change_row.is_visible_in_tree() and slider.value == 0, "A Review condition waits for its target before enabling jumps or a live run")
+
+ set_watch_target(popup, "3")
+ press_key(KEY_PAGEDOWN)
+ var first_match: bool = slider.value == 2 and popup.variables_text.text == "count = 1 → 3"
+ popup.review_next_change.pressed.emit()
+ check(first_match and slider.value == 5 and popup.variables_text.text == "count = 1 → 3" and popup.review_next_change.disabled and popup.review_previous_change.text == "Previous match" and slider.has_focus(), "Replay jumps skip both nonmatching actions and changes that leave the condition true")
+ press_key(KEY_PAGEUP)
+ press_key(KEY_F7, true, true)
+ check(slider.value == 2 and popup.review_history_list.item_count == 6 and popup.review_history_list.get_item_text(3) == "Action 3 · 3 → 4" and popup.garden.turn == 0, "History retains every variable change alongside condition-based navigation")
+ press_key(KEY_ESCAPE)
+ press_key(KEY_F7, true)
+ set_watch_target(popup, "9")
+ press_key(KEY_PAGEDOWN)
+ check(popup.review_match_status.is_visible_in_tree() and not popup.review_change_row.is_visible_in_tree() and slider.value == 2 and slider.has_focus(), "A condition with no matches keeps the timeline in place and shows that result")
+
+ var switched := select_review_variable(filter, "other")
+ press_key(KEY_PAGEDOWN)
+ check(switched and condition.selected == 0 and popup.watch_target_edit.text.is_empty() and slider.value == 4 and popup.variables_text.text == "other = 0 → 1", "Following a different variable restores ordinary change navigation")
+
+ select_review_variable(filter, "count")
+ condition.select(2)
+ condition.item_selected.emit(2)
+ set_watch_target(popup, "3")
+ var can_launch := run_match.text == "Run to match" and not run_match.disabled
+ press_key(KEY_ENTER, true, true)
+ var launched_at_start: bool = popup.running and popup.garden.turn == 0 and "Watching count ≥ 3" in popup.status.text
+ popup._process(.25)
+ popup._process(.25)
+ check(can_launch and launched_at_start and not popup.running and popup.garden.turn == 2 and "Watch condition met · count = 1 → 3" in popup.status.text, "Run to match carries the preview condition into a live run from its normal start")
+ press_key(KEY_ENTER, true, true)
+ for action in 3:
+  popup._process(.25)
+ check(not popup.running and popup.garden.turn == 5 and "Watch condition met · count = 1 → 3" in popup.status.text, "Live Next match reaches the same second transition as the preview")
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -3488,6 +3559,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   check_next_live_change(popup)
   check_live_watch_choice(popup)
   check_watch_conditions(popup)
+  check_review_watch_conditions(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")

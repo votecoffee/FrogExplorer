@@ -128,8 +128,10 @@ var review_history_button: Button
 var review_change_row: HBoxContainer
 var review_previous_change: Button
 var review_next_change: Button
+var review_match_status: Label
 var review_run_to_change: Button
 var review_change_actions := PackedInt32Array()
+var review_match_actions := PackedInt32Array()
 var run_button: Button
 var next_live_change_button: Button
 var speed_choice: OptionButton
@@ -434,6 +436,9 @@ func _ready() -> void:
  review_previous_change.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  review_next_change.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  review_change_row.hide()
+ review_match_status = hud.label("No matching actions", 15, Color("#b9dccc"))
+ review_controls.add_child(review_match_status)
+ review_match_status.hide()
  review_run_to_change = _button(review_controls, "Run to change", _run_to_variable_change)
  review_run_to_change.tooltip_text = "Run the current draft until the followed variable changes. Ctrl+Shift+Enter also starts the run."
  review_run_to_change.hide()
@@ -1646,13 +1651,18 @@ func _populate_review_variables(history: Array) -> void:
   review_variable_filter.add_item(name)
  var index := names.find(review_variable_name)
  if index < 0:
+  if not review_variable_name.is_empty():
+   _reset_watch_condition()
   review_variable_name = ""
  review_variable_filter.select(index + 1)
 
 func _select_review_variable(index: int) -> void:
  if not review_controls.visible:
   return
- review_variable_name = "" if index == 0 else review_variable_filter.get_item_text(index)
+ var name := "" if index == 0 else review_variable_filter.get_item_text(index)
+ if review_variable_name != name:
+  _reset_watch_condition()
+ review_variable_name = name
  var route := best_route if best_panel.visible else checked_route
  _index_review_changes(route.variable_history, route.variable_source_history)
  _refresh_variables()
@@ -1673,7 +1683,18 @@ func _index_review_changes(history: Array, source_history: Array) -> void:
    changed = not is_same(before.get(review_variable_name), after.get(review_variable_name))
   if changed:
    review_change_actions.append(index)
+ _index_review_matches(history)
  _rebuild_review_history(history, source_history)
+
+func _index_review_matches(history: Array) -> void:
+ review_match_actions.clear()
+ if watch_condition == WatchCondition.CHANGES or watch_target == null:
+  return
+ for action in review_change_actions:
+  var before: Dictionary = history[action - 1]
+  var after: Dictionary = history[action]
+  if _watch_transition_matches(before.get(review_variable_name), after.get(review_variable_name)):
+   review_match_actions.append(action)
 
 func _rebuild_review_history(history: Array, source_history: Array) -> void:
  review_history_list.clear()
@@ -1720,15 +1741,19 @@ func _focus_review_timeline() -> void:
  else:
   (best_source if best_panel.visible else source).grab_focus()
 
+func _review_jump_actions() -> PackedInt32Array:
+ return review_change_actions if watch_condition == WatchCondition.CHANGES else review_match_actions
+
 func _review_change_index(forward: bool) -> int:
  var action := roundi(review_slider.value)
- var index := review_change_actions.bsearch(action, not forward)
+ var index := _review_jump_actions().bsearch(action, not forward)
  return index if forward else index - 1
 
 func _jump_to_review_change(forward: bool) -> void:
  var index := _review_change_index(forward)
- if review_change_row.is_visible_in_tree() and index >= 0 and index < review_change_actions.size():
-  review_slider.value = review_change_actions[index]
+ var destinations := _review_jump_actions()
+ if review_change_row.is_visible_in_tree() and index >= 0 and index < destinations.size():
+  review_slider.value = destinations[index]
   review_slider.grab_focus()
 
 func _close_review() -> void:
@@ -1820,8 +1845,7 @@ func _can_run_to(commands: Array, line: int) -> bool:
 
 func _run_to_variable_change() -> void:
  var variable := ""
- if review_run_to_change.is_visible_in_tree():
-  _reset_watch_condition()
+ if review_run_to_change.is_visible_in_tree() and not review_run_to_change.disabled:
   variable = review_variable_name
  elif next_live_change_button.is_visible_in_tree() and not next_live_change_button.disabled:
   variable = watched_variable
@@ -1972,9 +1996,7 @@ func _pause_on_watchpoint(before: Dictionary) -> bool:
  var after := garden.inspect_variables()
  var previous: Variant = before.get(watched_variable)
  var current: Variant = after.get(watched_variable)
- if is_same(previous, current):
-  return false
- if watch_condition != WatchCondition.CHANGES and (_watch_condition_matches(previous) or not _watch_condition_matches(current)):
+ if not _watch_transition_matches(previous, current):
   return false
  var change := _format_variable_transition(before, after, watched_variable)
  var reason := "Variable changed" if watch_condition == WatchCondition.CHANGES else "Watch condition met"
@@ -2144,23 +2166,28 @@ func _show_variables(values: Dictionary, context: String, calls: Array = [], pre
 func _refresh_variables() -> void:
  variables_button.visible = best_python if best_panel.visible else python_mode
  variables_panel.visible = variables_button.visible and variables_button.button_pressed
- _refresh_live_watch()
  var show_calls := call_stack_button.button_pressed
  var show_changes := variable_changes_button.button_pressed
  var show_review_changes := review_controls.visible and variables_panel.visible and show_changes
  review_variable_row.visible = show_review_changes and review_variable_filter.item_count > 1
  review_history_button.visible = show_review_changes and not review_variable_name.is_empty()
  review_run_to_change.visible = review_history_button.visible and not best_panel.visible
+ _refresh_live_watch()
  if not review_controls.visible or review_variable_name.is_empty():
   review_history_button.set_pressed_no_signal(false)
  var show_history := review_history_button.visible and review_history_button.button_pressed
  review_history_list.visible = show_history
  var show_live_source := variables_panel.visible and not review_controls.visible and live_change_source_line >= 0
  variable_source_button.visible = show_history or show_live_source
- review_change_row.visible = show_review_changes and not review_change_actions.is_empty()
+ var matches := watch_condition != WatchCondition.CHANGES
+ var destinations := _review_jump_actions()
+ review_match_status.visible = review_history_button.visible and matches and watch_target != null and destinations.is_empty()
+ review_change_row.visible = show_review_changes and not destinations.is_empty()
  if review_change_row.visible:
+  review_previous_change.text = "Previous match" if matches else "Previous change"
+  review_next_change.text = "Next match" if matches else "Next change"
   review_previous_change.disabled = _review_change_index(false) < 0
-  review_next_change.disabled = _review_change_index(true) >= review_change_actions.size()
+  review_next_change.disabled = _review_change_index(true) >= destinations.size()
  var view_name := "changes" if show_changes else "variables"
  if show_history:
   view_name = "history"
@@ -2238,7 +2265,12 @@ func _update_watch_target() -> void:
  var was_active := watchpoint_active
  watchpoint_active = false
  watch_target = _parse_watch_target()
- _refresh_watch_condition()
+ if review_controls.visible and not review_variable_name.is_empty():
+  var route := best_route if best_panel.visible else checked_route
+  _index_review_matches(route.variable_history)
+  _refresh_variables()
+ else:
+  _refresh_watch_condition()
  if was_active and _can_choose_live_watch():
   _show_progress()
 
@@ -2263,6 +2295,13 @@ func _watch_condition_matches(value: Variant) -> bool:
   return false
  return value >= watch_target if watch_condition == WatchCondition.AT_LEAST else value <= watch_target
 
+func _watch_transition_matches(previous: Variant, current: Variant) -> bool:
+ if is_same(previous, current):
+  return false
+ if watch_condition == WatchCondition.CHANGES:
+  return true
+ return watch_target != null and not _watch_condition_matches(previous) and _watch_condition_matches(current)
+
 func _watch_condition_text() -> String:
  if watch_condition == WatchCondition.CHANGES or watch_target == null:
   return ""
@@ -2271,11 +2310,14 @@ func _watch_condition_text() -> String:
 
 func _refresh_watch_condition() -> void:
  var any_change := watch_condition == WatchCondition.CHANGES
- watch_condition_row.visible = live_watch_row.visible and not watched_variable.is_empty()
+ watch_condition_row.visible = (live_watch_row.visible and not watched_variable.is_empty()) or review_history_button.visible
  watch_target_edit.visible = not any_change
  watch_target_edit.placeholder_text = "Number or Boolean" if watch_condition == WatchCondition.EQUALS else "Whole number"
  next_live_change_button.text = "Next change" if any_change else "Next match"
  next_live_change_button.disabled = not any_change and watch_target == null
+ review_run_to_change.text = "Run to change" if any_change else "Run to match"
+ review_run_to_change.disabled = next_live_change_button.disabled
+ review_run_to_change.tooltip_text = "Run the current draft until the watch stops. Ctrl+Shift+Enter also starts the run."
  if next_live_change_button.disabled:
   next_live_change_button.tooltip_text = "Enter a signed 32-bit integer, or True or False for Equals."
  else:
@@ -2427,7 +2469,7 @@ func _input(event: InputEvent) -> void:
   elif comparison_slider.has_focus() and not comparison_differences.is_empty() and event.get_modifiers_mask() == 0 and event.keycode in [KEY_PAGEUP, KEY_PAGEDOWN]:
    _jump_to_adjacent_comparison_difference(event.keycode == KEY_PAGEDOWN)
    get_viewport().set_input_as_handled()
-  elif review_slider.has_focus() and review_change_row.is_visible_in_tree() and event.get_modifiers_mask() == 0 and event.keycode in [KEY_PAGEUP, KEY_PAGEDOWN]:
+  elif review_slider.has_focus() and (review_change_row.is_visible_in_tree() or review_variable_row.is_visible_in_tree()) and event.get_modifiers_mask() == 0 and event.keycode in [KEY_PAGEUP, KEY_PAGEDOWN]:
    _jump_to_review_change(event.keycode == KEY_PAGEDOWN)
    get_viewport().set_input_as_handled()
   elif event.keycode == KEY_F7 and variables_button.visible:

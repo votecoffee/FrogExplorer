@@ -313,6 +313,8 @@ During any paused Python run, open the inspector with **F7** and use **Watch** t
 
 Use **Stop when** to choose **Equals**, **At least**, or **At most**, enter a value, then choose **Next match** or press **Ctrl+Shift+Enter**. **Equals** accepts a signed 32-bit integer or Python's `True` and `False`. **At least** and **At most** compare integers. Pondbot pauses when the condition becomes true after a board action. If it's already true when you resume, it must become false before it can trigger again.
 
+To preview a condition, follow a variable in **Review** or **Best program** and set **Stop when** there. **Previous match**, **Next match**, and **Page Up/Page Down** jump to the actions that make the condition true. **History** still shows every change to the variable. Choose **Run to match** in Review to use the same condition on the live board.
+
 After a live variable stop, choose **Source line** in the inspector or press **F12** from the editor to open the assignment or call site that triggered it. Pondbot stays paused at the next board command.
 
 While paused inside a Python function, press **Shift+F11** in the editor to **Step out**. Pondbot finishes that call and pauses before the next board command so you can see the caller's variables and any returned value. If a breakpoint pauses the run before the function returns, choose **Resume** to continue stepping out. **Step**, **Stop**, and **Reset board** clear the request.
