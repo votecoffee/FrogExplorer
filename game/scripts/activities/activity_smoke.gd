@@ -421,7 +421,8 @@ for stop in range(1, 3):
  popup.review_slider.value = 0
  events.item_activated.emit(0)
  press_key(KEY_F10, true)
- check(only_matches.button_pressed and first_entry == "Action %d · 1 → 2" % second_stop and popup.review_slider.value == second_stop and popup.best_panel.visible and not popup.best_source.editable and not popup.review_run_to_change.is_visible_in_tree() and not popup.review_run_to_action.is_visible_in_tree() and not popup.running and popup.garden.turn == 36, "Filtered Best program history jumps to a recorded match and keeps the replay read-only")
+ press_key(KEY_PAGEDOWN, false, true)
+ check(only_matches.button_pressed and first_entry == "Action %d · 1 → 2" % second_stop and popup.review_slider.value == second_stop and popup.best_panel.visible and not popup.best_source.editable and not popup.review_run_to_change.is_visible_in_tree() and not popup.review_run_to_action.is_visible_in_tree() and not popup.review_breakpoint_row.is_visible_in_tree() and not popup.running and popup.garden.turn == 36, "Filtered Best program history jumps to a recorded match and keeps the replay read-only")
  press_key(KEY_F7, true)
  press_key(KEY_F7, true)
 
@@ -2747,7 +2748,28 @@ func check_run_to_review_action(popup) -> void:
  var run_action: Button = popup.review_run_to_action
  press_key(KEY_F10, true)
  check(starting_turn == 1 and slider.has_focus() and run_action.is_visible_in_tree() and run_action.disabled and not popup.running and popup.garden.turn == starting_turn, "The initial Review snapshot has no live action to run")
- slider.value = 4
+ var previous: Button = popup.review_previous_breakpoint
+ var next: Button = popup.review_next_breakpoint
+ check(previous.is_visible_in_tree() and previous.disabled and not next.disabled, "Review recognizes an existing breakpoint before entering the timeline")
+ press_key(KEY_PAGEDOWN, false, true)
+ var found_first := slider.value == 1 and next.disabled
+ popup.source.grab_focus()
+ popup.source.set_caret_line(2)
+ press_key(KEY_F9)
+ next.grab_focus()
+ press_key(KEY_ENTER)
+ check(found_first and slider.has_focus() and slider.value == 2 and popup.source.get_executing_lines() == PackedInt32Array([2]) and not next.disabled, "A breakpoint added during Review can be reached through the next button without rerunning Check")
+ for tick in 4:
+  press_key(KEY_PAGEDOWN, false, true)
+ var at_last := slider.value == 5 and next.disabled
+ press_key(KEY_PAGEUP, false, true)
+ check(at_last and slider.value == 4 and not previous.disabled and not next.disabled and popup.garden.turn == starting_turn, "Shift+Page keys visit each loop action on a marked line without touching the live board")
+ popup.source.set_line_as_breakpoint(3, true)
+ popup.source.set_line_as_breakpoint(0, false)
+ popup.source.set_line_as_breakpoint(2, false)
+ check(not next.is_visible_in_tree() and slider.value == 4 and popup.source.is_line_breakpointed(3), "A breakpoint on a print line has no board action in Review")
+ popup.source.set_line_as_breakpoint(3, false)
+ popup.source.set_line_as_breakpoint(0, true)
  var expected_values: Dictionary = popup.checked_route.variable_history[4]
  check(run_action.text == "Run to action 4" and not run_action.disabled and popup.garden.turn == starting_turn, "Review offers a live stop at the selected later loop action without moving the board")
  press_key(KEY_F10, true)
@@ -2763,9 +2785,12 @@ func check_run_to_review_action(popup) -> void:
 
  popup.language.item_selected.emit(1)
  popup.source.text = "wait\nwait\nwait\n"
+ popup.source.set_line_as_breakpoint(1, true)
  popup.check_button.pressed.emit()
  popup.review_button.pressed.emit()
- slider.value = 2
+ press_key(KEY_PAGEDOWN, false, true)
+ check(slider.value == 2 and next.disabled and popup.source.get_executing_lines() == PackedInt32Array([1]), "Classic Review jumps to the action on a marked command")
+ popup.source.set_line_as_breakpoint(1, false)
  run_action.grab_focus()
  press_key(KEY_ENTER)
  for tick in 3:

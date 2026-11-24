@@ -134,6 +134,10 @@ var review_match_status: Label
 var review_run_to_change: Button
 var review_change_actions := PackedInt32Array()
 var review_match_actions := PackedInt32Array()
+var review_breakpoint_row: HBoxContainer
+var review_previous_breakpoint: Button
+var review_next_breakpoint: Button
+var review_breakpoint_actions := PackedInt32Array()
 var run_button: Button
 var next_live_change_button: Button
 var speed_choice: OptionButton
@@ -454,6 +458,16 @@ func _ready() -> void:
  review_run_to_change.hide()
  review_run_to_action = _button(review_controls, "Run to action", _run_to_review_action)
  review_run_to_action.tooltip_text = "Run the draft on the live board and pause after this action. Press Ctrl+F10 from the timeline."
+ review_breakpoint_row = HBoxContainer.new()
+ review_controls.add_child(review_breakpoint_row)
+ review_previous_breakpoint = _button(review_breakpoint_row, "Previous breakpoint", _jump_to_review_breakpoint.bind(false))
+ review_next_breakpoint = _button(review_breakpoint_row, "Next breakpoint", _jump_to_review_breakpoint.bind(true))
+ review_previous_breakpoint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ review_next_breakpoint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ review_previous_breakpoint.tooltip_text = "Jump to the previous action on a marked line. Use Shift+Page Up from the timeline."
+ review_next_breakpoint.tooltip_text = "Jump to the next action on a marked line. Use Shift+Page Down from the timeline."
+ review_breakpoint_row.hide()
+ source.breakpoint_toggled.connect(_index_review_breakpoints)
  review_controls.hide()
  board = _board_grid(right)
  hint = hud.label("", 15)
@@ -1647,6 +1661,7 @@ func _open_review(length: int) -> void:
  review_slider.set_value_no_signal(0)
  review_slider.visible = length > 0
  review_controls.show()
+ _index_review_breakpoints()
  _draw_review(0)
  if review_slider.visible:
   review_slider.grab_focus()
@@ -1773,17 +1788,39 @@ func _focus_review_timeline() -> void:
 func _review_jump_actions() -> PackedInt32Array:
  return review_change_actions if watch_condition == WatchCondition.CHANGES else review_match_actions
 
-func _review_change_index(forward: bool) -> int:
+func _adjacent_review_index(destinations: PackedInt32Array, forward: bool) -> int:
  var action := roundi(review_slider.value)
- var index := _review_jump_actions().bsearch(action, not forward)
+ var index := destinations.bsearch(action, not forward)
  return index if forward else index - 1
 
 func _jump_to_review_change(forward: bool) -> void:
- var index := _review_change_index(forward)
- var destinations := _review_jump_actions()
- if review_change_row.is_visible_in_tree() and index >= 0 and index < destinations.size():
+ if review_change_row.is_visible_in_tree():
+  _jump_to_review_destination(_review_jump_actions(), forward)
+
+func _jump_to_review_destination(destinations: PackedInt32Array, forward: bool) -> void:
+ var index := _adjacent_review_index(destinations, forward)
+ if index >= 0 and index < destinations.size():
   review_slider.value = destinations[index]
   review_slider.grab_focus()
+
+func _index_review_breakpoints(_line := -1) -> void:
+ review_breakpoint_actions.clear()
+ if review_controls.visible and not best_panel.visible and checked_source == source.text:
+  var traced: Array = checked_route.actions
+  if not source.get_breakpointed_lines().is_empty():
+   for index in traced.size():
+    if source.is_line_breakpointed(traced[index].line):
+     review_breakpoint_actions.append(index + 1)
+ review_breakpoint_row.visible = not review_breakpoint_actions.is_empty()
+ _refresh_review_breakpoints()
+
+func _refresh_review_breakpoints() -> void:
+ review_previous_breakpoint.disabled = _adjacent_review_index(review_breakpoint_actions, false) < 0
+ review_next_breakpoint.disabled = _adjacent_review_index(review_breakpoint_actions, true) >= review_breakpoint_actions.size()
+
+func _jump_to_review_breakpoint(forward: bool) -> void:
+ if review_breakpoint_row.is_visible_in_tree():
+  _jump_to_review_destination(review_breakpoint_actions, forward)
 
 func _close_review() -> void:
  if best_panel.visible or not review_controls.visible:
@@ -1827,6 +1864,7 @@ func _draw_review(value: float) -> void:
  review_run_to_action.visible = not replaying_best and not traced.is_empty()
  review_run_to_action.disabled = count == 0
  review_run_to_action.text = "Run to action %d" % count if count > 0 else "Run to action"
+ _refresh_review_breakpoints()
  var preview := _board_after_actions(route, count)
  var blocked := line >= 0 and count == traced.size()
  review_position.text = "%s · %d / %d actions" % ["Best run" if replaying_best else "Preview", count, traced.size()]
@@ -2238,8 +2276,8 @@ func _refresh_variables() -> void:
  if review_change_row.visible:
   review_previous_change.text = "Previous match" if matches else "Previous change"
   review_next_change.text = "Next match" if matches else "Next change"
-  review_previous_change.disabled = _review_change_index(false) < 0
-  review_next_change.disabled = _review_change_index(true) >= destinations.size()
+  review_previous_change.disabled = _adjacent_review_index(destinations, false) < 0
+  review_next_change.disabled = _adjacent_review_index(destinations, true) >= destinations.size()
  var view_name := "changes" if show_changes else "variables"
  if show_history:
   view_name = "history"
@@ -2530,6 +2568,9 @@ func _input(event: InputEvent) -> void:
    get_viewport().set_input_as_handled()
   elif review_slider.has_focus() and (review_change_row.is_visible_in_tree() or review_variable_row.is_visible_in_tree()) and event.get_modifiers_mask() == 0 and event.keycode in [KEY_PAGEUP, KEY_PAGEDOWN]:
    _jump_to_review_change(event.keycode == KEY_PAGEDOWN)
+   get_viewport().set_input_as_handled()
+  elif review_slider.has_focus() and review_breakpoint_row.is_visible_in_tree() and event.get_modifiers_mask() == KEY_MASK_SHIFT and event.keycode in [KEY_PAGEUP, KEY_PAGEDOWN]:
+   _jump_to_review_breakpoint(event.keycode == KEY_PAGEDOWN)
    get_viewport().set_input_as_handled()
   elif event.keycode == KEY_F7 and variables_button.visible:
    var show_calls: bool = event.shift_pressed

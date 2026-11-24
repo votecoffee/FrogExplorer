@@ -216,6 +216,8 @@ Place the cursor on a board command and press **Ctrl+F10** to run until just bef
 
 To reproduce a specific preview step on the live board, run **Check**, open **Review**, and select an action. Choose **Run to action** or press **Ctrl+F10** with the timeline focused. The draft runs from its normal starting board and pauses after that action. Use **Resume** to continue past an earlier breakpoint. If the action ends the program, the run finishes normally.
 
+In **Review**, use **Previous breakpoint** and **Next breakpoint** to jump between actions on marked lines. With the timeline focused, use **Shift+Page Up** and **Shift+Page Down**. Each visit to a marked line in a loop is a separate action. The preview shows the board after that action, while a live breakpoint pauses before its command.
+
 The first three lessons are available when you arrive. A completed puzzle adds its lilies to the garden total once. Later sets open at **2**, **8**, **18**, and **26** earned lilies. The lesson list shows the requirement beside each locked puzzle. After a clear, press **Ctrl+Page Down** or choose **Next lesson** to open the first available unfinished puzzle. Earlier drafts and completed boards stay accessible.
 
 Lily Code Garden uses Python 3.10 or newer to parse the garden language. The supported subset includes Pondbot calls, `def`, `if` / `elif` / `else`, `while`, `for` with `range()`, `break`, and `continue`. The game interprets these through Pondbot's board simulator. The Python executable is found on `PATH`. Set `FROG_GARDEN_PYTHON` to its full path if needed.
