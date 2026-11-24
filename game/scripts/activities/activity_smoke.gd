@@ -1329,6 +1329,20 @@ func check_comparison_stopping_points(popup) -> void:
     press_key(KEY_RIGHT)
     popup._process(.50)
     check(slider.value == 2 and popup.comparison_playback_button.text == "Play" and "Line 2 · hop east" in popup.comparison_other.text, "Seeking with the keyboard pauses the comparison at the selected action")
+    var pause_at_differences: CheckBox = popup.comparison_pause_at_differences
+    pause_at_differences.grab_focus()
+    press_key(KEY_SPACE)
+    popup.comparison_playback_speed.item_selected.emit(3)
+    slider.grab_focus()
+    press_key(KEY_SPACE)
+    for tick in 3:
+     popup._process(.06)
+    check(pause_at_differences.button_pressed and slider.value == 4 and popup.comparison_playback_button.text == "Play" and "Difference 1 of 2" in popup.comparison_board_key.text, "Fast comparison playback pauses at the next different board action")
+    press_key(KEY_SPACE)
+    popup._process(.06)
+    check(slider.value == 5 and popup.comparison_playback_button.text == "Play" and "Blocked · Line 6" in popup.comparison_other.text, "Resuming from a difference advances to the blocked endpoint")
+    pause_at_differences.set_pressed_no_signal(false)
+    popup.comparison_playback_speed.item_selected.emit(1)
 
 func select_comparison_copy(choice: OptionButton, key: String) -> void:
  for index in choice.item_count:
@@ -1393,11 +1407,24 @@ func check_comparison_python_differences(popup) -> void:
  var view: OptionButton = popup.comparison_view
  var first: Button = popup.comparison_difference_button
  var slider: HSlider = popup.comparison_slider
+ var pause_at_differences: CheckBox = popup.comparison_pause_at_differences
  select_comparison_copy(choice, other.key)
- check(other.error == OK and view.selected == 0 and first.disabled and slider.value == 4, "Boards match when only the Python state and prints differ")
+ check(other.error == OK and view.selected == 0 and first.disabled and pause_at_differences.disabled and slider.value == 4, "Boards match when only the Python state and prints differ")
  view.select(1)
  view.item_selected.emit(1)
  check(slider.value == 4 and first.text == "First difference · Start" and popup.comparison_differences == [0, 2], "Variables finds different starting values and skips an unchanged mismatch")
+ pause_at_differences.grab_focus()
+ press_key(KEY_SPACE)
+ slider.grab_focus()
+ press_key(KEY_SPACE)
+ popup._process(.25)
+ check(pause_at_differences.button_pressed and slider.value == 0 and popup.comparison_playback_button.text == "Play" and "Difference 1 of 2" in popup.comparison_board_key.text, "Restarting a comparison pauses on a difference in the starting values")
+ press_key(KEY_SPACE)
+ popup._process(.25)
+ var passed_equal_step: bool = slider.value == 1 and popup.comparison_playback_button.text == "Pause"
+ popup._process(.25)
+ popup._process(.25)
+ check(passed_equal_step and slider.value == 2 and popup.comparison_playback_button.text == "Play" and popup.comparison_current_details.get_parsed_text() == "count = 7", "Resuming passes matching values and pauses on the next variable difference")
  first.pressed.emit()
  press_key(KEY_PAGEDOWN)
  check(slider.value == 2 and popup.comparison_current_details.get_parsed_text() == "count = 7" and popup.comparison_other_details.get_parsed_text() == "count = 8", "Page Down jumps to the next mismatch after the variables match again")
@@ -1406,11 +1433,21 @@ func check_comparison_python_differences(popup) -> void:
  check(slider.value == 2 and popup.comparison_differences == [0, 4], "Print differences skip shared messages whose source lines differ")
  slider.value = 1
  check("[color=" not in popup.comparison_current_details.text and "[color=" not in popup.comparison_other_details.text, "Matching messages at this action leave earlier mismatches unhighlighted")
+ press_key(KEY_SPACE)
+ popup._process(.25)
+ check(slider.value == 2 and popup.comparison_playback_button.text == "Pause", "Switching to Print output uses the print differences for playback pauses")
+ slider.value = 1
  press_key(KEY_PAGEDOWN)
  check(slider.value == 4 and "Difference 2 of 2" in popup.comparison_board_key.text and popup.comparison_other_details.get_parsed_text().ends_with("right end"), "Print navigation finds the later different message")
  view.select(0)
  view.item_selected.emit(0)
  check(slider.value == 4 and first.disabled and popup.comparison_differences.is_empty(), "Returning to Boards restores its own difference list")
+ press_key(KEY_SPACE)
+ popup._process(.25)
+ var playing_matches: bool = slider.value == 1 and popup.comparison_playback_button.text == "Pause"
+ for tick in 3:
+  popup._process(.25)
+ check(playing_matches and pause_at_differences.disabled and slider.value == 4 and popup.comparison_playback_button.text == "Play", "Playback reaches the end when the current view has no differences")
 
  popup.compare_drafts_button.pressed.emit()
  popup.source.text = "print('[color=red]main[/color]')\n"
@@ -1418,8 +1455,9 @@ func check_comparison_python_differences(popup) -> void:
  select_comparison_copy(choice, still.key)
  view.select(2)
  view.item_selected.emit(2)
- check(still.error == OK and slider.max_value == 0 and not slider.visible and first.is_visible_in_tree() and first.text == "First difference · Start" and "Difference 1 of 1" in popup.comparison_board_key.text, "Print-only drafts can differ without taking a board action")
+ check(still.error == OK and slider.max_value == 0 and not slider.visible and pause_at_differences.disabled and first.is_visible_in_tree() and first.text == "First difference · Start" and "Difference 1 of 1" in popup.comparison_board_key.text, "Print-only drafts can differ without taking a board action")
  check(popup.comparison_current_details.get_parsed_text() == "Line 1 · [color=red]main[/color]" and popup.comparison_other_details.get_parsed_text() == "Line 1 · [b]other[/b]" and popup.comparison_current_details.text.count("[color=") == 1, "Bracketed print output displays literally inside the comparison highlight")
+ pause_at_differences.set_pressed_no_signal(false)
 
 func check_duplicate_draft(popup) -> void:
  var temporary := DirAccess.create_temp("frog-duplicate-draft")

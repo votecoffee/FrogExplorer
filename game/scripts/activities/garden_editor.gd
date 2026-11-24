@@ -36,6 +36,7 @@ var comparison_timeline: HBoxContainer
 var comparison_slider: HSlider
 var comparison_playback_button: Button
 var comparison_playback_speed: OptionButton
+var comparison_pause_at_differences: CheckBox
 var comparison_playback_boards: Array[Programs] = []
 var comparison_position: Label
 var comparison_difference_button: Button
@@ -994,7 +995,12 @@ func _add_draft_comparison(parent: Container) -> void:
  comparison_panel.add_child(footer)
  comparison_board_key = hud.label(COMPARISON_BOARD_KEY, 13, Color(COMPARISON_GOLD))
  comparison_board_key.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ comparison_board_key.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  footer.add_child(comparison_board_key)
+ comparison_pause_at_differences = CheckBox.new()
+ comparison_pause_at_differences.text = "Pause at differences"
+ comparison_pause_at_differences.tooltip_text = "Pause playback at differences in the selected view."
+ footer.add_child(comparison_pause_at_differences)
  comparison_extend_button = _button(footer, "Extend preview", _extend_comparison)
  comparison_extend_button.hide()
  comparison_view = OptionButton.new()
@@ -1242,6 +1248,7 @@ func _update_comparison_differences() -> void:
  comparison_playback_speed.visible = comparison_slider.visible
  comparison_timeline.visible = comparison_slider.visible or not comparison_differences.is_empty()
  comparison_difference_button.visible = both_compiled and follows_slider
+ comparison_pause_at_differences.disabled = not comparison_slider.visible or comparison_differences.is_empty()
  match view:
   ComparisonView.BOARDS:
    comparison_difference_button.tooltip_text = "Compare board commands, directions, and stopping points."
@@ -1430,6 +1437,8 @@ func _toggle_comparison_playback() -> void:
   return
  if comparison_slider.value == comparison_slider.max_value:
   comparison_slider.value = 0
+  if _comparison_playback_should_pause(0):
+   return
  var index := roundi(comparison_slider.value)
  comparison_playback_boards = [
   _comparison_board_at(comparison_current_route, index),
@@ -1441,6 +1450,12 @@ func _toggle_comparison_playback() -> void:
 func _pause_comparison_playback() -> void:
  comparison_playback_boards.clear()
  comparison_playback_button.text = "Play"
+
+func _comparison_playback_should_pause(action: int) -> bool:
+ if not comparison_pause_at_differences.button_pressed:
+  return false
+ var position := comparison_differences.bsearch(action)
+ return position < comparison_differences.size() and comparison_differences[position] == action
 
 func _seek_comparison(value: float) -> void:
  _pause_comparison_playback()
@@ -1461,7 +1476,7 @@ func _advance_comparison_playback() -> void:
  var next := action + 1
  comparison_slider.set_value_no_signal(next)
  _show_comparison_step(next)
- if next >= comparison_slider.max_value:
+ if next >= comparison_slider.max_value or _comparison_playback_should_pause(next):
   _pause_comparison_playback()
 
 func _show_comparison_step(value: float) -> void:

@@ -214,7 +214,7 @@ gather()
 
 In **Review** or **Best program**, choose **Play** or press **Space** with the timeline focused to watch the preview advance. Choose **Pause** or move the slider to stop at an action. Playing again at the end restarts the preview.
 
-**Compare drafts** also has **Play** and **Pause**. Both drafts advance on the shared timeline. A shorter or blocked draft holds its last board while the other continues.
+**Compare drafts** also has **Play** and **Pause**. Both drafts advance on the shared timeline. A shorter or blocked draft holds its last board while the other continues. Turn on **Pause at differences** to stop at each new difference in the selected view. Press **Space** with the timeline focused to continue to the next difference.
 
 Review, Best program, and Compare drafts share a playback speed of **0.5×**, **1×**, **2×**, or **4×**. Choose a speed beside **Play** or press **F8** with the timeline focused. The speed can change during playback.
 
