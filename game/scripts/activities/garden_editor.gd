@@ -550,8 +550,11 @@ func _refresh_draft_choice() -> void:
 func _select_draft(index: int) -> void:
  if not steps.is_empty() or best_panel.visible:
   return
+ _open_saved_draft(draft_choice.get_item_metadata(index))
+
+func _open_saved_draft(key: String) -> void:
  flush_draft()
- if progress.select_draft(Programs.GARDENS[puzzle].id, draft_choice.get_item_metadata(index), python_mode) != OK:
+ if progress.select_draft(Programs.GARDENS[puzzle].id, key, python_mode) != OK:
   hud.toast("Could not save the selected draft.")
  _load_draft(false)
  source.grab_focus()
@@ -633,8 +636,8 @@ func _add_draft_comparison(parent: Container) -> void:
  comparison_other_board = _board_grid(results)
  comparison_current_details = _comparison_details_box(results)
  comparison_other_details = _comparison_details_box(results)
- comparison_current_code = _comparison_code_box(results)
- comparison_other_code = _comparison_code_box(results)
+ comparison_current_code = _comparison_code_box(results, "Edit current draft", func(): _edit_compared_draft(false))
+ comparison_other_code = _comparison_code_box(results, "Edit other draft", func(): _edit_compared_draft(true))
  var footer := HBoxContainer.new()
  comparison_panel.add_child(footer)
  comparison_board_key = hud.label(COMPARISON_BOARD_KEY, 13, Color(COMPARISON_GOLD))
@@ -665,15 +668,36 @@ func _comparison_details_box(parent: Container) -> RichTextLabel:
  panel.hide()
  return details
 
-func _comparison_code_box(parent: Container) -> CodeEdit:
+func _comparison_code_box(parent: Container, title: String, edit: Callable) -> CodeEdit:
+ var column := VBoxContainer.new()
+ column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ parent.add_child(column)
  var editor := _code_edit()
  editor.editable = false
  editor.custom_minimum_size.y = 144
- editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  editor.add_theme_font_size_override("font_size", 14)
- parent.add_child(editor)
- editor.hide()
+ column.add_child(editor)
+ var button := _button(column, title, edit)
+ button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+ button.tooltip_text = "Open the editable draft at the preview cursor."
+ column.hide()
  return editor
+
+func _edit_compared_draft(use_other: bool) -> void:
+ if not comparison_panel.visible or comparison_view.get_selected_id() != ComparisonView.SOURCE or not steps.is_empty() or best_panel.visible:
+  return
+ var preview := comparison_other_code if use_other else comparison_current_code
+ var line := preview.get_caret_line()
+ var column := preview.get_caret_column()
+ if use_other:
+  _open_saved_draft(comparison_choice.get_item_metadata(comparison_choice.selected))
+ else:
+  _close_draft_comparison()
+  source.grab_focus()
+ source.deselect()
+ source.remove_secondary_carets()
+ source.set_caret_line(line)
+ source.set_caret_column(column)
 
 func _toggle_draft_comparison() -> void:
  if comparison_panel.visible:
@@ -905,7 +929,7 @@ func _show_comparison_details(details: RichTextLabel, route: Dictionary, peer: D
   details.scroll_to_paragraph(paragraph)
 
 func _show_comparison_source(editor: CodeEdit, route: Dictionary, index: int, show_source: bool) -> void:
- editor.visible = show_source
+ (editor.get_parent() as Control).visible = show_source
  if not show_source:
   return
  var line := -1

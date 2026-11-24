@@ -1378,9 +1378,16 @@ func check_comparison_source(popup) -> void:
  var slider: HSlider = popup.comparison_slider
  var current: CodeEdit = popup.comparison_current_code
  var other: CodeEdit = popup.comparison_other_code
+ var edit_current := current.get_parent().get_child(1) as Button
+ var edit_other := other.get_parent().get_child(1) as Button
  view.select(1)
  view.item_selected.emit(1)
  check(not popup.python_mode and view.item_count == 2 and view.get_item_text(1) == "Source" and current.is_visible_in_tree() and current.text == "wait\n" and current.get_executing_lines() == PackedInt32Array([0]), "Classic comparisons offer a source view with the selected command marked")
+ var live_turn: int = popup.garden.turn
+ var live_cell: Vector2i = popup.garden.cell
+ edit_other.grab_focus()
+ press_key(KEY_ENTER)
+ check(live_turn > 0 and popup.garden.turn == live_turn and popup.garden.cell == live_cell and popup.draft_choice.selected == 0 and popup.source.get_caret_line() == 0 and popup.source.has_focus() and not popup.comparison_panel.visible, "Editing the other Classic draft returns to its line without changing the living nursery")
 
  popup.language.item_selected.emit(0)
  popup.chooser.item_selected.emit(0)
@@ -1393,6 +1400,7 @@ func check_comparison_source(popup) -> void:
  popup.source.set_caret_line(0)
  popup.source.set_caret_column(4)
  popup.compare_drafts_button.pressed.emit()
+ check(not edit_current.is_visible_in_tree() and not edit_other.is_visible_in_tree(), "Edit buttons stay with the Source view")
  select_comparison_copy(popup.comparison_choice, saved.key)
  view.select(3)
  view.item_selected.emit(3)
@@ -1409,6 +1417,35 @@ func check_comparison_source(popup) -> void:
  check(invalid.error == OK and view.selected == 3 and other.text == "# Typo\nfill(east)\n" and other.get_executing_lines() == PackedInt32Array([1]) and "Check the arguments for fill()" in popup.comparison_other.text, "A compile failure displays the failing source line in its own pane")
  press_key(KEY_ESCAPE)
  check(not popup.comparison_panel.visible and current.text.is_empty() and other.text.is_empty() and popup.source.has_focus() and popup.source.text == current_source and popup.source.get_caret_column() == 4 and popup.garden.turn == 0, "Closing Source keeps the unsaved editor text, cursor, and live board")
+
+ var stored: Variant = popup.progress.python_drafts.get("first_bloom")
+ popup.source.select(0, 0, 0, 3)
+ popup.compare_drafts_button.pressed.emit()
+ select_comparison_copy(popup.comparison_choice, saved.key)
+ view.select(3)
+ view.item_selected.emit(3)
+ current.set_caret_column(2)
+ edit_current.grab_focus()
+ press_key(KEY_ENTER)
+ check(edit_current.text == "Edit current draft" and not popup.comparison_panel.visible and popup.draft_choice.selected == 0 and popup.source.has_focus() and popup.source.get_caret_line() == 1 and popup.source.get_caret_column() == 2 and not popup.source.has_selection() and popup.source.text == current_source and popup.progress.python_drafts.get("first_bloom") == stored, "Editing the current draft jumps to the preview cursor and keeps unsaved edits")
+
+ popup.compare_drafts_button.pressed.emit()
+ select_comparison_copy(popup.comparison_choice, saved.key)
+ view.select(3)
+ view.item_selected.emit(3)
+ edit_other.pressed.emit()
+ check(edit_other.text == "Edit other draft" and not popup.comparison_panel.visible and popup.progress.selected_draft("first_bloom", true) == saved.key and popup.source.text == other_source and popup.source.has_focus() and popup.source.get_caret_line() == 5 and popup.progress.python_drafts.get("first_bloom") == current_source, "Editing the other draft saves the current edits and opens the blocked line")
+
+ popup.compare_drafts_button.pressed.emit()
+ select_comparison_copy(popup.comparison_choice, invalid.key)
+ view.select(3)
+ view.item_selected.emit(3)
+ edit_other.pressed.emit()
+ check(popup.progress.selected_draft("first_bloom", true) == invalid.key and popup.source.editable and popup.source.get_caret_line() == 1 and popup.garden.turn == 0, "A compile error can be opened at its editable source line")
+ var corrected := "# Typo fixed\nfill()\n"
+ popup.source.text = corrected
+ popup.draft_choice.item_selected.emit(0)
+ check(popup.progress.python_drafts.get(invalid.key) == corrected and popup.progress.python_drafts.get(saved.key) == other_source and popup.source.text == current_source, "Edits from a comparison are saved to the selected copy")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)
