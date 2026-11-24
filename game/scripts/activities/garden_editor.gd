@@ -122,6 +122,7 @@ var review_history_button: Button
 var review_change_row: HBoxContainer
 var review_previous_change: Button
 var review_next_change: Button
+var review_run_to_change: Button
 var review_change_actions := PackedInt32Array()
 var run_button: Button
 var speed_choice: OptionButton
@@ -132,6 +133,7 @@ var submitted_program := ""
 var offset := 0
 var breakpoint_offset := -1
 var run_to_line := -1
+var run_to_variable := ""
 var step_out_frame: Dictionary = {}
 var interval := 0.0
 var running := false
@@ -393,6 +395,9 @@ func _ready() -> void:
  review_previous_change.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  review_next_change.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  review_change_row.hide()
+ review_run_to_change = _button(review_controls, "Run to change", _run_to_variable_change)
+ review_run_to_change.tooltip_text = "Run the current draft and pause after a board action changes the followed variable."
+ review_run_to_change.hide()
  review_controls.hide()
  board = _board_grid(right)
  hint = hud.label("", 15)
@@ -1405,6 +1410,7 @@ func _clear_program() -> void:
  offset = 0
  breakpoint_offset = -1
  run_to_line = -1
+ run_to_variable = ""
  step_out_frame = {}
 
 func _reset() -> void:
@@ -1769,14 +1775,22 @@ func _can_run_to(commands: Array, line: int) -> bool:
  status.text = "Line %d has no board command in this program." % (line + 1)
  return false
 
-func _run(target_line := -1) -> void:
+func _run_to_variable_change() -> void:
+ if review_run_to_change.is_visible_in_tree():
+  _run(-1, review_variable_name)
+  if running:
+   source.grab_focus()
+
+func _run(target_line := -1, target_variable := "") -> void:
+ var has_destination := target_line >= 0 or not target_variable.is_empty()
  if running:
-  if target_line >= 0:
+  if has_destination:
    return
   running = false
  elif _prepare_program(target_line):
-  if target_line >= 0:
+  if has_destination:
    run_to_line = target_line
+   run_to_variable = target_variable
    step_out_frame = {}
   interval = 0
   running = true
@@ -1788,6 +1802,7 @@ func _run(target_line := -1) -> void:
 func _step() -> void:
  if not running and _prepare_program():
   step_out_frame = {}
+  run_to_variable = ""
   _advance()
 
 func _step_out() -> void:
@@ -1799,6 +1814,7 @@ func _step_out() -> void:
  # Retain this call's frame. A new call to the same function may be active at the next action.
  step_out_frame = garden.local_frames.back()
  run_to_line = -1
+ run_to_variable = ""
  _run()
 
 func _show_progress() -> void:
@@ -1812,6 +1828,8 @@ func _show_progress() -> void:
   status.text += " · Cursor line %d" % (run_to_line + 1)
  elif not step_out_frame.is_empty():
   status.text += " · Stepping out of %s()" % step_out_frame.function
+ elif not run_to_variable.is_empty():
+  status.text += " · Watching %s" % run_to_variable
 
 func _mark_line(editor: CodeEdit, line: int) -> void:
  var marked := clampi(line, 0, editor.get_line_count() - 1)
@@ -1887,9 +1905,22 @@ func _advance() -> void:
    offset = garden.next_action_index(steps, offset + 1)
    if offset == steps.size():
     _finish_incomplete()
-   else:
+   elif not _pause_on_variable_change(before_variables):
     _show_progress()
  _draw()
+
+func _pause_on_variable_change(before: Dictionary) -> bool:
+ if not running or run_to_variable.is_empty():
+  return false
+ var after := garden.inspect_variables()
+ if is_same(before.get(run_to_variable), after.get(run_to_variable)):
+  return false
+ var change := _format_variable_transition(before, after, run_to_variable)
+ status.text = "Variable changed · %s = %s · %d actions" % [run_to_variable, change, garden.run_action_count()]
+ run_to_variable = ""
+ running = false
+ _mark_line(source, steps[offset].line)
+ return true
 
 func _finish_incomplete() -> void:
  var completed_program := submitted_program
@@ -2054,6 +2085,7 @@ func _refresh_variables() -> void:
  var show_review_changes := review_controls.visible and variables_panel.visible and show_changes
  review_variable_row.visible = show_review_changes and review_variable_filter.item_count > 1
  review_history_button.visible = show_review_changes and not review_variable_name.is_empty()
+ review_run_to_change.visible = review_history_button.visible and not best_panel.visible
  if not review_controls.visible or review_variable_name.is_empty():
   review_history_button.set_pressed_no_signal(false)
  var show_history := review_history_button.visible and review_history_button.button_pressed

@@ -399,7 +399,7 @@ for stop in range(1, 3):
  popup.review_slider.value = 0
  if change_row >= 0:
   events.item_activated.emit(change_row)
- check(change_row >= 0 and events.is_visible_in_tree() and popup.variables_title.text == "Best run history" and popup.review_slider.value == second_stop and popup.best_panel.visible and popup.garden.turn == 36, "An entry in saved history jumps straight to the recorded change without running the program")
+ check(change_row >= 0 and events.is_visible_in_tree() and popup.variables_title.text == "Best run history" and popup.review_slider.value == second_stop and popup.best_panel.visible and not popup.review_run_to_change.is_visible_in_tree() and popup.garden.turn == 36, "An entry in saved history jumps straight to the recorded change without offering a live run")
  var marker: PackedInt32Array = popup.best_source.get_executing_lines()
  press_key(KEY_F7, true, true)
  press_key(KEY_F12)
@@ -2343,6 +2343,74 @@ wait()
  press_key(KEY_F12)
  check(tracks_return and item_list_labels(events) == "Start · unassigned\nAction 1 · unassigned → 7" and popup.source.get_caret_line() == 3 and slider.value == 0, "A returned value points to the caller's assignment even after a later write of the same value")
 
+func open_run_to_change_review(popup, program: String, variable: String) -> bool:
+ popup._reset()
+ popup.source.text = program
+ popup.check_button.pressed.emit()
+ if not popup.variables_panel.visible or not popup.variable_changes_button.button_pressed:
+  press_key(KEY_F7, true)
+ popup.review_button.pressed.emit()
+ return select_review_variable(popup.review_variable_filter, variable)
+
+func check_run_to_change(popup) -> void:
+ var route := """def sample(value: int):
+    wait()
+    value += 1
+    wait()
+ready = True
+wait()
+sample(4)
+ready = 1
+wait()
+wait()
+"""
+ var followed := open_run_to_change_review(popup, route, "ready")
+ popup.source.set_caret_line(1)
+ press_key(KEY_F9)
+ var launch: Button = popup.review_run_to_change
+ launch.grab_focus()
+ press_key(KEY_ENTER)
+ check(followed and popup.running and not popup.review_controls.visible and popup.garden.turn == 0 and popup.source.has_focus() and "Watching ready" in popup.status.text, "Run to change starts the live draft from Review and keeps keyboard focus in the editor")
+ popup._process(.25)
+ popup._process(.25)
+ check(not popup.running and popup.garden.turn == 1 and "Breakpoint · line 2" in popup.status.text and popup.run_to_variable == "ready", "An earlier breakpoint pauses before its command and keeps the followed variable")
+ press_key(KEY_ENTER, true)
+ popup._process(.25)
+ popup._process(.25)
+ check(not popup.running and popup.garden.turn == 3 and "Variable changed · ready = True → 1" in popup.status.text and "ready = True → 1" in popup.variables_text.text and popup.source.get_executing_lines() == PackedInt32Array([8]), "The live stop skips unrelated local changes and pauses before the next action after the followed value changes")
+ press_key(KEY_ENTER, true)
+ popup._process(.25)
+ popup._process(.25)
+ check(popup.steps.is_empty() and popup.run_to_variable.is_empty() and popup.garden.turn == 5 and "Program ended" in popup.status.text, "Resume finishes the draft after the one-time variable stop")
+
+ popup.source.clear_breakpointed_lines()
+ var followed_local := open_run_to_change_review(popup, route, "sample() · value")
+ launch.pressed.emit()
+ popup._process(.25)
+ check(followed_local and not popup.running and popup.garden.turn == 1 and "sample() · value = unassigned → 4" in popup.status.text, "Following a local pauses when the function receives its parameter")
+
+ var leaving := "def linger(count: int):\n    wait()\nlinger(4)\nwait()\n"
+ var followed_exit := open_run_to_change_review(popup, leaving, "linger() · count")
+ launch.pressed.emit()
+ popup._process(.25)
+ check(followed_exit and not popup.running and popup.garden.turn == 1 and "linger() · count = 4 → out of scope" in popup.status.text, "Following a local also pauses when the function returns and its value leaves scope")
+
+ var ending := "value = 0\nwait()\nvalue = 0\nwait()\nvalue = 1\n"
+ var followed_ending := open_run_to_change_review(popup, ending, "value")
+ launch.pressed.emit()
+ popup._process(.25)
+ var skipped_identical: bool = popup.running and popup.garden.turn == 1
+ popup._process(.25)
+ check(followed_ending and skipped_identical and popup.steps.is_empty() and popup.run_to_variable.is_empty() and popup.garden.variables.get("value") == 1 and "Program ended" in popup.status.text, "A same-value write does not pause, and a final assignment allows normal completion")
+
+ var followed_again := open_run_to_change_review(popup, route, "ready")
+ launch.pressed.emit()
+ popup.stop_button.pressed.emit()
+ press_key(KEY_ENTER, true)
+ for action in 5:
+  popup._process(.25)
+ check(followed_again and popup.steps.is_empty() and popup.run_to_variable.is_empty() and popup.garden.turn == 5, "Stop clears the variable destination before starting a later run")
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -3211,6 +3279,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   check_variable_changes(popup)
   check_review_change_navigation(popup)
   check_review_variable_filter(popup)
+  check_run_to_change(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
