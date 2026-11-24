@@ -19,6 +19,7 @@ var draft_timer: Timer
 var loaded_draft := ""
 var draft_bar: HBoxContainer
 var draft_choice: OptionButton
+var duplicate_draft_button: Button
 var compare_drafts_button: Button
 var comparison_panel: VBoxContainer
 var comparison_choice: OptionButton
@@ -147,6 +148,8 @@ func _ready() -> void:
  draft_choice.tooltip_text = "Switch between the main draft and saved copies."
  draft_choice.item_selected.connect(_select_draft)
  draft_bar.add_child(draft_choice)
+ duplicate_draft_button = _button(draft_bar, "Duplicate draft", _duplicate_draft)
+ duplicate_draft_button.tooltip_text = "Save the current code as a separate editable draft."
  rename_draft_button = _button(draft_bar, "Rename", _rename_draft)
  compare_drafts_button = _button(draft_bar, "Compare drafts", _toggle_draft_comparison)
  draft_name_edit = LineEdit.new()
@@ -417,10 +420,13 @@ func _toggle_best_program() -> void:
 func _edit_best_copy() -> void:
  if not best_panel.visible or not steps.is_empty() or best_source.text.is_empty():
   return
+ _open_draft_copy(best_source.text, best_python)
+
+func _open_draft_copy(text: String, copy_python: bool) -> void:
  flush_draft()
  var id: String = Programs.GARDENS[puzzle].id
- var copy := progress.create_draft_copy(id, best_source.text, best_python)
- python_mode = best_python
+ var copy := progress.create_draft_copy(id, text, copy_python)
+ python_mode = copy_python
  language.select(0 if python_mode else 1)
  var selection_error := progress.select_draft(id, copy.key, python_mode)
  _close_best_program()
@@ -547,6 +553,16 @@ func _select_draft(index: int) -> void:
   hud.toast("Could not save the selected draft.")
  _load_draft(false)
  source.grab_focus()
+
+func _duplicate_draft() -> void:
+ if not steps.is_empty() or best_panel.visible:
+  return
+ _save_draft_name()
+ var line := source.get_caret_line()
+ var column := source.get_caret_column()
+ _open_draft_copy(source.text, python_mode)
+ source.set_caret_line(line)
+ source.set_caret_column(column)
 
 func _rename_draft() -> void:
  if draft_choice.selected < 1 or not steps.is_empty() or best_panel.visible:
@@ -1366,8 +1382,12 @@ func _draw() -> void:
  stop_button.disabled = not active
  nursery_target.editable = not active and not best_panel.visible
  chooser.disabled = active
- draft_bar.visible = draft_choice.item_count > 1 and not best_panel.visible
+ var has_copies := draft_choice.item_count > 1
+ draft_bar.visible = not best_panel.visible
+ draft_choice.visible = has_copies
  draft_choice.disabled = active
+ duplicate_draft_button.disabled = active
+ compare_drafts_button.visible = has_copies
  compare_drafts_button.disabled = active
  rename_draft_button.visible = draft_choice.selected > 0 and not draft_name_edit.visible
  rename_draft_button.disabled = active

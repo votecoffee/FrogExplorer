@@ -1319,6 +1319,59 @@ func check_comparison_python_differences(popup) -> void:
  check(still.error == OK and slider.max_value == 0 and not slider.visible and first.is_visible_in_tree() and first.text == "First difference · Start" and "Difference 1 of 1" in popup.comparison_board_key.text, "Print-only drafts can differ without taking a board action")
  check(popup.comparison_current_details.get_parsed_text() == "Line 1 · [color=red]main[/color]" and popup.comparison_other_details.get_parsed_text() == "Line 1 · [b]other[/b]" and popup.comparison_current_details.text.count("[color=") == 1, "Bracketed print output displays literally inside the comparison highlight")
 
+func check_duplicate_draft(popup) -> void:
+ var temporary := DirAccess.create_temp("frog-duplicate-draft")
+ check(temporary != null, "Duplicate draft storage uses an isolated profile")
+ if temporary == null:
+  return
+ var id: String = Program.WILLOW_NURSERY.id
+ var nursery := Program.GARDENS.find(Program.WILLOW_NURSERY)
+ popup.chooser.item_selected.emit(nursery)
+ await finish_by_steps(popup, "fill()\nhop(east)\n")
+ var original_folder: String = popup.progress.folder
+ popup.progress.folder = temporary.get_current_dir()
+ var button: Button = popup.duplicate_draft_button
+ var choice: OptionButton = popup.draft_choice
+ check(button.is_visible_in_tree() and not button.disabled and choice.item_count == 1 and not popup.compare_drafts_button.visible, "Duplicate draft is available before the first copy exists")
+ var main_source := "# Main draft\nwait()\nwait()\n"
+ popup.source.text = main_source
+ popup.source.set_caret_line(1)
+ popup.source.set_caret_column(3)
+ popup._queue_save()
+ var waiting_for_autosave: bool = popup.draft_timer.time_left > 0 and popup.progress.python_drafts.get(id) != main_source
+ button.grab_focus()
+ press_key(KEY_ENTER)
+ var first_copy: String = popup.progress.selected_draft(id, true)
+ check(waiting_for_autosave and first_copy != id and choice.selected == 1 and popup.progress.python_drafts.get(id) == main_source and popup.progress.python_drafts.get(first_copy) == main_source, "Enter duplicates the text before autosave and saves both drafts")
+ check(popup.source.has_focus() and popup.source.get_caret_line() == 1 and popup.source.get_caret_column() == 3 and popup.garden.turn == 2 and popup.garden.cell == Vector2i(1, 1), "The new copy opens at the same cursor and keeps the live nursery")
+
+ var first_source := "# Short variant\nwait()\n"
+ popup.source.text = first_source
+ button.pressed.emit()
+ var second_copy: String = popup.progress.selected_draft(id, true)
+ check(first_copy != second_copy and choice.item_count == 3 and popup.source.text == first_source and popup.progress.python_drafts.get(first_copy) == first_source and popup.progress.python_drafts.get(id) == main_source, "Duplicating a saved copy keeps its edits and the main draft independently")
+ var second_source := "# Walking variant\nhop(east)\nwait()\n"
+ popup.source.text = second_source
+ popup.compare_drafts_button.pressed.emit()
+ select_comparison_copy(popup.comparison_choice, id)
+ check(popup.comparison_panel.visible and popup.comparison_differences == [1] and popup.garden.turn == 2, "The new draft can be compared with the main route without advancing the live nursery")
+ press_key(KEY_ESCAPE)
+ popup.step_button.pressed.emit()
+ button.pressed.emit()
+ check(button.disabled and not popup.steps.is_empty() and choice.item_count == 3 and popup.progress.selected_draft(id, true) == second_copy, "A paused program keeps the duplicate control locked")
+ popup.stop_button.pressed.emit()
+
+ popup.language.item_selected.emit(1)
+ var classic_source := "wait\n"
+ popup.source.text = classic_source
+ button.pressed.emit()
+ var classic_copy: String = popup.progress.selected_draft(id, false)
+ check(not popup.python_mode and popup.source.text == classic_source and classic_copy != id and choice.item_count == 2 and popup.progress.selected_draft(id, true) == second_copy, "Classic copies and selections stay independent of Python")
+ var reopened := Progress.new()
+ reopened.load_from(temporary.get_current_dir())
+ check(reopened.selected_draft(id, true) == second_copy and reopened.selected_draft(id, false) == classic_copy and reopened.python_drafts.get(id) == main_source and reopened.python_drafts.get(first_copy) == first_source and reopened.python_drafts.get(second_copy) == second_source and reopened.drafts.get(classic_copy) == classic_source, "Both copy families and their selected drafts reload from disk")
+ popup.progress.folder = original_folder
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -2171,6 +2224,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   check_comparison_stopping_points(popup)
   await check_comparison_python_details(popup)
   check_comparison_python_differences(popup)
+  await check_duplicate_draft(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
