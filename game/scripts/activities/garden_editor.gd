@@ -33,6 +33,8 @@ var comparison_position: Label
 var comparison_difference_button: Button
 var comparison_previous_difference_button: Button
 var comparison_next_difference_button: Button
+var comparison_extend_button: Button
+var comparison_limit := Programs.MAX_STEPS
 var comparison_differences: Array[int] = []
 var comparison_current_route: Dictionary = {}
 var comparison_other_route: Dictionary = {}
@@ -658,6 +660,8 @@ func _add_draft_comparison(parent: Container) -> void:
  comparison_board_key = hud.label(COMPARISON_BOARD_KEY, 13, Color(COMPARISON_GOLD))
  comparison_board_key.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  footer.add_child(comparison_board_key)
+ comparison_extend_button = _button(footer, "Extend preview", _extend_comparison)
+ comparison_extend_button.hide()
  comparison_view = OptionButton.new()
  comparison_view.tooltip_text = "Choose what to compare at this action."
  comparison_view.item_selected.connect(_select_comparison_view)
@@ -776,6 +780,7 @@ func _toggle_draft_comparison() -> void:
  var default_start := ComparisonStart.FRESH if best_target and garden.practice else ComparisonStart.LIVE
  comparison_start.select(remembered.get("start", default_start))
  comparison_start.visible = garden.practice
+ comparison_limit = remembered.get("limit", Programs.MAX_STEPS)
  comparison_source = source.text
  comparison_current_code.text = comparison_source
  comparison_current_route = _trace_draft(comparison_source)
@@ -800,8 +805,18 @@ func _select_comparison_target(index: int) -> void:
 
 func _select_comparison_start(_index: int) -> void:
  if comparison_panel.visible and garden.practice:
-  comparison_current_route = _trace_draft(comparison_source)
-  _compare_drafts(comparison_choice.selected, roundi(comparison_slider.value))
+  _retrace_comparison()
+
+func _extend_comparison() -> void:
+ if not comparison_panel.visible or not comparison_extend_button.visible:
+  return
+ comparison_limit = mini(comparison_limit * 2, Programs.MAX_COMPUTATION_STEPS)
+ _retrace_comparison()
+ comparison_slider.grab_focus()
+
+func _retrace_comparison() -> void:
+ comparison_current_route = _trace_draft(comparison_source)
+ _compare_drafts(comparison_choice.selected, roundi(comparison_slider.value))
 
 func _compare_drafts(index: int, action := -1) -> void:
  if not comparison_panel.visible:
@@ -819,6 +834,10 @@ func _compare_drafts(index: int, action := -1) -> void:
  comparison_slider.set_value_no_signal(0)
  comparison_slider.max_value = total
  comparison_slider.set_value_no_signal(position)
+ var limited: bool = comparison_current_route.get("limited", false) or comparison_other_route.get("limited", false)
+ comparison_extend_button.visible = limited and comparison_limit < Programs.MAX_COMPUTATION_STEPS
+ if comparison_extend_button.visible:
+  comparison_extend_button.tooltip_text = "Preview both drafts up to %d actions." % mini(comparison_limit * 2, Programs.MAX_COMPUTATION_STEPS)
  _update_comparison_differences()
  _show_comparison_step(position)
 
@@ -941,7 +960,7 @@ func _jump_to_adjacent_comparison_difference(forward: bool) -> void:
 func _trace_draft(text: String) -> Dictionary:
  var result := _compile(text, python_mode)
  var fresh := garden.practice and comparison_start.get_selected_id() == ComparisonStart.FRESH
- return result if result.has("error") else _trace(result.steps, fresh, Programs.MAX_STEPS, python_mode)
+ return result if result.has("error") else _trace(result.steps, fresh, comparison_limit, python_mode)
 
 func _show_comparison_step(value: float) -> void:
  if not comparison_panel.visible:
@@ -1090,7 +1109,10 @@ func _comparison_key_for(draft: String) -> String:
  return ("python:" if python_mode else "classic:") + draft
 
 func _comparison_position_for(other: String) -> Dictionary:
- return {"other":other, "view":comparison_view.selected, "action":roundi(comparison_slider.value), "start":comparison_start.selected}
+ return {
+  "other":other, "view":comparison_view.selected, "action":roundi(comparison_slider.value),
+  "start":comparison_start.selected, "limit":comparison_limit,
+ }
 
 func _close_draft_comparison() -> void:
  if comparison_panel.visible:
@@ -1264,7 +1286,9 @@ func _trace(commands: Array, fresh_board := false, practice_limit := Programs.MA
   var values: Dictionary = variable_history.back() if preview.variable_revision == revision else preview.inspect_variables()
   variable_history.append(values)
   if capture_output:
-   output_history.append(preview.output.duplicate())
+   # The current buffer can be reused until another message is printed.
+   var printed_this_turn: bool = not preview.output.is_empty() and preview.output.back().turn == preview.turn
+   output_history.append(preview.output.duplicate() if printed_this_turn else output_history.back())
   if complete:
    break
  return {"actions":traced, "initial":initial, "preview":preview, "line":preview.runtime_error_line,

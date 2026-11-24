@@ -1589,6 +1589,48 @@ func check_compare_personal_best(popup) -> void:
  popup.compare_drafts_button.pressed.emit()
  check(copy_key != id and choice.get_item_text(choice.selected) == "Personal best" and start.selected == 1 and view.selected == 3 and slider.value == 6 and popup.progress.nursery_record(id, popup.garden) == saved, "Returning from the editable copy remembers the personal best and preview position")
 
+func check_extended_comparison(popup) -> void:
+ var id: String = Program.OPEN_NURSERY.id
+ popup.chooser.item_selected.emit(Program.GARDENS.find(Program.OPEN_NURSERY))
+ popup.draft_choice.item_selected.emit(0)
+ popup.nursery_target.value = 2
+ await finish_by_steps(popup, "fill()\n")
+ var saved: Dictionary = popup.progress.nursery_record(id, popup.garden)
+ var balance: int = popup.progress.nursery_balance()
+ var ongoing: Dictionary = popup.progress.create_draft_copy(id, "while True:\n    wait()\n", true)
+ popup._refresh_draft_choice()
+ var candidate: String = saved.source.replace("260", "258").replace("fill()\n", "print('After warm-up')\nfill()\n")
+ popup.source.text = candidate
+ popup.compare_drafts_button.pressed.emit()
+ var choice: OptionButton = popup.comparison_choice
+ var view: OptionButton = popup.comparison_view
+ var slider: HSlider = popup.comparison_slider
+ var extend: Button = popup.comparison_extend_button
+ select_comparison_copy(choice, "<personal-best>")
+ check(ongoing.error == OK and saved.score.x == 270 and extend.is_visible_in_tree() and slider.value == Program.MAX_STEPS and popup.comparison_current_route.limited and popup.comparison_other_route.limited, "Long draft and best comparisons start at the standard preview limit")
+
+ view.select(2)
+ view.item_selected.emit(2)
+ extend.grab_focus()
+ press_key(KEY_ENTER)
+ check(slider.has_focus() and slider.value == Program.MAX_STEPS and slider.max_value == 270 and view.selected == 2 and not extend.visible and popup.comparison_current_route.actions.size() == 268 and popup.comparison_current_route.preview.run_harvest_count() == 2 and popup.comparison_other_route.preview.run_harvest_count() == 2, "Extending from the keyboard completes both traces and keeps the selected action and view")
+
+ slider.value = 258
+ var printed: bool = "After warm-up" in popup.comparison_current_details.get_parsed_text()
+ slider.value = 257
+ check(printed and popup.comparison_current_details.get_parsed_text() == "No print output", "The extended timeline shows new output only after its action")
+ slider.value = 258
+ press_key(KEY_ESCAPE)
+ popup.compare_drafts_button.pressed.emit()
+ check(view.selected == 2 and slider.value == 258 and slider.max_value == 270 and choice.get_item_text(choice.selected) == "Personal best" and popup.comparison_limit == 512, "Reopening remembers the extended budget and selected step")
+
+ select_comparison_copy(choice, ongoing.key)
+ for expansion in 3:
+  extend.pressed.emit()
+ extend.pressed.emit()
+ check(slider.max_value == Program.MAX_COMPUTATION_STEPS and popup.comparison_limit == Program.MAX_COMPUTATION_STEPS and popup.comparison_other_route.limited and not extend.visible, "Continuously running drafts can extend up to the comparison maximum")
+ check(popup.garden.turn == 1 and popup.garden.tank == 6 and popup.progress.nursery_balance() == balance and popup.progress.nursery_record(id, popup.garden) == saved and popup.source.text == candidate, "Extended comparisons preserve the live nursery, best, and editable draft")
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -2446,6 +2488,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   await check_comparison_resume(popup)
   await check_comparison_starting_board(popup)
   check_compare_personal_best(popup)
+  await check_extended_comparison(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
