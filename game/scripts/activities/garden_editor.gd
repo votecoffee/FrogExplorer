@@ -113,6 +113,8 @@ var review_button: Button
 var review_controls: VBoxContainer
 var review_position: Label
 var review_slider: HSlider
+var review_variable_filter: OptionButton
+var review_variable_name := ""
 var review_change_row: HBoxContainer
 var review_previous_change: Button
 var review_next_change: Button
@@ -355,6 +357,13 @@ func _ready() -> void:
  review_slider.tooltip_text = "Drag or use Left and Right to choose an action. In Changes, use Page Up or Page Down to jump."
  review_slider.value_changed.connect(_draw_review)
  review_controls.add_child(review_slider)
+ review_variable_filter = OptionButton.new()
+ review_variable_filter.fit_to_longest_item = false
+ review_variable_filter.clip_text = true
+ review_variable_filter.tooltip_text = "Choose which variable to follow in this replay."
+ review_variable_filter.item_selected.connect(_select_review_variable)
+ review_controls.add_child(review_variable_filter)
+ review_variable_filter.hide()
  review_change_row = HBoxContainer.new()
  review_controls.add_child(review_change_row)
  review_previous_change = _button(review_change_row, "Previous change", _jump_to_review_change.bind(false))
@@ -1540,12 +1549,8 @@ func _toggle_review() -> void:
 func _open_review(length: int) -> void:
  var route := best_route if best_panel.visible else checked_route
  var history: Array = route.variable_history
- review_change_actions.clear()
- for index in range(1, history.size()):
-  var before: Dictionary = history[index - 1]
-  var after: Dictionary = history[index]
-  if not is_same(before, after) and not _variable_mismatches(before, after).is_empty():
-   review_change_actions.append(index)
+ _populate_review_variables(history)
+ _index_review_changes(history)
  review_slider.max_value = length
  review_slider.set_value_no_signal(0)
  review_slider.visible = length > 0
@@ -1553,6 +1558,47 @@ func _open_review(length: int) -> void:
  _draw_review(0)
  if review_slider.visible:
   review_slider.grab_focus()
+
+func _populate_review_variables(history: Array) -> void:
+ var seen: Dictionary = {}
+ for snapshot: Dictionary in history:
+  for name: String in snapshot:
+   seen[name] = true
+ var names := seen.keys()
+ names.sort()
+ review_variable_filter.clear()
+ review_variable_filter.add_item("All variables")
+ for name: String in names:
+  review_variable_filter.add_item(name)
+ var index := names.find(review_variable_name)
+ if index < 0:
+  review_variable_name = ""
+ review_variable_filter.select(index + 1)
+
+func _select_review_variable(index: int) -> void:
+ if not review_controls.visible:
+  return
+ review_variable_name = "" if index == 0 else review_variable_filter.get_item_text(index)
+ var route := best_route if best_panel.visible else checked_route
+ _index_review_changes(route.variable_history)
+ _refresh_variables()
+ if review_slider.visible:
+  review_slider.grab_focus()
+
+func _index_review_changes(history: Array) -> void:
+ review_change_actions.clear()
+ for index in range(1, history.size()):
+  var before: Dictionary = history[index - 1]
+  var after: Dictionary = history[index]
+  if is_same(before, after):
+   continue
+  var changed: bool
+  if review_variable_name.is_empty():
+   changed = not _variable_mismatches(before, after).is_empty()
+  else:
+   changed = not is_same(before.get(review_variable_name), after.get(review_variable_name))
+  if changed:
+   review_change_actions.append(index)
 
 func _review_change_index(forward: bool) -> int:
  var action := roundi(review_slider.value)
@@ -1934,7 +1980,9 @@ func _refresh_variables() -> void:
  variables_panel.visible = variables_button.visible and variables_button.button_pressed
  var show_calls := call_stack_button.button_pressed
  var show_changes := variable_changes_button.button_pressed
- review_change_row.visible = review_controls.visible and variables_panel.visible and show_changes and not review_change_actions.is_empty()
+ var show_review_changes := review_controls.visible and variables_panel.visible and show_changes
+ review_variable_filter.visible = show_review_changes and review_variable_filter.item_count > 1
+ review_change_row.visible = show_review_changes and not review_change_actions.is_empty()
  if review_change_row.visible:
   review_previous_change.disabled = _review_change_index(false) < 0
   review_next_change.disabled = _review_change_index(true) >= review_change_actions.size()
@@ -2003,8 +2051,15 @@ func _format_program_variables(values: Dictionary) -> String:
 func _format_variable_changes() -> String:
  var before := displayed_previous_variables
  var after := displayed_variables
- var names := _variable_mismatches(before, after).keys()
- names.sort()
+ var variable_filter := review_variable_name if review_controls.visible else ""
+ var names: Array
+ if variable_filter.is_empty():
+  names = _variable_mismatches(before, after).keys()
+  names.sort()
+ elif is_same(before.get(variable_filter), after.get(variable_filter)):
+  return "No change to %s" % variable_filter
+ else:
+  names = [variable_filter]
  var lines := PackedStringArray()
  for variable: String in names:
   var old := Programs.python_value_text(before[variable]) if before.has(variable) else "unassigned"

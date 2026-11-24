@@ -299,6 +299,8 @@ Select a call to see its local variables beside the stack. The selection follows
 
 Press **Ctrl+F7** or choose **Changes** in the inspector to see assignments, value changes, and locals that went out of scope after the last board action. **Check** shows the last previewed action. In **Review** and **Best program**, each slider position compares with the preceding action, so rewinding shows the same changes as stepping forward. Choose **Previous change** or **Next change** to skip unchanged actions. With the slider focused, use **Page Up/Page Down** to jump between changes or **Left/Right** to move one action at a time.
 
+In a replay, choose a variable from **All variables** to filter the Changes list and jump only to changes for that name. Local names include their function, so you can follow a local independently of a top-level variable. The filter keeps your current action selected and returns to **All variables** if the next replay has no matching name.
+
 While paused inside a Python function, press **Shift+F11** in the editor to **Step out**. Pondbot finishes that call and pauses before the next board command so you can see the caller's variables and any returned value. If a breakpoint pauses the run before the function returns, choose **Resume** to continue stepping out. **Step**, **Stop**, and **Reset board** clear the request.
 
 ```python

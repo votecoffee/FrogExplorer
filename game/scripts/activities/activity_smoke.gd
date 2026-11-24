@@ -386,8 +386,9 @@ for stop in range(1, 3):
    break
  popup.review_slider.value = maxi(0, second_stop - 1)
  press_key(KEY_F7, true)
+ var followed: bool = select_review_variable(popup.review_variable_filter, "stop")
  press_key(KEY_PAGEDOWN)
- check(second_stop > 0 and popup.review_slider.value == second_stop and popup.review_slider.has_focus() and popup.variables_title.text == "Best run changes" and popup.variables_text.text == "stop = 1 → 2" and popup.garden.turn == 36, "Best program can jump to the counter change at its recorded action without moving the live board")
+ check(followed and second_stop > 0 and popup.review_slider.value == second_stop and popup.review_slider.has_focus() and popup.variables_title.text == "Best run changes" and popup.variables_text.text == "stop = 1 → 2" and popup.garden.turn == 36, "Best program can follow one counter to its recorded change without moving the live board")
  press_key(KEY_F7, true)
 
 func check_nursery_storage() -> void:
@@ -2211,6 +2212,67 @@ wait()
  popup.review_button.pressed.emit()
  check(slider.max_value == 2 and not popup.review_change_row.is_visible_in_tree() and popup.variables_text.text == "No variable changes", "Opening a route with no changes clears earlier jump destinations")
 
+func select_review_variable(filter: OptionButton, name: String) -> bool:
+ for index in filter.item_count:
+  if filter.get_item_text(index) == name:
+   filter.select(index)
+   filter.item_selected.emit(index)
+   return true
+ return false
+
+func check_review_variable_filter(popup) -> void:
+ popup._reset()
+ popup.variables_button.set_pressed_no_signal(false)
+ var route := """fixed = 99
+value = 0
+def tend(value: int):
+    wait()
+    value += 1
+    wait()
+wait()
+tend(10)
+value = 1
+wait()
+"""
+ popup.source.text = route
+ popup.check_button.pressed.emit()
+ press_key(KEY_F7, true)
+ popup.review_button.pressed.emit()
+ var filter: OptionButton = popup.review_variable_filter
+ var slider: HSlider = popup.review_slider
+ var choices := PackedStringArray()
+ for index in filter.item_count:
+  choices.append(filter.get_item_text(index))
+ press_key(KEY_TAB)
+ check(filter.is_visible_in_tree() and filter.has_focus() and choices == PackedStringArray(["All variables", "fixed", "tend() · value", "value"]) and slider.value == 0, "The timeline filter is keyboard reachable and distinguishes a local from a top-level name")
+ var chose_global := select_review_variable(filter, "value")
+ check(chose_global and slider.value == 0 and slider.has_focus() and popup.variables_text.text == "No change to value", "Choosing a variable keeps the selected action and returns focus to the timeline")
+ press_key(KEY_PAGEDOWN)
+ check(slider.value == 3 and popup.variables_text.text == "value = 0 → 1" and popup.review_next_change.disabled and popup.garden.turn == 0, "Following the top-level value skips the local's assignments and leaves the live board alone")
+
+ var chose_local := select_review_variable(filter, "tend() · value")
+ var return_at_three: bool = slider.value == 3 and popup.variables_text.text == "tend() · value = 11 → out of scope"
+ press_key(KEY_PAGEUP)
+ var update_at_two: bool = slider.value == 2 and popup.variables_text.text == "tend() · value = 10 → 11"
+ press_key(KEY_PAGEUP)
+ check(chose_local and return_at_three and update_at_two and slider.value == 1 and popup.variables_text.text == "tend() · value = unassigned → 10", "Following a local visits scope entry, value changes, and scope exit")
+ var chose_fixed := select_review_variable(filter, "fixed")
+ check(chose_fixed and filter.is_visible_in_tree() and not popup.review_change_row.is_visible_in_tree() and popup.variables_text.text == "No change to fixed" and slider.value == 1, "A variable with no changes has no jump buttons and can still be unfollowed")
+ var chose_all := select_review_variable(filter, "All variables")
+ slider.value = 3
+ check(chose_all and popup.review_change_row.is_visible_in_tree() and popup.variables_text.text == "tend() · value = 11 → out of scope\nvalue = 0 → 1", "All variables restores the combined changes at the current action")
+
+ select_review_variable(filter, "value")
+ popup.review_button.pressed.emit()
+ popup.review_button.pressed.emit()
+ check(filter.get_item_text(filter.selected) == "value" and slider.value == 0 and popup.variables_text.text == "No change to value", "Reopening Review keeps the selected variable when it is still in the route")
+ popup.review_button.pressed.emit()
+ popup.source.text = "wait()\nother = 1\nwait()\n"
+ popup.check_button.pressed.emit()
+ popup.review_button.pressed.emit()
+ press_key(KEY_PAGEDOWN)
+ check(filter.selected == 0 and filter.item_count == 2 and filter.get_item_text(1) == "other" and slider.value == 1 and popup.variables_text.text == "other = unassigned → 1", "A different route falls back to All variables and rebuilds the jump targets")
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -3078,6 +3140,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   check_frame_variables(popup)
   check_variable_changes(popup)
   check_review_change_navigation(popup)
+  check_review_variable_filter(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
