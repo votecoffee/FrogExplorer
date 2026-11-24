@@ -84,6 +84,7 @@ var breakpoints_button: Button
 var breakpoints_panel: PanelContainer
 var breakpoint_list: ItemList
 var remove_breakpoint_button: Button
+var mute_breakpoints_button: Button
 var variables_button: Button
 var variables_panel: PanelContainer
 var variables_title: Label
@@ -505,6 +506,9 @@ func _add_breakpoint_panel(parent: Container) -> void:
  header.add_child(title)
  remove_breakpoint_button = _button(header, "Remove · Del", _remove_selected_breakpoint)
  remove_breakpoint_button.tooltip_text = "Remove the selected breakpoint."
+ mute_breakpoints_button = _button(header, "Mute all", _refresh_breakpoint_mute)
+ mute_breakpoints_button.toggle_mode = true
+ mute_breakpoints_button.tooltip_text = "Temporarily skip line breakpoints in live runs."
  breakpoint_list = ItemList.new()
  breakpoint_list.custom_minimum_size.y = 88
  breakpoint_list.add_theme_font_override("font", source.get_theme_font("font"))
@@ -528,6 +532,11 @@ func _toggle_breakpoint_panel() -> void:
 func _close_breakpoint_panel() -> void:
  breakpoints_panel.hide()
  breakpoints_button.set_pressed_no_signal(false)
+
+func _refresh_breakpoint_mute() -> void:
+ var muted := mute_breakpoints_button.button_pressed
+ mute_breakpoints_button.text = "Unmute" if muted else "Mute all"
+ breakpoints_button.text = "Breakpoints muted · Ctrl+F9" if muted else "Breakpoints · Ctrl+F9"
 
 func _selected_breakpoint_line() -> int:
  var selected := breakpoint_list.get_selected_items()
@@ -603,6 +612,8 @@ func _close() -> void:
  _cancel_draft_rename()
  _close_draft_comparison()
  _close_breakpoint_panel()
+ mute_breakpoints_button.set_pressed_no_signal(false)
+ _refresh_breakpoint_mute()
  flush_draft()
  if not steps.is_empty():
   _stop()
@@ -2123,7 +2134,8 @@ func _process(delta: float) -> void:
  var action: Dictionary = steps[offset]
  var cursor_reached: bool = action.line == run_to_line
  var call_returned := not step_out_frame.is_empty() and not garden.local_frames.any(func(frame): return is_same(frame, step_out_frame))
- if cursor_reached or call_returned or (breakpoint_offset != offset and source.is_line_breakpointed(action.line)):
+ var marked_stop: bool = not mute_breakpoints_button.button_pressed and breakpoint_offset != offset and source.is_line_breakpointed(action.line)
+ if cursor_reached or call_returned or marked_stop:
   running = false
   breakpoint_offset = offset
   var reason := "Breakpoint"
@@ -2655,7 +2667,7 @@ func _input(event: InputEvent) -> void:
    if draft_name_edit.visible:
     _cancel_draft_rename()
     source.grab_focus()
-   elif breakpoint_list.has_focus() or remove_breakpoint_button.has_focus():
+   elif breakpoint_list.has_focus() or remove_breakpoint_button.has_focus() or mute_breakpoints_button.has_focus():
     _close_breakpoint_panel()
     source.grab_focus()
    elif comparison_panel.visible:

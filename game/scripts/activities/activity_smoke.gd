@@ -2889,6 +2889,67 @@ func check_breakpoint_panel(popup) -> void:
  press_key(KEY_ESCAPE)
  check(not popup.breakpoints_panel.is_visible_in_tree() and not popup.breakpoints_button.button_pressed and popup.source.has_focus() and popup.review_controls.is_visible_in_tree() and slider.value == 2, "Escape closes the focused breakpoint panel and returns to the source")
 
+func check_muted_breakpoints(popup) -> void:
+ popup.language.item_selected.emit(0)
+ popup._reset()
+ popup.source.clear_breakpointed_lines()
+ popup.source.text = "for index in range(3):\n    wait()\nwait()\n"
+ popup.source.set_line_as_breakpoint(1, true)
+ popup.source.set_line_as_breakpoint(2, true)
+ var marks := PackedInt32Array([1, 2])
+ var mute: Button = popup.mute_breakpoints_button
+ press_key(KEY_F9, true)
+ mute.grab_focus()
+ press_key(KEY_ENTER)
+ press_key(KEY_ESCAPE)
+ check(mute.button_pressed and mute.text == "Unmute" and popup.breakpoints_button.text.begins_with("Breakpoints muted") and not popup.breakpoints_panel.visible and popup.source.get_breakpointed_lines() == marks, "Muting keeps the marks and shows the state after closing the panel")
+
+ popup.check_button.pressed.emit()
+ popup.review_button.pressed.emit()
+ press_key(KEY_PAGEDOWN, false, true)
+ press_key(KEY_PAGEDOWN, false, true)
+ var visited_repeat: bool = popup.review_slider.value == 2
+ press_key(KEY_F10, true)
+ for tick in 3:
+  popup._process(.25)
+ check(visited_repeat and not popup.running and popup.garden.turn == 2 and "Reached action 2" in popup.status.text and popup.source.get_breakpointed_lines() == marks, "Muted marks are navigable in Review and Run to action can pass through them")
+
+ press_key(KEY_ENTER, true)
+ popup._process(.25)
+ var skipped_repeat: bool = popup.running and popup.garden.turn == 3
+ press_key(KEY_F9, true)
+ mute.grab_focus()
+ press_key(KEY_ENTER)
+ popup._process(.25)
+ check(skipped_repeat and not mute.button_pressed and not popup.running and popup.garden.turn == 3 and "Breakpoint · line 3" in popup.status.text, "Unmuting a running program restores the pause at the next marked command")
+
+ popup._reset()
+ mute.grab_focus()
+ press_key(KEY_ENTER)
+ popup.source.grab_focus()
+ popup.source.set_caret_line(2)
+ press_key(KEY_F10, true)
+ for tick in 4:
+  popup._process(.25)
+ check(not popup.running and popup.garden.turn == 3 and "Cursor · line 3" in popup.status.text, "Run to cursor pauses at its destination with the line breakpoints muted")
+
+ popup._reset()
+ popup.variables_button.set_pressed_no_signal(false)
+ popup.check_button.pressed.emit()
+ press_key(KEY_F7, true)
+ popup.review_button.pressed.emit()
+ var followed := select_review_variable(popup.review_variable_filter, "index")
+ popup.watch_condition_choice.select(2)
+ popup.watch_condition_choice.item_selected.emit(2)
+ set_watch_target(popup, "2")
+ press_key(KEY_ENTER, true, true)
+ for tick in 3:
+  popup._process(.25)
+ check(followed and mute.button_pressed and not popup.running and popup.garden.turn == 2 and "Watch condition met · index = 1 → 2" in popup.status.text, "A conditional watch can pause a live run while line breakpoints are muted")
+
+ popup._close()
+ check(not mute.button_pressed and mute.text == "Mute all" and popup.source.get_breakpointed_lines() == marks, "Closing the editor re-enables the saved breakpoints")
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -3764,7 +3825,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   check_review_watch_conditions(popup)
   check_run_to_review_action(popup)
   check_breakpoint_panel(popup)
-  popup._close()
+  check_muted_breakpoints(popup)
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
  print("ACTIVITY_SMOKE " + JSON.stringify({"checks":checks, "failures":failures}))

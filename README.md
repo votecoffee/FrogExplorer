@@ -222,6 +222,8 @@ Breakpoints save with each draft and return when you reopen it. A new copy start
 
 Choose **Breakpoints** or press **Ctrl+F9** to list all the marks in the current draft. Use **Up/Down** to select one, **Enter** to open its source line, or **Delete** to remove it. **Esc** closes the focused panel.
 
+Choose **Mute all** in the panel to skip line breakpoints during live runs. You can still navigate the marks in Review and use temporary stops such as **Run to action**. Choose **Unmute** or close the editor to restore the pauses.
+
 The first three lessons are available when you arrive. A completed puzzle adds its lilies to the garden total once. Later sets open at **2**, **8**, **18**, and **26** earned lilies. The lesson list shows the requirement beside each locked puzzle. After a clear, press **Ctrl+Page Down** or choose **Next lesson** to open the first available unfinished puzzle. Earlier drafts and completed boards stay accessible.
 
 Lily Code Garden uses Python 3.10 or newer to parse the garden language. The supported subset includes Pondbot calls, `def`, `if` / `elif` / `else`, `while`, `for` with `range()`, `break`, and `continue`. The game interprets these through Pondbot's board simulator. The Python executable is found on `PATH`. Set `FROG_GARDEN_PYTHON` to its full path if needed.
