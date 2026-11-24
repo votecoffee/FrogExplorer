@@ -372,9 +372,12 @@ for stop in range(1, 3):
  await finish_by_steps(popup, full_route)
  check(popup.garden.turn == 36 and popup.garden.harvested == 4 and popup.progress.earned_lilies() == earned + 4 and popup.progress.garden_best_python.get("switchback_beds", false), "Completing Switchback beds earns four lilies and saves the Python best")
  popup.best_button.pressed.emit()
+ press_key(KEY_F8)
  press_key(KEY_SPACE)
- popup._process(.25)
+ popup._process(.12)
  check(popup.review_slider.value == 1 and popup.review_playback_button.text == "Pause" and popup.best_source.get_executing_lines().size() == 1 and popup.garden.turn == 36 and popup.progress.earned_lilies() == earned + 4, "Best program plays its recorded route without changing the completed live run")
+ check(popup.review_playback_speed.selected == 2 and popup.comparison_playback_speed.selected == 2, "F8 in Best program sets double speed for all preview timelines")
+ popup.review_playback_speed.item_selected.emit(1)
  popup.review_slider.value = popup.review_slider.max_value
  check(popup.best_source.text == full_route and "Best run · 36 / 36 actions" == popup.review_position.text and "Lilies 4 / 4" in popup.info.text, "Best program replays the saved switchback route")
  press_key(KEY_F7)
@@ -1191,14 +1194,20 @@ func check_draft_comparison(popup) -> void:
  check(current_board.columns == 3 and other_board.columns == 3 and current_board.get_child_count() == 9 and other_board.get_child_count() == 9 and popup.comparison_board_key.visible, "Both previews draw the nursery layout")
  var slider: HSlider = popup.comparison_slider
  var playback: Button = popup.comparison_playback_button
+ popup.comparison_playback_speed.select(2)
+ popup.comparison_playback_speed.item_selected.emit(2)
  press_key(KEY_SPACE)
  var restarted := slider.value == 0 and playback.text == "Pause"
- popup._process(.25)
+ popup._process(.10)
+ var waited := slider.value == 0
+ popup._process(.02)
  check(restarted and slider.value == 1 and "Harvested 1 in 1 action" in popup.comparison_current.text and "Harvested 0 in 1 action" in popup.comparison_other.text and popup.garden.turn == 5, "Space restarts a finished comparison and plays both drafts at the same action")
+ check(waited and slider.value == 1 and popup.comparison_playback_speed.selected == 2 and popup.review_playback_speed.selected == 2, "The comparison speed control sets the same playback rate for both drafts and Review")
  playback.grab_focus()
  press_key(KEY_ENTER)
  popup._process(.50)
  check(playback.text == "Play" and slider.value == 1 and slider.has_focus(), "The comparison Pause button holds both drafts on the current action")
+ popup.comparison_playback_speed.item_selected.emit(1)
  press_key(KEY_SPACE)
  popup._process(.25)
  check(playback.text == "Play" and slider.value == 2 and "Finished · 1 / 1 actions" in popup.comparison_current.text and "Harvested 1 in 2 actions" in popup.comparison_other.text and current_board.get_child(1).get_child(0).text == Program.EMPTY_BED, "Comparison playback holds the shorter draft and stops when both previews have ended")
@@ -2939,6 +2948,26 @@ func check_review_playback(popup) -> void:
  var slider: HSlider = popup.review_slider
  var playback: Button = popup.review_playback_button
  var capacity: int = popup.garden.water_capacity
+ var live_rate: int = popup.speed_choice.get_selected_id()
+ popup.review_playback_speed.select(0)
+ popup.review_playback_speed.item_selected.emit(0)
+ press_key(KEY_SPACE)
+ popup._process(.30)
+ var half_waited := slider.value == 0
+ popup._process(.18)
+ check(half_waited and slider.value == 1 and popup.comparison_playback_speed.selected == 0 and popup.speed_choice.get_selected_id() == live_rate, "Half speed slows the preview clock and preserves the live run speed")
+ slider.value = 0
+ popup.review_playback_speed.item_selected.emit(1)
+ press_key(KEY_SPACE)
+ popup._process(.10)
+ press_key(KEY_F8)
+ popup._process(.05)
+ var waited_at_double: bool = slider.value == 0 and popup.review_playback_speed.selected == 2
+ press_key(KEY_F8)
+ popup._process(.01)
+ check(waited_at_double and slider.value == 1 and popup.review_playback_speed.selected == 3 and popup.speed_choice.get_selected_id() == live_rate, "F8 changes speed during playback and carries the elapsed part of the action interval")
+ slider.value = 0
+ popup.review_playback_speed.item_selected.emit(1)
  press_key(KEY_SPACE)
  popup._process(.10)
  var waited: bool = slider.value == 0 and playback.text == "Pause"
@@ -3337,7 +3366,7 @@ func run(game) -> void:
   popup.source.text = "hop north"
   popup.check_button.pressed.emit()
   popup.review_button.pressed.emit()
-  check(popup.review_controls.visible and not popup.review_slider.visible and not popup.review_playback_button.visible and "0 / 0 actions · Blocked" in popup.review_position.text, "A command blocked on the first action still shows the starting tile")
+  check(popup.review_controls.visible and not popup.review_slider.visible and not popup.review_playback_button.visible and not popup.review_playback_speed.visible and "0 / 0 actions · Blocked" in popup.review_position.text, "A command blocked on the first action still shows the starting tile")
   popup.source.text = "fill\nunknown"
   popup.check_button.pressed.emit()
   check("Line 2" in popup.status.text and popup.source.get_executing_lines() == PackedInt32Array([1]) and not popup.review_button.visible, "A compile error marks the line and clears the preview")

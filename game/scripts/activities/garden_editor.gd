@@ -35,6 +35,7 @@ var comparison_start: OptionButton
 var comparison_timeline: HBoxContainer
 var comparison_slider: HSlider
 var comparison_playback_button: Button
+var comparison_playback_speed: OptionButton
 var comparison_playback_boards: Array[Programs] = []
 var comparison_position: Label
 var comparison_difference_button: Button
@@ -132,6 +133,7 @@ var review_controls: VBoxContainer
 var review_position: Label
 var review_slider: HSlider
 var review_playback_button: Button
+var review_playback_speed: OptionButton
 var review_playback_board: Programs
 var playback_interval := 0.0
 var review_run_to_action: Button
@@ -444,6 +446,7 @@ func _ready() -> void:
  review_playback_button = _button(review_timeline, "Play", _toggle_review_playback)
  review_playback_button.custom_minimum_size.x = 66
  review_playback_button.tooltip_text = "Play or pause the preview. Press Space with the timeline focused."
+ review_playback_speed = _add_playback_speed(review_timeline)
  review_slider = HSlider.new()
  review_slider.step = 1
  review_slider.focus_mode = Control.FOCUS_ALL
@@ -604,6 +607,21 @@ func _button(parent: Container, label: String, action: Callable) -> Button:
  button.pressed.connect(action)
  parent.add_child(button)
  return button
+
+func _add_playback_speed(parent: Container) -> OptionButton:
+ var choice := OptionButton.new()
+ for rate: String in ["0.5", "1", "2", "4"]:
+  choice.add_item(rate + "×")
+  choice.set_item_metadata(choice.item_count - 1, float(rate))
+ choice.select(1)
+ choice.tooltip_text = "Playback speed. Press F8 with the timeline focused."
+ choice.item_selected.connect(_select_playback_speed)
+ parent.add_child(choice)
+ return choice
+
+func _select_playback_speed(index: int) -> void:
+ review_playback_speed.select(index)
+ comparison_playback_speed.select(index)
 
 func enter_place(next: ExplorerActivityWorld) -> void:
  world = next
@@ -942,6 +960,7 @@ func _add_draft_comparison(parent: Container) -> void:
  comparison_playback_button = _button(comparison_timeline, "Play", _toggle_comparison_playback)
  comparison_playback_button.custom_minimum_size.x = 66
  comparison_playback_button.tooltip_text = "Play or pause both previews. Press Space with the timeline focused."
+ comparison_playback_speed = _add_playback_speed(comparison_timeline)
  comparison_slider = HSlider.new()
  comparison_slider.step = 1
  comparison_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1220,6 +1239,7 @@ func _update_comparison_differences() -> void:
     comparison_differences = _find_result_differences(comparison_current_route.totals_history, comparison_other_route.totals_history)
  comparison_slider.visible = comparison_slider.max_value > 0
  comparison_playback_button.visible = comparison_slider.visible
+ comparison_playback_speed.visible = comparison_slider.visible
  comparison_timeline.visible = comparison_slider.visible or not comparison_differences.is_empty()
  comparison_difference_button.visible = both_compiled and follows_slider
  match view:
@@ -1842,6 +1862,7 @@ func _open_review(length: int) -> void:
  review_slider.set_value_no_signal(0)
  review_slider.visible = length > 0
  review_playback_button.visible = review_slider.visible
+ review_playback_speed.visible = review_slider.visible
  review_controls.show()
  _index_review_breakpoints()
  _draw_review(0)
@@ -2225,7 +2246,8 @@ func _process(delta: float) -> void:
  if not visible:
   return
  if review_playback_board != null or not comparison_playback_boards.is_empty():
-  playback_interval -= delta
+  var rate: float = review_playback_speed.get_item_metadata(review_playback_speed.selected)
+  playback_interval -= delta * rate
   if playback_interval <= 0:
    playback_interval = maxf(0.0, playback_interval + RUN_INTERVAL)
    if review_playback_board != null:
@@ -2844,6 +2866,9 @@ func _input(event: InputEvent) -> void:
    get_viewport().set_input_as_handled()
   elif event.keycode == KEY_F12 and (review_history_list.has_focus() or (source.has_focus() and live_change_source_line >= 0)):
    _jump_to_variable_source()
+   get_viewport().set_input_as_handled()
+  elif event.keycode == KEY_F8 and (review_slider.has_focus() or comparison_slider.has_focus()):
+   _select_playback_speed((review_playback_speed.selected + 1) % review_playback_speed.item_count)
    get_viewport().set_input_as_handled()
   elif best_panel.visible:
    return

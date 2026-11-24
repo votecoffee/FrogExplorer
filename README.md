@@ -216,6 +216,8 @@ In **Review** or **Best program**, choose **Play** or press **Space** with the t
 
 **Compare drafts** also has **Play** and **Pause**. Both drafts advance on the shared timeline. A shorter or blocked draft holds its last board while the other continues.
 
+Review, Best program, and Compare drafts share a playback speed of **0.5×**, **1×**, **2×**, or **4×**. Choose a speed beside **Play** or press **F8** with the timeline focused. The speed can change during playback.
+
 Place the cursor on a board command and press **Ctrl+F10** to run until just before that command. This works from a new or paused run in either language. If an earlier breakpoint pauses the run, use **Resume** to continue toward the cursor line. The temporary stop is used once. **Stop** and **Reset board** clear it.
 
 To reproduce a specific preview step on the live board, run **Check**, open **Review**, and select an action. Choose **Run to action** or press **Ctrl+F10** with the timeline focused. The draft runs from its normal starting board and pauses after that action. Use **Resume** to continue past an earlier breakpoint. If the action ends the program, the run finishes normally.
