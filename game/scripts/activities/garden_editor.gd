@@ -12,8 +12,8 @@ const COMPARISON_TOTAL_NAMES := ["Lilies harvested", "Actions", "Water doses", "
 enum ComparisonView { BOARDS, VARIABLES, PRINT_OUTPUT, SOURCE, RESULTS }
 enum ComparisonStart { LIVE, FRESH }
 enum ComparisonTotals { SELECTED_ACTION, FIRST_TARGET }
-const CLASSIC_GUIDE := "hop north / east / south / west\nfill     plant     water     wait     gather\nrepeat N … end     # comment\nroutine NAME heading · call NAME east\nif / while CONDITION … end\nelse · not · and · or · break · continue\nLook ahead with clear east or lily north\nF9 toggles a breakpoint"
-const PYTHON_GUIDE := "hop(east)    fill()    water()\nplant()       wait()       gather()\nfor bed in range(2):\nif water_level() < tank_capacity():\nwhile clear(east):\ndef walk(heading, steps: int):\nstart = column()    print(start)\nTab indents · Shift+Tab unindents\nF9 toggles a breakpoint"
+const CLASSIC_GUIDE := "hop north / east / south / west\nfill     plant     water     wait     gather\nrepeat N … end     # comment\nroutine NAME heading · call NAME east\nif / while CONDITION … end\nelse · not · and · or · break · continue\nLook ahead with clear east or lily north\nF9 toggles a breakpoint\nCtrl+F10 runs to cursor"
+const PYTHON_GUIDE := "hop(east)    fill()    water()\nplant()       wait()       gather()\nfor bed in range(2):\nif water_level() < tank_capacity():\nwhile clear(east):\ndef walk(heading, steps: int):\nstart = column()    print(start)\nTab indents · Shift+Tab unindents\nF9 toggles a breakpoint\nCtrl+F10 runs to cursor"
 var hud: ExplorerHUD
 var garden := Programs.new()
 var world: ExplorerActivityWorld
@@ -110,6 +110,7 @@ var steps: Array = []
 var submitted_program := ""
 var offset := 0
 var breakpoint_offset := -1
+var run_to_line := -1
 var interval := 0.0
 var running := false
 var checked_source: Variant = null
@@ -162,6 +163,7 @@ func _ready() -> void:
  speed_choice.hide()
  actions.add_child(speed_choice)
  step_button = _button(actions, "Step · F10", _step)
+ step_button.tooltip_text = "Step one command. In the editor, Ctrl+F10 runs to the command at the cursor."
  stop_button = _button(actions, "Stop", _stop)
  _button(actions, "Reset board", _reset)
  draft_bar = HBoxContainer.new()
@@ -1305,6 +1307,7 @@ func _clear_program() -> void:
  submitted_program = ""
  offset = 0
  breakpoint_offset = -1
+ run_to_line = -1
 
 func _reset() -> void:
  _discard_check()
@@ -1520,17 +1523,18 @@ func _draw_review(value: float) -> void:
  _draw_board(preview, blocked)
  _draw_diagnostics(route.preview, "Best run" if replaying_best else "Check", preview.turn, route.variable_history[count])
 
-func _prepare_program() -> bool:
+func _prepare_program(target_line := -1) -> bool:
  if best_panel.visible:
   return false
  if not steps.is_empty():
-  return true
+  return _can_run_to(steps, target_line)
  _save_draft_name()
  _commit_target_edit()
  _discard_check()
- steps = _compile_draft()
- if steps.is_empty():
+ var commands := _compile_draft()
+ if commands.is_empty() or not _can_run_to(commands, target_line):
   return false
+ steps = commands
  submitted_program = source.text
  if garden.practice:
   garden.reset_program()
@@ -1544,10 +1548,20 @@ func _prepare_program() -> bool:
   return false
  return true
 
-func _run() -> void:
+func _can_run_to(commands: Array, line: int) -> bool:
+ if line < 0 or commands.any(func(instruction): return instruction.line == line and instruction.has("command")):
+  return true
+ status.text = "Line %d has no board command in this program." % (line + 1)
+ return false
+
+func _run(target_line := -1) -> void:
  if running:
+  if target_line >= 0:
+   return
   running = false
- elif _prepare_program():
+ elif _prepare_program(target_line):
+  if target_line >= 0:
+   run_to_line = target_line
   interval = 0
   running = true
  else:
@@ -1566,6 +1580,8 @@ func _show_progress() -> void:
  ]
  if garden.practice:
   status.text += " · %d / %d lilies this run" % [garden.run_harvest_count(), garden.harvest_target]
+ if run_to_line >= 0:
+  status.text += " · Cursor line %d" % (run_to_line + 1)
 
 func _mark_line(editor: CodeEdit, line: int) -> void:
  var marked := clampi(line, 0, editor.get_line_count() - 1)
@@ -1590,12 +1606,16 @@ func _process(delta: float) -> void:
  # Carry fractional timing between frames and advance at most one action per frame.
  interval = maxf(0.0, interval + RUN_INTERVAL)
  var action: Dictionary = steps[offset]
- if breakpoint_offset != offset and source.is_line_breakpointed(action.line):
+ var cursor_reached: bool = action.line == run_to_line
+ if cursor_reached or (breakpoint_offset != offset and source.is_line_breakpointed(action.line)):
   running = false
   breakpoint_offset = offset
+  var reason := "Cursor" if cursor_reached else "Breakpoint"
+  if cursor_reached:
+   run_to_line = -1
   var actions_count := garden.run_action_count()
   var unit := "action" if actions_count == 1 else "actions"
-  status.text = "Breakpoint · line %d · %d %s" % [action.line + 1, actions_count, unit]
+  status.text = "%s · line %d · %d %s" % [reason, action.line + 1, actions_count, unit]
   _mark_line(source, action.line)
   _draw()
   return
@@ -1604,6 +1624,8 @@ func _process(delta: float) -> void:
 func _advance() -> void:
  breakpoint_offset = -1
  var action: Dictionary = steps[offset]
+ if action.line == run_to_line:
+  run_to_line = -1
  var before := garden.harvested
  var error: String = garden.step(action)
  if not error.is_empty():
@@ -1882,5 +1904,10 @@ func _input(event: InputEvent) -> void:
    source.set_line_as_breakpoint(line, not source.is_line_breakpointed(line))
    get_viewport().set_input_as_handled()
   elif event.keycode == KEY_F10:
-   _step()
+   if event.ctrl_pressed:
+    if not source.has_focus():
+     return
+    _run(source.get_caret_line())
+   else:
+    _step()
    get_viewport().set_input_as_handled()

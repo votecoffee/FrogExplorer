@@ -1791,6 +1791,68 @@ func check_alder_crossing(popup) -> void:
  popup.comparison_totals_choice.item_selected.emit(1)
  check(popup.comparison_panel.visible and popup.comparison_goal_actions == Vector2i(42, 42) and popup.comparison_goal_delta.text == "0" and popup.garden.turn == 46 and popup.progress.nursery_balance() == balance + 26, "Alder Crossing comparison finds the target four steps before either route returns to the spring")
 
+func check_run_to_cursor(popup) -> void:
+ press_key(KEY_ESCAPE)
+ popup.chooser.item_selected.emit(Program.GARDENS.find(Program.OPEN_NURSERY))
+ popup.language.item_selected.emit(0)
+ popup._reset()
+ popup.source.text = """fill()
+print("Tank ready")
+for _ in range(2):
+    wait()
+    wait()
+wait()
+"""
+ popup.source.grab_focus()
+ popup.source.set_caret_line(1)
+ press_key(KEY_F10, true)
+ check(not popup.running and popup.steps.is_empty() and popup.garden.turn == 0 and "Line 2 has no board command" in popup.status.text, "Run to cursor leaves the board alone when the cursor is on a print call")
+
+ popup.source.set_caret_line(0)
+ press_key(KEY_F9)
+ popup.source.set_caret_line(3)
+ press_key(KEY_F10, true)
+ popup._process(.25)
+ check(not popup.running and popup.garden.turn == 0 and "Breakpoint · line 1" in popup.status.text and popup.run_to_line == 3, "An earlier permanent breakpoint pauses first and keeps the cursor destination")
+
+ press_key(KEY_ENTER, true)
+ popup._process(.25)
+ popup._process(.25)
+ check(not popup.running and popup.garden.turn == 1 and "Cursor · line 4 · 1 action" in popup.status.text and popup.source.get_executing_lines() == PackedInt32Array([3]) and popup.source.get_breakpointed_lines() == PackedInt32Array([0]) and "Tank ready" in popup.output_text.text, "Run to cursor stops before the Python command with its live output and leaves the breakpoint list intact")
+ press_key(KEY_F10)
+ check(not popup.running and popup.garden.turn == 2 and popup.run_to_line == -1, "F10 steps the command at the temporary stop")
+ press_key(KEY_ENTER, true)
+ for action in 8:
+  popup._process(.25)
+ check(not popup.running and popup.steps.is_empty() and popup.garden.turn == 6 and popup.source.get_breakpointed_lines() == PackedInt32Array([0]), "Resume runs the next loop iteration past the one-time stop")
+
+ popup.language.item_selected.emit(1)
+ popup._reset()
+ popup.source.text = "fill\nrepeat 2\n  wait\nend\nwait\n"
+ press_key(KEY_F10)
+ popup.source.set_caret_line(2)
+ press_key(KEY_F10, true)
+ popup._process(.25)
+ check(not popup.running and popup.garden.turn == 1 and "Cursor · line 3" in popup.status.text and popup.source.get_breakpointed_lines().is_empty(), "Run to cursor works on an already paused Classic program")
+ popup.source.set_caret_line(4)
+ press_key(KEY_F10, true)
+ press_key(KEY_ENTER, true)
+ var paused: bool = not popup.running and popup.run_to_line == 4 and popup.garden.turn == 1
+ popup.stop_button.pressed.emit()
+ press_key(KEY_ENTER, true)
+ for action in 8:
+  popup._process(.25)
+ check(paused and popup.run_to_line == -1 and popup.steps.is_empty() and popup.garden.turn == 5, "Stop clears a pending destination before a later regular run")
+
+ popup.language.item_selected.emit(0)
+ popup._reset()
+ popup.source.text = "fill()\nif False:\n    wait()\nwait()\n"
+ popup.source.set_caret_line(2)
+ press_key(KEY_F10, true)
+ for action in 4:
+  popup._process(.25)
+ check(not popup.running and popup.steps.is_empty() and popup.garden.turn == 2 and popup.run_to_line == -1 and "Program ended" in popup.status.text, "A skipped destination allows normal completion and leaves no temporary state")
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -2652,6 +2714,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   await check_comparison_results(popup)
   await check_comparison_totals_at_target(popup)
   await check_alder_crossing(popup)
+  check_run_to_cursor(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
