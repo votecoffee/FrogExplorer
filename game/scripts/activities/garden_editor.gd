@@ -44,6 +44,8 @@ var comparison_other_details: RichTextLabel
 var comparison_current_code: CodeEdit
 var comparison_other_code: CodeEdit
 var comparison_source := ""
+var comparison_key := ""
+var comparison_positions: Dictionary = {}
 var rename_draft_button: Button
 var draft_name_edit: LineEdit
 var save_draft_name_button: Button
@@ -690,7 +692,9 @@ func _edit_compared_draft(use_other: bool) -> void:
  var line := preview.get_caret_line()
  var column := preview.get_caret_column()
  if use_other:
-  _open_saved_draft(comparison_choice.get_item_metadata(comparison_choice.selected))
+  var other: String = comparison_choice.get_item_metadata(comparison_choice.selected)
+  comparison_positions[_comparison_key_for(other)] = _comparison_position_for(_draft_key())
+  _open_saved_draft(other)
  else:
   _close_draft_comparison()
   source.grab_focus()
@@ -708,20 +712,31 @@ func _toggle_draft_comparison() -> void:
  _save_draft_name()
  _commit_target_edit()
  _close_review()
+ comparison_key = _comparison_key_for(_draft_key())
+ var remembered: Dictionary = comparison_positions.get(comparison_key, {})
+ var remembered_other: String = remembered.get("other", "")
+ var selected := -1
  comparison_choice.clear()
  for index in draft_choice.item_count:
   if index == draft_choice.selected:
    continue
+  var key: String = draft_choice.get_item_metadata(index)
   comparison_choice.add_item(draft_choice.get_item_text(index))
-  comparison_choice.set_item_metadata(comparison_choice.item_count - 1, draft_choice.get_item_metadata(index))
- comparison_choice.select(0)
+  var item := comparison_choice.item_count - 1
+  comparison_choice.set_item_metadata(item, key)
+  if key == remembered_other:
+   selected = item
+ if selected < 0:
+  remembered = {}
+  selected = 0
+ comparison_choice.select(selected)
  comparison_view.clear()
  comparison_view.add_item("Boards", ComparisonView.BOARDS)
  if python_mode:
   comparison_view.add_item("Variables", ComparisonView.VARIABLES)
   comparison_view.add_item("Print output", ComparisonView.PRINT_OUTPUT)
  comparison_view.add_item("Source", ComparisonView.SOURCE)
- comparison_view.select(0)
+ comparison_view.select(remembered.get("view", 0))
  for editor in [comparison_current_code, comparison_other_code]:
   _color_code(editor, python_mode)
  comparison_context.text = "Starting board · Live nursery" if garden.practice else "Starting board · Fresh lesson"
@@ -730,11 +745,11 @@ func _toggle_draft_comparison() -> void:
  comparison_current_route = _trace_draft(comparison_source)
  comparison_panel.show()
  compare_drafts_button.text = "Close comparison"
- _compare_drafts(0)
+ _compare_drafts(selected, remembered.get("action", -1))
  if comparison_slider.is_visible_in_tree():
   comparison_slider.grab_focus()
 
-func _compare_drafts(index: int) -> void:
+func _compare_drafts(index: int, action := -1) -> void:
  if not comparison_panel.visible:
   return
  var other: String = comparison_choice.get_item_metadata(index)
@@ -744,11 +759,12 @@ func _compare_drafts(index: int) -> void:
  var current_actions: Array = comparison_current_route.get("actions", [])
  var other_actions: Array = comparison_other_route.get("actions", [])
  var total := maxi(current_actions.size(), other_actions.size())
+ var position := total if action < 0 else mini(action, total)
  comparison_slider.set_value_no_signal(0)
  comparison_slider.max_value = total
- comparison_slider.set_value_no_signal(total)
+ comparison_slider.set_value_no_signal(position)
  _update_comparison_differences()
- _show_comparison_step(total)
+ _show_comparison_step(position)
 
 func _update_comparison_differences() -> void:
  var both_compiled := comparison_current_route.has("actions") and comparison_other_route.has("actions")
@@ -1013,8 +1029,16 @@ func _comparison_snapshot(route: Dictionary, index: int, preview: Programs) -> S
  var position := "Row %d · Column %d · Tank %d / %d" % [preview.cell.y, preview.cell.x, preview.tank, preview.water_capacity]
  return "%s\n%s\n%s" % [step, position, summary]
 
+func _comparison_key_for(draft: String) -> String:
+ return ("python:" if python_mode else "classic:") + draft
+
+func _comparison_position_for(other: String) -> Dictionary:
+ return {"other":other, "view":comparison_view.selected, "action":roundi(comparison_slider.value)}
+
 func _close_draft_comparison() -> void:
  if comparison_panel.visible:
+  var other: String = comparison_choice.get_item_metadata(comparison_choice.selected)
+  comparison_positions[comparison_key] = _comparison_position_for(other)
   comparison_panel.hide()
   comparison_current_route.clear()
   comparison_other_route.clear()

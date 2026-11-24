@@ -1447,6 +1447,56 @@ func check_comparison_source(popup) -> void:
  popup.draft_choice.item_selected.emit(0)
  check(popup.progress.python_drafts.get(invalid.key) == corrected and popup.progress.python_drafts.get(saved.key) == other_source and popup.source.text == current_source, "Edits from a comparison are saved to the selected copy")
 
+func check_comparison_resume(popup) -> void:
+ var id: String = Program.WILLOW_NURSERY.id
+ popup.chooser.item_selected.emit(Program.GARDENS.find(Program.WILLOW_NURSERY))
+ popup.draft_choice.item_selected.emit(0)
+ await finish_by_steps(popup, "fill()\nwait()\n")
+ var other: Dictionary = popup.progress.create_draft_copy(id, "wait()\nhop(east)\nwait()\nhop(east)\n", true)
+ var spare: Dictionary = popup.progress.create_draft_copy(id, "# Spare\nwait()\nwait()\n", true)
+ popup._refresh_draft_choice()
+ popup.source.text = "wait()\nwait()\nwait()\nwait()\n"
+ popup.compare_drafts_button.pressed.emit()
+ var choice: OptionButton = popup.comparison_choice
+ var view: OptionButton = popup.comparison_view
+ var slider: HSlider = popup.comparison_slider
+ var current: CodeEdit = popup.comparison_current_code
+ var alternate: CodeEdit = popup.comparison_other_code
+ var edit_current := current.get_parent().get_child(1) as Button
+ var edit_other := alternate.get_parent().get_child(1) as Button
+ select_comparison_copy(choice, other.key)
+ view.select(3)
+ view.item_selected.emit(3)
+ slider.value = 3
+ edit_current.pressed.emit()
+ var revised_main := "hop(east)\nwait()\n"
+ popup.source.text = revised_main
+ popup.compare_drafts_button.pressed.emit()
+ check(other.error == OK and spare.error == OK and view.selected == 3 and slider.value == 3 and choice.get_item_metadata(choice.selected) == other.key and current.text == revised_main and "Column 1" in popup.comparison_current.text and "Finished · 2 / 2 actions" in popup.comparison_current.text and popup.garden.turn == 2, "Editing the current draft restores the comparison and previews the revised code")
+
+ edit_other.pressed.emit()
+ popup.source.text = "wait()\n"
+ popup.compare_drafts_button.pressed.emit()
+ check(popup.progress.selected_draft(id, true) == other.key and choice.get_item_metadata(choice.selected) == id and view.selected == 3 and slider.max_value == 2 and slider.value == 2 and current.text == "wait()\n" and alternate.text == revised_main, "Editing the other draft swaps the panes and clamps the old action to the shorter previews")
+
+ slider.value = 0
+ select_comparison_copy(choice, spare.key)
+ check(slider.value == 2 and view.selected == 3 and alternate.text.begins_with("# Spare"), "Choosing a different comparison draft still opens at the end in the current view")
+ slider.value = 0
+ popup.language.item_selected.emit(1)
+ popup.compare_drafts_button.pressed.emit()
+ view.select(0)
+ view.item_selected.emit(0)
+ popup.language.item_selected.emit(0)
+ popup.compare_drafts_button.pressed.emit()
+ check(popup.python_mode and view.selected == 3 and slider.value == 0 and choice.get_item_metadata(choice.selected) == spare.key and popup.progress.selected_draft(id, true) == other.key, "The Python comparison remembers its partner, view, and action zero across a language switch")
+
+ press_key(KEY_ESCAPE)
+ await finish_by_steps(popup, "hop(east)\n")
+ popup.source.text = "wait()\n"
+ popup.compare_drafts_button.pressed.emit()
+ check(slider.value == 0 and view.selected == 3 and choice.get_item_metadata(choice.selected) == spare.key and popup.garden.turn == 3 and "Row 1 · Column 1" in popup.comparison_current.text and "Row 1 · Column 1" in popup.comparison_other.text, "A restored comparison uses the nursery's new starting position")
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -2301,6 +2351,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   check_comparison_python_differences(popup)
   await check_duplicate_draft(popup)
   check_comparison_source(popup)
+  await check_comparison_resume(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
