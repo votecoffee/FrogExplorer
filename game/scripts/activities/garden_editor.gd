@@ -595,7 +595,6 @@ func _add_draft_comparison(parent: Container) -> void:
  comparison_slider.value_changed.connect(_show_comparison_step)
  comparison_timeline.add_child(comparison_slider)
  comparison_difference_button = _button(comparison_timeline, "First difference", func(): _jump_to_comparison_difference(0))
- comparison_difference_button.tooltip_text = "Compare board commands, directions, and points where either draft stops."
  comparison_previous_difference_button = _button(comparison_timeline, "Previous", func(): _jump_to_adjacent_comparison_difference(false))
  comparison_previous_difference_button.tooltip_text = "Previous difference · Page Up when the slider is focused"
  comparison_next_difference_button = _button(comparison_timeline, "Next", func(): _jump_to_adjacent_comparison_difference(true))
@@ -624,9 +623,14 @@ func _add_draft_comparison(parent: Container) -> void:
  comparison_view.add_item("Variables", ComparisonView.VARIABLES)
  comparison_view.add_item("Print output", ComparisonView.PRINT_OUTPUT)
  comparison_view.tooltip_text = "Choose what to compare at this action."
- comparison_view.item_selected.connect(func(_index: int): _show_comparison_step(comparison_slider.value))
+ comparison_view.item_selected.connect(_select_comparison_view)
  footer.add_child(comparison_view)
  comparison_panel.hide()
+
+func _select_comparison_view(_index: int) -> void:
+ if comparison_panel.visible:
+  _update_comparison_differences()
+  _show_comparison_step(comparison_slider.value)
 
 func _comparison_details_box(parent: Container) -> RichTextLabel:
  var panel := PanelContainer.new()
@@ -665,7 +669,7 @@ func _toggle_draft_comparison() -> void:
  comparison_panel.show()
  compare_drafts_button.text = "Close comparison"
  _compare_drafts(0)
- if comparison_timeline.visible:
+ if comparison_slider.is_visible_in_tree():
   comparison_slider.grab_focus()
 
 func _compare_drafts(index: int) -> void:
@@ -679,17 +683,31 @@ func _compare_drafts(index: int) -> void:
  comparison_slider.set_value_no_signal(0)
  comparison_slider.max_value = total
  comparison_slider.set_value_no_signal(total)
- comparison_timeline.visible = total > 0
  _update_comparison_differences()
  _show_comparison_step(total)
 
 func _update_comparison_differences() -> void:
  var both_compiled := comparison_current_route.has("actions") and comparison_other_route.has("actions")
+ var view := comparison_view.get_selected_id()
+ comparison_differences.clear()
  if both_compiled:
-  comparison_differences = _find_comparison_differences(comparison_current_route, comparison_other_route)
- else:
-  comparison_differences.clear()
+  match view:
+   ComparisonView.BOARDS:
+    comparison_differences = _find_board_differences(comparison_current_route, comparison_other_route)
+   ComparisonView.VARIABLES:
+    comparison_differences = _find_variable_differences(comparison_current_route.variable_history, comparison_other_route.variable_history)
+   ComparisonView.PRINT_OUTPUT:
+    comparison_differences = _find_print_differences(comparison_current_route, comparison_other_route)
+ comparison_slider.visible = comparison_slider.max_value > 0
+ comparison_timeline.visible = comparison_slider.visible or not comparison_differences.is_empty()
  comparison_difference_button.visible = both_compiled
+ match view:
+  ComparisonView.BOARDS:
+   comparison_difference_button.tooltip_text = "Compare board commands, directions, and stopping points."
+  ComparisonView.VARIABLES:
+   comparison_difference_button.tooltip_text = "Compare new or changing differences in Python variables."
+  ComparisonView.PRINT_OUTPUT:
+   comparison_difference_button.tooltip_text = "Compare the messages printed at each action."
  comparison_difference_button.disabled = comparison_differences.is_empty()
  comparison_previous_difference_button.visible = comparison_differences.size() > 1
  comparison_next_difference_button.visible = comparison_previous_difference_button.visible
@@ -700,7 +718,7 @@ func _update_comparison_differences() -> void:
  else:
   comparison_difference_button.text = "First difference · %d" % comparison_differences[0]
 
-func _find_comparison_differences(current: Dictionary, other: Dictionary) -> Array[int]:
+func _find_board_differences(current: Dictionary, other: Dictionary) -> Array[int]:
  var current_actions: Array = current.actions
  var other_actions: Array = other.actions
  var shared_steps := mini(current_actions.size(), other_actions.size())
@@ -725,6 +743,47 @@ func _find_comparison_differences(current: Dictionary, other: Dictionary) -> Arr
    differences.append(length)
  return differences
 
+func _find_variable_differences(current: Array, other: Array) -> Array[int]:
+ var differences: Array[int] = []
+ var previous: Dictionary = {}
+ for index in maxi(current.size(), other.size()):
+  var left: Dictionary = current[mini(index, current.size() - 1)]
+  var right: Dictionary = other[mini(index, other.size() - 1)]
+  var mismatches := _variable_mismatches(left, right)
+  if not mismatches.is_empty() and mismatches != previous:
+   differences.append(index)
+  previous = mismatches
+ return differences
+
+func _variable_mismatches(current: Dictionary, other: Dictionary) -> Dictionary:
+ var mismatches: Dictionary = {}
+ for name: String in current:
+  var left: Variant = current[name]
+  var right: Variant = other.get(name)
+  if not is_same(left, right):
+   mismatches[name] = [typeof(left), left, typeof(right), right]
+ for name: String in other:
+  if not current.has(name):
+   var right: Variant = other[name]
+   mismatches[name] = [TYPE_NIL, null, typeof(right), right]
+ return mismatches
+
+func _find_print_differences(current: Dictionary, other: Dictionary) -> Array[int]:
+ var differences: Array[int] = []
+ for index in maxi(current.output_history.size(), other.output_history.size()):
+  if _prints_at_action(current, index) != _prints_at_action(other, index):
+   differences.append(index)
+ return differences
+
+func _prints_at_action(route: Dictionary, index: int) -> PackedStringArray:
+ var messages := PackedStringArray()
+ if index < route.output_history.size():
+  var turn: int = route.initial.turn + index
+  for entry: Dictionary in route.output_history[index]:
+   if entry.turn == turn:
+    messages.append(entry.text)
+ return messages
+
 func _comparison_interruption(route: Dictionary, index: int) -> String:
  if _comparison_blocked(route, index):
   return route.error
@@ -733,7 +792,8 @@ func _comparison_interruption(route: Dictionary, index: int) -> String:
 func _jump_to_comparison_difference(position: int) -> void:
  if position >= 0 and position < comparison_differences.size():
   comparison_slider.value = comparison_differences[position]
-  comparison_slider.grab_focus()
+  if comparison_slider.is_visible_in_tree():
+   comparison_slider.grab_focus()
 
 func _jump_to_adjacent_comparison_difference(forward: bool) -> void:
  var index := roundi(comparison_slider.value)

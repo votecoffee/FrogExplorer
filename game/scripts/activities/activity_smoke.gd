@@ -1276,6 +1276,43 @@ func check_comparison_python_details(popup) -> void:
  press_key(KEY_ESCAPE)
  check(popup.visible and not popup.comparison_panel.visible and current.text.is_empty() and other.text.is_empty(), "Closing the comparison clears both Python detail panels")
 
+func check_comparison_python_differences(popup) -> void:
+ var current_source := "count = 1\nprint('left')\nwait()\ncount = 3\nprint('same')\nwait()\ncount = 7\nwait()\nwait()\nprint('left end')\n"
+ var other_source := "count = 2\nprint('right')\nwait()\ncount = 3\n# A different line number for the same message\nprint('same')\nwait()\ncount = 8\nwait()\nwait()\nprint('right end')\n"
+ var other: Dictionary = popup.progress.create_draft_copy("first_bloom", other_source, true)
+ var still: Dictionary = popup.progress.create_draft_copy("first_bloom", "print('other')\n", true)
+ popup.chooser.item_selected.emit(0)
+ popup.source.text = current_source
+ popup.compare_drafts_button.pressed.emit()
+ var choice: OptionButton = popup.comparison_choice
+ var view: OptionButton = popup.comparison_view
+ var first: Button = popup.comparison_difference_button
+ var slider: HSlider = popup.comparison_slider
+ select_comparison_copy(choice, other.key)
+ check(other.error == OK and view.selected == 0 and first.disabled and slider.value == 4, "Boards match when only the Python state and prints differ")
+ view.select(1)
+ view.item_selected.emit(1)
+ check(slider.value == 4 and first.text == "First difference · Start" and popup.comparison_differences == [0, 2], "Variables finds different starting values and skips an unchanged mismatch")
+ first.pressed.emit()
+ press_key(KEY_PAGEDOWN)
+ check(slider.value == 2 and popup.comparison_current_details.text == "count = 7" and popup.comparison_other_details.text == "count = 8", "Page Down jumps to the next mismatch after the variables match again")
+ view.select(2)
+ view.item_selected.emit(2)
+ check(slider.value == 2 and popup.comparison_differences == [0, 4], "Print differences skip shared messages whose source lines differ")
+ press_key(KEY_PAGEDOWN)
+ check(slider.value == 4 and popup.comparison_board_key.text == "Difference 2 of 2" and popup.comparison_other_details.text.ends_with("right end"), "Print navigation finds the later different message")
+ view.select(0)
+ view.item_selected.emit(0)
+ check(slider.value == 4 and first.disabled and popup.comparison_differences.is_empty(), "Returning to Boards restores its own difference list")
+
+ popup.compare_drafts_button.pressed.emit()
+ popup.source.text = "print('main')\n"
+ popup.compare_drafts_button.pressed.emit()
+ select_comparison_copy(choice, still.key)
+ view.select(2)
+ view.item_selected.emit(2)
+ check(still.error == OK and slider.max_value == 0 and not slider.visible and first.is_visible_in_tree() and first.text == "First difference · Start" and popup.comparison_board_key.text == "Difference 1 of 1", "Print-only drafts can differ without taking a board action")
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -2127,6 +2164,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   await check_draft_comparison(popup)
   check_comparison_stopping_points(popup)
   await check_comparison_python_details(popup)
+  check_comparison_python_differences(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
