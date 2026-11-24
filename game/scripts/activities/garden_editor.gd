@@ -125,6 +125,7 @@ var review_next_change: Button
 var review_run_to_change: Button
 var review_change_actions := PackedInt32Array()
 var run_button: Button
+var next_live_change_button: Button
 var speed_choice: OptionButton
 var step_button: Button
 var stop_button: Button
@@ -133,7 +134,8 @@ var submitted_program := ""
 var offset := 0
 var breakpoint_offset := -1
 var run_to_line := -1
-var run_to_variable := ""
+var watched_variable := ""
+var watchpoint_active := false
 var step_out_frame: Dictionary = {}
 var interval := 0.0
 var running := false
@@ -180,6 +182,8 @@ func _ready() -> void:
  check_button = _button(actions, "Check", _check_code)
  check_button.tooltip_text = "Check the draft on a fresh board"
  run_button = _button(actions, "Run · Ctrl+Enter", _run)
+ next_live_change_button = _button(actions, "Next change", _run_to_variable_change)
+ next_live_change_button.hide()
  speed_choice = OptionButton.new()
  for speed in [1, 2, 4]:
   speed_choice.add_item("Speed %d×" % speed, speed)
@@ -396,7 +400,7 @@ func _ready() -> void:
  review_next_change.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  review_change_row.hide()
  review_run_to_change = _button(review_controls, "Run to change", _run_to_variable_change)
- review_run_to_change.tooltip_text = "Run the current draft and pause after a board action changes the followed variable."
+ review_run_to_change.tooltip_text = "Run the current draft until the followed variable changes. Ctrl+Shift+Enter also starts the run."
  review_run_to_change.hide()
  review_controls.hide()
  board = _board_grid(right)
@@ -1410,7 +1414,8 @@ func _clear_program() -> void:
  offset = 0
  breakpoint_offset = -1
  run_to_line = -1
- run_to_variable = ""
+ watched_variable = ""
+ watchpoint_active = false
  step_out_frame = {}
 
 func _reset() -> void:
@@ -1776,10 +1781,16 @@ func _can_run_to(commands: Array, line: int) -> bool:
  return false
 
 func _run_to_variable_change() -> void:
+ var variable := ""
  if review_run_to_change.is_visible_in_tree():
-  _run(-1, review_variable_name)
-  if running:
-   source.grab_focus()
+  variable = review_variable_name
+ elif next_live_change_button.is_visible_in_tree():
+  variable = watched_variable
+ if variable.is_empty():
+  return
+ _run(-1, variable)
+ if running:
+  source.grab_focus()
 
 func _run(target_line := -1, target_variable := "") -> void:
  var has_destination := target_line >= 0 or not target_variable.is_empty()
@@ -1790,7 +1801,9 @@ func _run(target_line := -1, target_variable := "") -> void:
  elif _prepare_program(target_line):
   if has_destination:
    run_to_line = target_line
-   run_to_variable = target_variable
+   watchpoint_active = not target_variable.is_empty()
+   if watchpoint_active:
+    watched_variable = target_variable
    step_out_frame = {}
   interval = 0
   running = true
@@ -1802,7 +1815,7 @@ func _run(target_line := -1, target_variable := "") -> void:
 func _step() -> void:
  if not running and _prepare_program():
   step_out_frame = {}
-  run_to_variable = ""
+  watchpoint_active = false
   _advance()
 
 func _step_out() -> void:
@@ -1814,7 +1827,7 @@ func _step_out() -> void:
  # Retain this call's frame. A new call to the same function may be active at the next action.
  step_out_frame = garden.local_frames.back()
  run_to_line = -1
- run_to_variable = ""
+ watchpoint_active = false
  _run()
 
 func _show_progress() -> void:
@@ -1828,8 +1841,8 @@ func _show_progress() -> void:
   status.text += " · Cursor line %d" % (run_to_line + 1)
  elif not step_out_frame.is_empty():
   status.text += " · Stepping out of %s()" % step_out_frame.function
- elif not run_to_variable.is_empty():
-  status.text += " · Watching %s" % run_to_variable
+ elif watchpoint_active:
+  status.text += " · Watching %s" % watched_variable
 
 func _mark_line(editor: CodeEdit, line: int) -> void:
  var marked := clampi(line, 0, editor.get_line_count() - 1)
@@ -1910,14 +1923,14 @@ func _advance() -> void:
  _draw()
 
 func _pause_on_variable_change(before: Dictionary) -> bool:
- if not running or run_to_variable.is_empty():
+ if not running or not watchpoint_active:
   return false
  var after := garden.inspect_variables()
- if is_same(before.get(run_to_variable), after.get(run_to_variable)):
+ if is_same(before.get(watched_variable), after.get(watched_variable)):
   return false
- var change := _format_variable_transition(before, after, run_to_variable)
- status.text = "Variable changed · %s = %s · %d actions" % [run_to_variable, change, garden.run_action_count()]
- run_to_variable = ""
+ var change := _format_variable_transition(before, after, watched_variable)
+ status.text = "Variable changed · %s = %s · %d actions" % [watched_variable, change, garden.run_action_count()]
+ watchpoint_active = false
  running = false
  _mark_line(source, steps[offset].line)
  return true
@@ -1998,6 +2011,9 @@ func _draw() -> void:
  best_button.disabled = active
  check_button.disabled = active
  run_button.text = ("Pause" if running else "Resume" if active else "Run") + " · Ctrl+Enter"
+ next_live_change_button.visible = active and not running and not watched_variable.is_empty()
+ if next_live_change_button.visible:
+  next_live_change_button.tooltip_text = "Continue until %s changes. Ctrl+Shift+Enter also continues." % watched_variable
  step_button.disabled = running
  stop_button.disabled = not active
  nursery_target.editable = not active and not best_panel.visible
@@ -2301,7 +2317,10 @@ func _input(event: InputEvent) -> void:
   elif best_panel.visible:
    return
   elif event.ctrl_pressed and event.keycode in [KEY_ENTER, KEY_KP_ENTER]:
-   _run()
+   if event.shift_pressed:
+    _run_to_variable_change()
+   else:
+    _run()
    get_viewport().set_input_as_handled()
   elif event.keycode == KEY_F8 and speed_choice.visible:
    speed_choice.select((speed_choice.selected + 1) % speed_choice.item_count)

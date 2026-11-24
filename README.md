@@ -305,7 +305,9 @@ Choose **History** beside a followed variable to see its starting value and ever
 
 Select a History entry and choose **Source line** or press **F12** with the list focused to open the Python line responsible for the change. Parameter assignments and scope exits point to the call site. This keeps the replay position and execution marker in place.
 
-In **Review**, follow a variable and choose **Run to change** to start the draft on the live board. Pondbot pauses after the first completed action that changes the value, assigns it, or takes it out of scope. A change on the final action still lets the program finish normally. Earlier breakpoints pause before their commands, and **Resume** keeps watching. The variable stop is used once. **Step**, **Stop**, and **Reset board** clear it.
+In **Review**, follow a variable and choose **Run to change** to start the draft on the live board. Pondbot pauses after the first completed action that changes the value, assigns it, or takes it out of scope. A change on the final action still lets the program finish normally. Earlier breakpoints pause before their commands, and **Resume** keeps watching. After a variable stop, **Resume** runs normally. **Step** cancels a pending stop. **Stop** and **Reset board** clear the followed variable from the live run.
+
+Once a live run has a followed variable, choose **Next change** while paused to watch the same variable again from the current board. **Ctrl+Shift+Enter** works for both **Run to change** and **Next change**. You can step between stops and continue watching later in the same run.
 
 While paused inside a Python function, press **Shift+F11** in the editor to **Step out**. Pondbot finishes that call and pauses before the next board command so you can see the caller's variables and any returned value. If a breakpoint pauses the run before the function returns, choose **Resume** to continue stepping out. **Step**, **Stop**, and **Reset board** clear the request.
 

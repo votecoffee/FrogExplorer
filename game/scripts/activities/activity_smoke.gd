@@ -2373,7 +2373,7 @@ wait()
  check(followed and popup.running and not popup.review_controls.visible and popup.garden.turn == 0 and popup.source.has_focus() and "Watching ready" in popup.status.text, "Run to change starts the live draft from Review and keeps keyboard focus in the editor")
  popup._process(.25)
  popup._process(.25)
- check(not popup.running and popup.garden.turn == 1 and "Breakpoint · line 2" in popup.status.text and popup.run_to_variable == "ready", "An earlier breakpoint pauses before its command and keeps the followed variable")
+ check(not popup.running and popup.garden.turn == 1 and "Breakpoint · line 2" in popup.status.text and popup.watchpoint_active and popup.watched_variable == "ready", "An earlier breakpoint pauses before its command and keeps the followed variable")
  press_key(KEY_ENTER, true)
  popup._process(.25)
  popup._process(.25)
@@ -2381,7 +2381,7 @@ wait()
  press_key(KEY_ENTER, true)
  popup._process(.25)
  popup._process(.25)
- check(popup.steps.is_empty() and popup.run_to_variable.is_empty() and popup.garden.turn == 5 and "Program ended" in popup.status.text, "Resume finishes the draft after the one-time variable stop")
+ check(popup.steps.is_empty() and popup.watched_variable.is_empty() and not popup.watchpoint_active and popup.garden.turn == 5 and "Program ended" in popup.status.text, "Resume finishes the draft after the one-time variable stop")
 
  popup.source.clear_breakpointed_lines()
  var followed_local := open_run_to_change_review(popup, route, "sample() · value")
@@ -2401,7 +2401,7 @@ wait()
  popup._process(.25)
  var skipped_identical: bool = popup.running and popup.garden.turn == 1
  popup._process(.25)
- check(followed_ending and skipped_identical and popup.steps.is_empty() and popup.run_to_variable.is_empty() and popup.garden.variables.get("value") == 1 and "Program ended" in popup.status.text, "A same-value write does not pause, and a final assignment allows normal completion")
+ check(followed_ending and skipped_identical and popup.steps.is_empty() and popup.watched_variable.is_empty() and popup.garden.variables.get("value") == 1 and "Program ended" in popup.status.text, "A same-value write does not pause, and a final assignment allows normal completion")
 
  var followed_again := open_run_to_change_review(popup, route, "ready")
  launch.pressed.emit()
@@ -2409,7 +2409,57 @@ wait()
  press_key(KEY_ENTER, true)
  for action in 5:
   popup._process(.25)
- check(followed_again and popup.steps.is_empty() and popup.run_to_variable.is_empty() and popup.garden.turn == 5, "Stop clears the variable destination before starting a later run")
+ check(followed_again and popup.steps.is_empty() and popup.watched_variable.is_empty() and not popup.watchpoint_active and popup.garden.turn == 5, "Stop clears the variable destination before starting a later run")
+
+func check_next_live_change(popup) -> void:
+ var route := """def sample(value: int):
+    wait()
+    value += 1
+    wait()
+    value += 1
+    wait()
+sample(4)
+wait()
+wait()
+"""
+ var local_name := "sample() · value"
+ var followed := open_run_to_change_review(popup, route, local_name)
+ press_key(KEY_ENTER, true, true)
+ popup._process(.25)
+ var next: Button = popup.next_live_change_button
+ check(followed and next.is_visible_in_tree() and not popup.running and not popup.watchpoint_active and popup.watched_variable == local_name and popup.garden.turn == 1 and "value = 4 → 5" in popup.status.text, "Ctrl+Shift+Enter starts from Review and remembers the local after the first stop")
+ next.grab_focus()
+ press_key(KEY_ENTER)
+ var continued: bool = popup.running and popup.watchpoint_active and popup.garden.turn == 1
+ popup._process(.25)
+ check(continued and not popup.running and popup.source.has_focus() and popup.garden.turn == 2 and "value = 5 → 6" in popup.status.text, "Next change resumes the same live program and stops at the second change")
+ press_key(KEY_ENTER, true, true)
+ popup._process(.25)
+ check(not popup.running and popup.garden.turn == 3 and "value = 6 → out of scope" in popup.status.text and next.is_visible_in_tree(), "The same shortcut follows the local through its scope exit")
+
+ var counter := "value = 0\nwait()\nvalue = 1\nwait()\nvalue = 2\nwait()\nvalue = 3\nwait()\n"
+ open_run_to_change_review(popup, counter, "value")
+ press_key(KEY_ENTER, true, true)
+ popup._process(.25)
+ press_key(KEY_ENTER, true, true)
+ press_key(KEY_ENTER, true)
+ var armed_while_paused: bool = not popup.running and popup.watchpoint_active and popup.garden.turn == 1
+ press_key(KEY_F10)
+ check(armed_while_paused and not popup.watchpoint_active and popup.garden.turn == 2 and popup.garden.variables.get("value") == 2 and next.is_visible_in_tree(), "Step clears a pending variable stop and retains the selection")
+ press_key(KEY_ENTER, true, true)
+ popup._process(.25)
+ check(not popup.running and popup.garden.turn == 3 and "value = 2 → 3" in popup.status.text, "Next change still follows the variable after a manual step")
+ popup.stop_button.pressed.emit()
+ press_key(KEY_ENTER, true, true)
+ check(not next.is_visible_in_tree() and popup.watched_variable.is_empty() and not popup.watchpoint_active and popup.steps.is_empty() and popup.garden.turn == 3, "Stop clears the live selection and the shortcut stays idle")
+
+ open_run_to_change_review(popup, counter, "value")
+ press_key(KEY_ENTER, true, true)
+ popup._process(.25)
+ press_key(KEY_ENTER, true)
+ for action in 3:
+  popup._process(.25)
+ check(popup.steps.is_empty() and popup.garden.turn == 4 and popup.garden.variables.get("value") == 3 and "Program ended" in popup.status.text, "Ordinary Resume keeps running past later changes after a variable stop")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)
@@ -3280,6 +3330,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   check_review_change_navigation(popup)
   check_review_variable_filter(popup)
   check_run_to_change(popup)
+  check_next_live_change(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
