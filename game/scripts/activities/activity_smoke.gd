@@ -389,6 +389,18 @@ for stop in range(1, 3):
  var followed: bool = select_review_variable(popup.review_variable_filter, "stop")
  press_key(KEY_PAGEDOWN)
  check(followed and second_stop > 0 and popup.review_slider.value == second_stop and popup.review_slider.has_focus() and popup.variables_title.text == "Best run changes" and popup.variables_text.text == "stop = 1 → 2" and popup.garden.turn == 36, "Best program can follow one counter to its recorded change without moving the live board")
+ press_key(KEY_F7, true, true)
+ var events: ItemList = popup.review_history_list
+ var change_row := -1
+ for row in events.item_count:
+  if events.get_item_text(row) == "Action %d · 1 → 2" % second_stop:
+   change_row = row
+   break
+ popup.review_slider.value = 0
+ if change_row >= 0:
+  events.item_activated.emit(change_row)
+ check(change_row >= 0 and events.is_visible_in_tree() and popup.variables_title.text == "Best run history" and popup.review_slider.value == second_stop and popup.best_panel.visible and popup.garden.turn == 36, "An entry in saved history jumps straight to the recorded change without running the program")
+ press_key(KEY_F7, true)
  press_key(KEY_F7, true)
 
 func check_nursery_storage() -> void:
@@ -1958,7 +1970,7 @@ wait()
  popup.check_button.pressed.emit()
  check(full_preview and "beyond 256 instructions" in popup.status.text and popup.garden.turn == 0, "Call boundaries preserve the expansion limit for board-only Python functions")
 
-func call_stack_labels(list: ItemList) -> String:
+func item_list_labels(list: ItemList) -> String:
  var labels := PackedStringArray()
  for index in list.item_count:
   labels.append(list.get_item_text(index))
@@ -1988,25 +2000,25 @@ wait()
  popup.check_button.pressed.emit()
  press_key(KEY_F7, false, true)
  var calls: ItemList = popup.call_stack_list
- check(calls.is_visible_in_tree() and popup.call_stack_button.button_pressed and popup.variables_title.text == "Check call stack" and call_stack_labels(calls) == "Top level" and not calls.is_item_selectable(0) and popup.source.has_focus(), "Shift+F7 shows the final Check call stack while keeping keyboard focus in the editor")
+ check(calls.is_visible_in_tree() and popup.call_stack_button.button_pressed and popup.variables_title.text == "Check call stack" and item_list_labels(calls) == "Top level" and not calls.is_item_selectable(0) and popup.source.has_focus(), "Shift+F7 shows the final Check call stack while keeping keyboard focus in the editor")
  popup.review_button.pressed.emit()
  var slider: HSlider = popup.review_slider
- var initial := call_stack_labels(calls)
+ var initial := item_list_labels(calls)
  slider.value = 2
- check(initial == "Top level" and call_stack_labels(calls) == first_call and popup.garden.turn == 0, "Review shows nested calls even when both functions only perform board actions")
+ check(initial == "Top level" and item_list_labels(calls) == first_call and popup.garden.turn == 0, "Review shows nested calls even when both functions only perform board actions")
  slider.value = 6
- var between := call_stack_labels(calls)
+ var between := item_list_labels(calls)
  slider.value = 7
- check(between == bank_call and call_stack_labels(calls) == second_call, "Review distinguishes calls to the same function by the call site")
+ check(between == bank_call and item_list_labels(calls) == second_call, "Review distinguishes calls to the same function by the call site")
  slider.value = 12
- var ending := call_stack_labels(calls)
+ var ending := item_list_labels(calls)
  slider.value = 2
- check(ending == "Top level" and call_stack_labels(calls) == first_call and slider.has_focus(), "Rewinding restores the selected call stack while keeping slider focus")
+ check(ending == "Top level" and item_list_labels(calls) == first_call and slider.has_focus(), "Rewinding restores the selected call stack while keeping slider focus")
  press_key(KEY_F7)
  check(popup.variables_panel.visible and not popup.call_stack_button.button_pressed and popup.variables_title.text == "Check variables" and popup.variables_text.text == "No variables assigned" and slider.value == 2 and slider.has_focus(), "F7 switches back to values without moving the review position")
  popup.call_stack_button.set_pressed_no_signal(true)
  popup.call_stack_button.pressed.emit()
- check(popup.variables_title.text == "Check call stack" and call_stack_labels(calls) == first_call, "The inspector can switch views at the same review position")
+ check(popup.variables_title.text == "Check call stack" and item_list_labels(calls) == first_call, "The inspector can switch views at the same review position")
  var review_mark: PackedInt32Array = popup.source.get_executing_lines()
  calls.item_activated.emit(1)
  check(popup.source.has_focus() and popup.source.get_caret_line() == 11 and popup.source.get_executing_lines() == review_mark and slider.value == 2 and popup.garden.turn == 0, "Activating the caller in Review opens its line and preserves the timeline and last action marker")
@@ -2017,7 +2029,7 @@ wait()
  press_key(KEY_F10, true)
  for action in 3:
   popup._process(.25)
- check(not popup.running and popup.garden.turn == 2 and popup.variables_title.text == "Program call stack" and call_stack_labels(calls) == first_call, "A live pause shows the active function and its caller")
+ check(not popup.running and popup.garden.turn == 2 and popup.variables_title.text == "Program call stack" and item_list_labels(calls) == first_call, "A live pause shows the active function and its caller")
  press_key(KEY_F7, false, true)
  var innermost_focused := calls.has_focus() and calls.is_selected(0)
  press_key(KEY_DOWN)
@@ -2029,13 +2041,13 @@ wait()
  press_key(KEY_F11, false, true)
  for action in 5:
   popup._process(.25)
- check(not popup.running and popup.garden.turn == 6 and call_stack_labels(calls) == bank_call, "Step out removes the finished call from the inspector")
+ check(not popup.running and popup.garden.turn == 6 and item_list_labels(calls) == bank_call, "Step out removes the finished call from the inspector")
 
  await finish_by_steps(popup, route)
  var balance: int = popup.progress.nursery_balance()
  popup.best_button.pressed.emit()
  slider.value = 7
- check(popup.best_panel.visible and popup.best_source.text == route and popup.variables_title.text == "Best run call stack" and call_stack_labels(calls) == second_call and popup.garden.turn == 12 and popup.progress.nursery_balance() == balance, "Best program replays the saved call stack without changing the live nursery or balance")
+ check(popup.best_panel.visible and popup.best_source.text == route and popup.variables_title.text == "Best run call stack" and item_list_labels(calls) == second_call and popup.garden.turn == 12 and popup.progress.nursery_balance() == balance, "Best program replays the saved call stack without changing the live nursery or balance")
  check(popup.frame_variables_panel.is_visible_in_tree() and popup.frame_variables_title.text == "tend() locals" and popup.frame_variables_text.text == "No variables assigned", "A saved replay can inspect a board-only function with no locals")
  var draft_line: int = popup.source.get_caret_line()
  var replay_mark: PackedInt32Array = popup.best_source.get_executing_lines()
@@ -2050,7 +2062,7 @@ wait()
  popup.source.text = "def cross():\n    hop(west)\ncross()\n"
  popup.check_button.pressed.emit()
  popup.review_button.pressed.emit()
- check("Blocked" in popup.review_position.text and call_stack_labels(calls) == "cross() · called at line 3\nTop level" and popup.garden.turn == 0, "Review retains the call site when a command fails before the first action")
+ check("Blocked" in popup.review_position.text and item_list_labels(calls) == "cross() · called at line 3\nTop level" and popup.garden.turn == 0, "Review retains the call site when a command fails before the first action")
 
 func check_frame_variables(popup) -> void:
  popup._reset()
@@ -2091,7 +2103,7 @@ wait()
  slider.value = 1
  check(calls.is_selected(0) and before_update == "count = 2\nshared = 2" and popup.frame_variables_text.text == "count = 2\nshared = 3", "A selected frame's locals update even when the call stack stays the same")
  slider.value = 4
- check(not popup.frame_variables_panel.is_visible_in_tree() and call_stack_labels(calls) == "Top level", "Returning from the last call hides the locals pane")
+ check(not popup.frame_variables_panel.is_visible_in_tree() and item_list_labels(calls) == "Top level", "Returning from the last call hides the locals pane")
  slider.value = 1
  press_key(KEY_F7)
  var all_values := "probe() · count = 2\nprobe() · shared = 3\nshared = 9\nsweep() · shared = 20"
@@ -2272,6 +2284,41 @@ wait()
  popup.review_button.pressed.emit()
  press_key(KEY_PAGEDOWN)
  check(filter.selected == 0 and filter.item_count == 2 and filter.get_item_text(1) == "other" and slider.value == 1 and popup.variables_text.text == "other = unassigned → 1", "A different route falls back to All variables and rebuilds the jump targets")
+
+ popup.review_button.pressed.emit()
+ popup.source.text = route
+ popup.check_button.pressed.emit()
+ popup.review_button.pressed.emit()
+ var chose_history := select_review_variable(filter, "tend() · value")
+ press_key(KEY_F7, true, true)
+ var events: ItemList = popup.review_history_list
+ var local_entries := "Start · unassigned\nAction 1 · unassigned → 10\nAction 2 · 10 → 11\nAction 3 · 11 → out of scope"
+ check(chose_history and events.has_focus() and events.is_selected(0) and popup.variables_title.text == "Check history" and item_list_labels(events) == local_entries and slider.value == 0, "History opens with the starting state and all transitions for the followed local")
+ press_key(KEY_DOWN)
+ press_key(KEY_DOWN)
+ var stayed_at_start := slider.value == 0 and events.is_selected(2)
+ press_key(KEY_ENTER)
+ check(stayed_at_start and slider.value == 2 and slider.has_focus() and events.is_selected(2) and popup.garden.turn == 0, "Activating a history entry jumps to its action and returns focus to the timeline")
+ slider.value = 4
+ var at_last := events.is_selected(3)
+ press_key(KEY_PAGEUP)
+ check(at_last and slider.value == 3 and events.is_selected(3), "History selection follows the latest change as the replay slider moves")
+ var history_global := select_review_variable(filter, "value")
+ check(history_global and slider.value == 3 and events.is_selected(1) and item_list_labels(events) == "Start · 0\nAction 3 · 0 → 1", "Changing the followed variable rebuilds history without moving the current action")
+ var history_fixed := select_review_variable(filter, "fixed")
+ events.item_activated.emit(0)
+ check(history_fixed and events.is_visible_in_tree() and item_list_labels(events) == "Start · 99" and events.is_selected(0) and slider.value == 0, "An unchanged value has a selectable starting entry")
+ press_key(KEY_F7, true, true)
+ var history_focused := events.has_focus()
+ press_key(KEY_ESCAPE)
+ var escaped := slider.has_focus() and events.is_visible_in_tree()
+ press_key(KEY_F7, true)
+ check(history_focused and escaped and slider.has_focus() and not events.is_visible_in_tree() and popup.variables_title.text == "Check changes" and popup.variables_text.text == "No change to fixed", "Esc returns to the timeline and Ctrl+F7 restores the single-action Changes view")
+ popup.review_history_button.grab_focus()
+ press_key(KEY_ENTER)
+ var button_opened: bool = events.is_visible_in_tree()
+ var history_all := select_review_variable(filter, "All variables")
+ check(button_opened and history_all and not events.is_visible_in_tree() and not popup.review_history_button.is_visible_in_tree() and popup.variables_title.text == "Check changes" and slider.value == 0, "The History button opens the list and All variables returns to Changes")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)

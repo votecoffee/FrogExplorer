@@ -81,6 +81,7 @@ var variables_button: Button
 var variables_panel: PanelContainer
 var variables_title: Label
 var variables_text: RichTextLabel
+var review_history_list: ItemList
 var variable_changes_button: Button
 var call_stack_button: Button
 var call_stack_list: ItemList
@@ -113,8 +114,10 @@ var review_button: Button
 var review_controls: VBoxContainer
 var review_position: Label
 var review_slider: HSlider
+var review_variable_row: HBoxContainer
 var review_variable_filter: OptionButton
 var review_variable_name := ""
+var review_history_button: Button
 var review_change_row: HBoxContainer
 var review_previous_change: Button
 var review_next_change: Button
@@ -160,7 +163,7 @@ func _ready() -> void:
  top.add_child(language)
  variables_button = _button(top, "Variables · F7", _refresh_variables)
  variables_button.toggle_mode = true
- variables_button.tooltip_text = "F7 shows variables. Ctrl+F7 shows changes. Shift+F7 shows or focuses the Python call stack."
+ variables_button.tooltip_text = "F7 shows variables. Ctrl+F7 shows changes. Shift+F7 shows the call stack. Ctrl+Shift+F7 opens a followed variable's history."
  _button(top, "Close · Esc", _close)
  var pair := HBoxContainer.new()
  pair.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -276,6 +279,15 @@ func _ready() -> void:
  variables_text.add_theme_font_size_override("normal_font_size", 15)
  variables_text.selection_enabled = true
  variables_stack.add_child(variables_text)
+ review_history_list = ItemList.new()
+ review_history_list.custom_minimum_size.y = variables_text.custom_minimum_size.y
+ review_history_list.add_theme_font_override("font", source.get_theme_font("font"))
+ review_history_list.add_theme_font_size_override("font_size", 15)
+ review_history_list.focus_mode = Control.FOCUS_ALL
+ review_history_list.tooltip_text = "Press Enter or double-click an entry to jump to that action."
+ review_history_list.item_activated.connect(_jump_to_history_action)
+ variables_stack.add_child(review_history_list)
+ review_history_list.hide()
  call_stack_row = HBoxContainer.new()
  variables_stack.add_child(call_stack_row)
  call_stack_list = ItemList.new()
@@ -357,13 +369,19 @@ func _ready() -> void:
  review_slider.tooltip_text = "Drag or use Left and Right to choose an action. In Changes, use Page Up or Page Down to jump."
  review_slider.value_changed.connect(_draw_review)
  review_controls.add_child(review_slider)
+ review_variable_row = HBoxContainer.new()
+ review_controls.add_child(review_variable_row)
  review_variable_filter = OptionButton.new()
+ review_variable_filter.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  review_variable_filter.fit_to_longest_item = false
  review_variable_filter.clip_text = true
  review_variable_filter.tooltip_text = "Choose which variable to follow in this replay."
  review_variable_filter.item_selected.connect(_select_review_variable)
- review_controls.add_child(review_variable_filter)
- review_variable_filter.hide()
+ review_variable_row.add_child(review_variable_filter)
+ review_history_button = _button(review_variable_row, "History", _refresh_variables)
+ review_history_button.toggle_mode = true
+ review_history_button.tooltip_text = "Show the followed variable's history. Ctrl+Shift+F7 opens and focuses the list."
+ review_variable_row.hide()
  review_change_row = HBoxContainer.new()
  review_controls.add_child(review_change_row)
  review_previous_change = _button(review_change_row, "Previous change", _jump_to_review_change.bind(false))
@@ -1599,6 +1617,30 @@ func _index_review_changes(history: Array) -> void:
    changed = not is_same(before.get(review_variable_name), after.get(review_variable_name))
   if changed:
    review_change_actions.append(index)
+ _rebuild_review_history(history)
+
+func _rebuild_review_history(history: Array) -> void:
+ review_history_list.clear()
+ if review_variable_name.is_empty():
+  return
+ var initial: Dictionary = history[0]
+ var value := Programs.python_value_text(initial[review_variable_name]) if initial.has(review_variable_name) else "unassigned"
+ review_history_list.add_item("Start · %s" % value)
+ for action in review_change_actions:
+  var transition := _format_variable_transition(history[action - 1], history[action], review_variable_name)
+  review_history_list.add_item("Action %d · %s" % [action, transition])
+
+func _jump_to_history_action(row: int) -> void:
+ if not review_history_list.is_visible_in_tree() or row < 0 or row >= review_history_list.item_count:
+  return
+ review_slider.value = 0 if row == 0 else review_change_actions[row - 1]
+ _focus_review_timeline()
+
+func _focus_review_timeline() -> void:
+ if review_slider.is_visible_in_tree():
+  review_slider.grab_focus()
+ else:
+  (best_source if best_panel.visible else source).grab_focus()
 
 func _review_change_index(forward: bool) -> int:
  var action := roundi(review_slider.value)
@@ -1981,19 +2023,31 @@ func _refresh_variables() -> void:
  var show_calls := call_stack_button.button_pressed
  var show_changes := variable_changes_button.button_pressed
  var show_review_changes := review_controls.visible and variables_panel.visible and show_changes
- review_variable_filter.visible = show_review_changes and review_variable_filter.item_count > 1
+ review_variable_row.visible = show_review_changes and review_variable_filter.item_count > 1
+ review_history_button.visible = show_review_changes and not review_variable_name.is_empty()
+ if not review_controls.visible or review_variable_name.is_empty():
+  review_history_button.set_pressed_no_signal(false)
+ var show_history := review_history_button.visible and review_history_button.button_pressed
+ review_history_list.visible = show_history
  review_change_row.visible = show_review_changes and not review_change_actions.is_empty()
  if review_change_row.visible:
   review_previous_change.disabled = _review_change_index(false) < 0
   review_next_change.disabled = _review_change_index(true) >= review_change_actions.size()
  var view_name := "changes" if show_changes else "variables"
+ if show_history:
+  view_name = "history"
  if show_calls:
   view_name = "call stack"
  variables_title.text = "%s %s" % [diagnostics_context, view_name]
- variables_text.visible = not show_calls
+ variables_text.visible = not show_calls and not show_history
  call_stack_row.visible = show_calls
  variables_panel.size_flags_stretch_ratio = 2.0 if show_calls and not displayed_calls.is_empty() else 1.0
  if not variables_panel.visible:
+  return
+ if show_history:
+  var row := review_change_actions.bsearch(roundi(review_slider.value), false)
+  review_history_list.select(row)
+  review_history_list.ensure_current_is_visible()
   return
  if show_calls:
   _refresh_frame_variables()
@@ -2062,10 +2116,13 @@ func _format_variable_changes() -> String:
   names = [variable_filter]
  var lines := PackedStringArray()
  for variable: String in names:
-  var old := Programs.python_value_text(before[variable]) if before.has(variable) else "unassigned"
-  var new := Programs.python_value_text(after[variable]) if after.has(variable) else "out of scope"
-  lines.append("%s = %s → %s" % [variable, old, new])
+  lines.append("%s = %s" % [variable, _format_variable_transition(before, after, variable)])
  return "\n".join(lines) if not lines.is_empty() else "No variable changes"
+
+func _format_variable_transition(before: Dictionary, after: Dictionary, variable: String) -> String:
+ var old := Programs.python_value_text(before[variable]) if before.has(variable) else "unassigned"
+ var new := Programs.python_value_text(after[variable]) if after.has(variable) else "out of scope"
+ return "%s → %s" % [old, new]
 
 func _board_grid(parent: Container) -> GridContainer:
  var grid := GridContainer.new()
@@ -2127,6 +2184,8 @@ func _input(event: InputEvent) -> void:
    elif comparison_panel.visible:
     _close_draft_comparison()
     source.grab_focus()
+   elif review_history_list.has_focus():
+    _focus_review_timeline()
    elif call_stack_list.has_focus():
     (best_source if best_panel.visible else source).grab_focus()
    elif best_panel.visible:
@@ -2146,18 +2205,30 @@ func _input(event: InputEvent) -> void:
   elif event.keycode == KEY_F7 and variables_button.visible:
    var show_calls: bool = event.shift_pressed
    var show_changes: bool = event.ctrl_pressed and not show_calls
-   if show_calls and variables_panel.visible and call_stack_button.button_pressed:
+   if event.ctrl_pressed and event.shift_pressed:
+    if review_controls.visible and not review_variable_name.is_empty():
+     call_stack_button.set_pressed_no_signal(false)
+     variable_changes_button.set_pressed_no_signal(true)
+     variables_button.set_pressed_no_signal(true)
+     review_history_button.set_pressed_no_signal(true)
+     _refresh_variables()
+     review_history_list.grab_focus()
+   elif show_calls and variables_panel.visible and call_stack_button.button_pressed:
     call_stack_list.grab_focus()
    else:
     var return_focus := call_stack_list.has_focus()
-    var different_view := call_stack_button.button_pressed != show_calls or variable_changes_button.button_pressed != show_changes
+    var return_to_timeline := review_history_list.has_focus()
+    var different_view := call_stack_button.button_pressed != show_calls or variable_changes_button.button_pressed != show_changes or review_history_button.button_pressed
     var reveal := not variables_button.button_pressed or different_view
     call_stack_button.set_pressed_no_signal(show_calls)
     variable_changes_button.set_pressed_no_signal(show_changes)
+    review_history_button.set_pressed_no_signal(false)
     variables_button.set_pressed_no_signal(reveal)
     _refresh_variables()
     if return_focus:
      (best_source if best_panel.visible else source).grab_focus()
+    elif return_to_timeline:
+     _focus_review_timeline()
    get_viewport().set_input_as_handled()
   elif best_panel.visible:
    return
