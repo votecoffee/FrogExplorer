@@ -331,6 +331,8 @@ Use **Stop when** to choose **Equals**, **At least**, or **At most**, enter a va
 
 To preview a condition, follow a variable in **Review** or **Best program** and set **Stop when** there. **Previous match**, **Next match**, and **Page Up/Page Down** jump to the actions that make the condition true. In **History**, turn on **Matches only** to list those actions. Press **Enter** on a match to jump to it, or **F12** to open its Python source line. Choose **Run to match** in Review to use the same condition on the live board.
 
+Turn on **Pause on match** to stop preview playback at each action where the condition becomes true. With **Stop when** set to **Changes**, use **Pause on change**. Press **Space** with the timeline focused to resume.
+
 After a live variable stop, choose **Source line** in the inspector or press **F12** from the editor to open the assignment or call site that triggered it. Pondbot stays paused at the next board command.
 
 While paused inside a Python function, press **Shift+F11** in the editor to **Step out**. Pondbot finishes that call and pauses before the next board command so you can see the caller's variables and any returned value. If a breakpoint pauses the run before the function returns, choose **Resume** to continue stepping out. **Step**, **Stop**, and **Reset board** clear the request.

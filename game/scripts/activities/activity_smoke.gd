@@ -419,6 +419,16 @@ for stop in range(1, 3):
  popup.review_slider.grab_focus()
  press_key(KEY_PAGEDOWN)
  check(popup.watch_condition_row.is_visible_in_tree() and popup.review_slider.value == second_stop and popup.variables_text.text == "stop = 1 → 2" and not popup.review_run_to_change.is_visible_in_tree(), "Best program can find a matching condition while keeping the replay read-only")
+ var pause_at_watch: CheckBox = popup.review_pause_at_watch
+ popup.review_slider.value = second_stop - 1
+ pause_at_watch.grab_focus()
+ press_key(KEY_SPACE)
+ popup.review_slider.grab_focus()
+ press_key(KEY_SPACE)
+ popup._process(.25)
+ popup._process(.25)
+ check(pause_at_watch.button_pressed and popup.review_slider.value == second_stop and popup.review_playback_button.text == "Play" and popup.variables_text.text == "stop = 1 → 2" and popup.best_panel.visible and not popup.running and popup.garden.turn == 36, "Best program pauses playback on the watched match while keeping the saved replay read-only")
+ pause_at_watch.set_pressed_no_signal(false)
  press_key(KEY_F7, true, true)
  var only_matches: Button = popup.review_history_matches_button
  only_matches.grab_focus()
@@ -2785,12 +2795,27 @@ wait()
  var filter: OptionButton = popup.review_variable_filter
  var condition: OptionButton = popup.watch_condition_choice
  var run_match: Button = popup.review_run_to_change
+ var pause_at_watch: CheckBox = popup.review_pause_at_watch
  var following := select_review_variable(filter, "count")
  condition.select(2)
  condition.item_selected.emit(2)
- check(following and popup.watch_condition_row.is_visible_in_tree() and popup.watch_target_edit.is_visible_in_tree() and run_match.disabled and not popup.review_change_row.is_visible_in_tree() and slider.value == 0, "A Review condition waits for its target before enabling jumps or a live run")
+ check(following and popup.watch_condition_row.is_visible_in_tree() and popup.watch_target_edit.is_visible_in_tree() and run_match.disabled and pause_at_watch.disabled and not popup.review_change_row.is_visible_in_tree() and slider.value == 0, "A Review condition waits for its target before enabling jumps or a live run")
 
  set_watch_target(popup, "3")
+ pause_at_watch.grab_focus()
+ press_key(KEY_SPACE)
+ slider.grab_focus()
+ press_key(KEY_SPACE)
+ popup._process(.25)
+ var passed_unmatched_action: bool = slider.value == 1 and popup.review_playback_button.text == "Pause"
+ popup._process(.25)
+ popup._process(.25)
+ check(pause_at_watch.button_pressed and pause_at_watch.text == "Pause on match" and passed_unmatched_action and slider.value == 2 and popup.review_playback_button.text == "Play" and popup.variables_text.text == "count = 1 → 3", "Review playback pauses after the first action that makes the watch condition true")
+ press_key(KEY_SPACE)
+ for tick in 4:
+  popup._process(.25)
+ check(slider.value == 5 and popup.review_playback_button.text == "Play" and popup.garden.turn == 0, "Resuming passes changes that leave the condition true and pauses at the next match")
+ slider.value = 0
  press_key(KEY_PAGEDOWN)
  var first_match: bool = slider.value == 2 and popup.variables_text.text == "count = 1 → 3"
  popup.review_next_change.pressed.emit()
@@ -2823,6 +2848,12 @@ wait()
  condition.select(0)
  condition.item_selected.emit(0)
  var changes_restored: bool = not only_matches.is_visible_in_tree() and events.item_count == 6
+ slider.grab_focus()
+ press_key(KEY_SPACE)
+ popup._process(.25)
+ popup._process(.25)
+ check(pause_at_watch.text == "Pause on change" and slider.value == 1 and popup.review_playback_button.text == "Play", "Changes mode pauses playback on any transition of the followed variable")
+ slider.value = 0
  condition.select(2)
  condition.item_selected.emit(2)
  only_matches.grab_focus()
@@ -2835,10 +2866,15 @@ wait()
  set_watch_target(popup, "9")
  press_key(KEY_PAGEDOWN)
  check(popup.review_match_status.is_visible_in_tree() and not popup.review_change_row.is_visible_in_tree() and slider.value == 2 and slider.has_focus(), "A condition with no matches keeps the timeline in place and shows that result")
+ press_key(KEY_SPACE)
+ for tick in range(roundi(slider.value), roundi(slider.max_value)):
+  popup._process(.25)
+ check(pause_at_watch.disabled and slider.value == slider.max_value and popup.review_playback_button.text == "Play" and popup.garden.turn == 0, "A watch condition with no matches lets preview playback reach the end")
+ slider.value = 2
 
  var switched := select_review_variable(filter, "other")
  press_key(KEY_PAGEDOWN)
- check(switched and condition.selected == 0 and popup.watch_target_edit.text.is_empty() and slider.value == 4 and popup.variables_text.text == "other = 0 → 1", "Following a different variable restores ordinary change navigation")
+ check(switched and condition.selected == 0 and popup.watch_target_edit.text.is_empty() and not pause_at_watch.button_pressed and slider.value == 4 and popup.variables_text.text == "other = 0 → 1", "Following a different variable restores ordinary change navigation")
 
  select_review_variable(filter, "count")
  condition.select(2)

@@ -145,6 +145,7 @@ var review_history_button: Button
 var review_change_row: HBoxContainer
 var review_previous_change: Button
 var review_next_change: Button
+var review_pause_at_watch: CheckBox
 var review_match_status: Label
 var review_run_to_change: Button
 var review_change_actions := PackedInt32Array()
@@ -475,6 +476,11 @@ func _ready() -> void:
  review_previous_change.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  review_next_change.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  review_change_row.hide()
+ review_pause_at_watch = CheckBox.new()
+ review_pause_at_watch.text = "Pause on change"
+ review_pause_at_watch.tooltip_text = "Pause playback at the followed variable's next change or condition match."
+ review_controls.add_child(review_pause_at_watch)
+ review_pause_at_watch.hide()
  review_match_status = hud.label("No matching actions", 15, Color("#b9dccc"))
  review_controls.add_child(review_match_status)
  review_match_status.hide()
@@ -2104,6 +2110,8 @@ func _advance_review_playback() -> void:
  else:
   review_playback_board.step(route.actions[action])
   _draw_review(next, review_playback_board)
+  if review_pause_at_watch.visible and review_pause_at_watch.button_pressed and _review_jump_actions().has(next):
+   _pause_review_playback()
 
 func _draw_review(value: float, snapshot: Programs = null) -> void:
  var replaying_best := best_panel.visible
@@ -2537,6 +2545,9 @@ func _refresh_variables() -> void:
  review_history_matches_button.visible = show_history and matches
  var matches_only := _history_matches_only()
  var destinations := _review_jump_actions()
+ review_pause_at_watch.visible = review_controls.visible and review_slider.visible and not review_variable_name.is_empty()
+ review_pause_at_watch.disabled = destinations.is_empty()
+ review_pause_at_watch.text = "Pause on match" if matches else "Pause on change"
  review_match_status.visible = review_history_button.visible and matches and watch_target != null and destinations.is_empty() and not (show_history and matches_only)
  review_change_row.visible = show_review_changes and not destinations.is_empty()
  if review_change_row.visible:
@@ -2617,6 +2628,7 @@ func _reset_watch_condition() -> void:
  watch_condition_choice.select(WatchCondition.CHANGES)
  watch_target_edit.text = ""
  review_history_matches_button.set_pressed_no_signal(false)
+ review_pause_at_watch.set_pressed_no_signal(false)
 
 func _select_watch_condition(index: int) -> void:
  watch_condition = index
