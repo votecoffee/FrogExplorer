@@ -5,6 +5,7 @@ const Programs = preload("res://scripts/activities/garden_program.gd")
 const Progress = preload("res://scripts/activities/activity_progress.gd")
 const RUN_INTERVAL := .23
 const COMPARISON_BOARD_KEY := "Gold outline · Tile differs between drafts"
+const COMPARISON_BEST := "<personal-best>"
 const COMPARISON_GOLD := "#e8c879"
 const COMPARISON_HIGHLIGHT := "[color=" + COMPARISON_GOLD + "]"
 enum ComparisonView { BOARDS, VARIABLES, PRINT_OUTPUT, SOURCE }
@@ -45,6 +46,8 @@ var comparison_current_details: RichTextLabel
 var comparison_other_details: RichTextLabel
 var comparison_current_code: CodeEdit
 var comparison_other_code: CodeEdit
+var comparison_other_edit: Button
+var comparison_best_source := ""
 var comparison_source := ""
 var comparison_key := ""
 var comparison_positions: Dictionary = {}
@@ -616,7 +619,7 @@ func _add_draft_comparison(parent: Container) -> void:
  choices.add_child(spacer)
  choices.add_child(hud.label("Compare with", 14))
  comparison_choice = OptionButton.new()
- comparison_choice.item_selected.connect(_compare_drafts)
+ comparison_choice.item_selected.connect(_select_comparison_target)
  choices.add_child(comparison_choice)
  comparison_timeline = HBoxContainer.new()
  comparison_panel.add_child(comparison_timeline)
@@ -648,8 +651,8 @@ func _add_draft_comparison(parent: Container) -> void:
  comparison_other_board = _board_grid(results)
  comparison_current_details = _comparison_details_box(results)
  comparison_other_details = _comparison_details_box(results)
- comparison_current_code = _comparison_code_box(results, "Edit current draft", func(): _edit_compared_draft(false))
- comparison_other_code = _comparison_code_box(results, "Edit other draft", func(): _edit_compared_draft(true))
+ comparison_current_code = _comparison_code_box(results, false)
+ comparison_other_code = _comparison_code_box(results, true)
  var footer := HBoxContainer.new()
  comparison_panel.add_child(footer)
  comparison_board_key = hud.label(COMPARISON_BOARD_KEY, 13, Color(COMPARISON_GOLD))
@@ -680,7 +683,7 @@ func _comparison_details_box(parent: Container) -> RichTextLabel:
  panel.hide()
  return details
 
-func _comparison_code_box(parent: Container, title: String, edit: Callable) -> CodeEdit:
+func _comparison_code_box(parent: Container, use_other: bool) -> CodeEdit:
  var column := VBoxContainer.new()
  column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  parent.add_child(column)
@@ -689,9 +692,12 @@ func _comparison_code_box(parent: Container, title: String, edit: Callable) -> C
  editor.custom_minimum_size.y = 144
  editor.add_theme_font_size_override("font_size", 14)
  column.add_child(editor)
- var button := _button(column, title, edit)
+ var title := "Edit other draft" if use_other else "Edit current draft"
+ var button := _button(column, title, func(): _edit_compared_draft(use_other))
  button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
  button.tooltip_text = "Open the editable draft at the preview cursor."
+ if use_other:
+  comparison_other_edit = button
  column.hide()
  return editor
 
@@ -703,8 +709,13 @@ func _edit_compared_draft(use_other: bool) -> void:
  var column := preview.get_caret_column()
  if use_other:
   var other: String = comparison_choice.get_item_metadata(comparison_choice.selected)
-  comparison_positions[_comparison_key_for(other)] = _comparison_position_for(_draft_key())
-  _open_saved_draft(other)
+  if other == COMPARISON_BEST:
+   var position := _comparison_position_for(COMPARISON_BEST)
+   _open_draft_copy(preview.text, python_mode)
+   comparison_positions[_comparison_key_for(_draft_key())] = position
+  else:
+   comparison_positions[_comparison_key_for(other)] = _comparison_position_for(_draft_key())
+   _open_saved_draft(other)
  else:
   _close_draft_comparison()
   source.grab_focus()
@@ -717,10 +728,15 @@ func _toggle_draft_comparison() -> void:
  if comparison_panel.visible:
   _close_draft_comparison()
   return
- if not steps.is_empty() or best_panel.visible or draft_choice.item_count < 2:
+ if not steps.is_empty() or best_panel.visible:
   return
  _save_draft_name()
  _commit_target_edit()
+ var id: String = Programs.GARDENS[puzzle].id
+ var record := progress.nursery_record(id, garden) if garden.practice else {}
+ comparison_best_source = _best_source_for_comparison(id, record)
+ if draft_choice.item_count < 2 and comparison_best_source.is_empty():
+  return
  _close_review()
  comparison_key = _comparison_key_for(_draft_key())
  var remembered: Dictionary = comparison_positions.get(comparison_key, {})
@@ -736,6 +752,12 @@ func _toggle_draft_comparison() -> void:
   comparison_choice.set_item_metadata(item, key)
   if key == remembered_other:
    selected = item
+ if not comparison_best_source.is_empty():
+  comparison_choice.add_item("Personal best")
+  var item := comparison_choice.item_count - 1
+  comparison_choice.set_item_metadata(item, COMPARISON_BEST)
+  if remembered_other == COMPARISON_BEST:
+   selected = item
  if selected < 0:
   remembered = {}
   selected = 0
@@ -750,7 +772,9 @@ func _toggle_draft_comparison() -> void:
  for editor in [comparison_current_code, comparison_other_code]:
   _color_code(editor, python_mode)
  comparison_context.text = "Starting board" if garden.practice else "Starting board · Fresh lesson"
- comparison_start.select(remembered.get("start", ComparisonStart.LIVE))
+ var best_target: bool = comparison_choice.get_item_metadata(selected) == COMPARISON_BEST
+ var default_start := ComparisonStart.FRESH if best_target and garden.practice else ComparisonStart.LIVE
+ comparison_start.select(remembered.get("start", default_start))
  comparison_start.visible = garden.practice
  comparison_source = source.text
  comparison_current_code.text = comparison_source
@@ -761,6 +785,19 @@ func _toggle_draft_comparison() -> void:
  if comparison_slider.is_visible_in_tree():
   comparison_slider.grab_focus()
 
+func _best_source_for_comparison(id: String, nursery_record: Dictionary) -> String:
+ if garden.practice:
+  return nursery_record.get("source", "") if nursery_record.get("python", false) == python_mode else ""
+ return progress.garden_best_programs.get(id, "") if progress.garden_best_python.get(id, false) == python_mode else ""
+
+func _select_comparison_target(index: int) -> void:
+ if not comparison_panel.visible:
+  return
+ if garden.practice and comparison_choice.get_item_metadata(index) == COMPARISON_BEST and comparison_start.selected != ComparisonStart.FRESH:
+  comparison_start.select(ComparisonStart.FRESH)
+  comparison_current_route = _trace_draft(comparison_source)
+ _compare_drafts(index)
+
 func _select_comparison_start(_index: int) -> void:
  if comparison_panel.visible and garden.practice:
   comparison_current_route = _trace_draft(comparison_source)
@@ -770,7 +807,9 @@ func _compare_drafts(index: int, action := -1) -> void:
  if not comparison_panel.visible:
   return
  var other: String = comparison_choice.get_item_metadata(index)
- var other_source := _draft_source(other)
+ var is_best := other == COMPARISON_BEST
+ var other_source := comparison_best_source if is_best else _draft_source(other)
+ comparison_other_edit.text = "Edit a copy" if is_best else "Edit other draft"
  comparison_other_code.text = other_source
  comparison_other_route = _trace_draft(other_source)
  var current_actions: Array = comparison_current_route.get("actions", [])
@@ -1069,6 +1108,7 @@ func _close_draft_comparison() -> void:
    editor.clear_executing_lines()
    editor.text = ""
   comparison_source = ""
+  comparison_best_source = ""
   compare_drafts_button.text = "Compare drafts"
 
 func _draft_source(key: String) -> String:
@@ -1501,7 +1541,7 @@ func _draw() -> void:
  draft_choice.visible = has_copies
  draft_choice.disabled = active
  duplicate_draft_button.disabled = active
- compare_drafts_button.visible = has_copies
+ compare_drafts_button.visible = has_copies or not _best_source_for_comparison(item.id, nursery_record).is_empty()
  compare_drafts_button.disabled = active
  rename_draft_button.visible = draft_choice.selected > 0 and not draft_name_edit.visible
  rename_draft_button.disabled = active

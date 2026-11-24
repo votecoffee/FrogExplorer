@@ -1037,7 +1037,11 @@ func check_nursery_bests(popup) -> void:
  for action in 7:
   popup._process(.25)
  check(popup.steps.is_empty() and popup.best_button.visible and popup.progress.nursery_best(id, popup.garden) == Vector3i(7, 1, 1) and "New personal best" in popup.status.text and "Best for target 1 · 7 actions" in popup.score.text, "A finished reset-board run earns a nursery personal best and saves its program")
+ popup.compare_drafts_button.pressed.emit()
+ check(popup.draft_choice.item_count == 1 and popup.comparison_panel.visible and popup.comparison_choice.item_count == 1 and popup.comparison_choice.get_item_text(0) == "Personal best" and popup.comparison_start.selected == 1 and popup.comparison_other_route.initial.turn == 0 and popup.comparison_other_route.actions.size() == 7 and popup.garden.turn == 7, "A same-language best can be compared from a fresh nursery before any copies exist")
+ press_key(KEY_ESCAPE)
  popup.language.item_selected.emit(0)
+ check(popup.best_button.visible and not popup.compare_drafts_button.visible, "A best in the other language remains available for replay")
  popup.source.text = "# New Python draft\n" + route
  popup.best_button.pressed.emit()
  check(popup.best_panel.visible and popup.best_source.text == classic and not popup.best_source.editable and not popup.best_python and popup.source.text.begins_with("# New Python draft"), "Best program shows the recorded language and leaves the new draft available")
@@ -1119,7 +1123,7 @@ func check_draft_comparison(popup) -> void:
  popup.source.text = current
  var live_plot: Node = popup.world.garden_root.get_child(0)
  popup.compare_drafts_button.pressed.emit()
- check(popup.comparison_panel.visible and popup.comparison_choice.item_count == 2 and popup.comparison_start.visible and popup.comparison_start.get_item_text(popup.comparison_start.selected) == "Live nursery" and "Harvested 1 in 1 action · Target 1 met" in popup.comparison_current.text and "Harvested 1 in 2 actions · Target 1 met" in popup.comparison_other.text, "Compare forecasts both drafts from the same living nursery")
+ check(popup.comparison_panel.visible and popup.comparison_choice.item_count == 3 and popup.comparison_start.visible and popup.comparison_start.get_item_text(popup.comparison_start.selected) == "Live nursery" and "Harvested 1 in 1 action · Target 1 met" in popup.comparison_current.text and "Harvested 1 in 2 actions · Target 1 met" in popup.comparison_other.text, "Compare forecasts both drafts from the same living nursery")
  check(popup.comparison_slider.max_value == 2 and popup.comparison_slider.value == 2 and popup.comparison_slider.has_focus() and "Finished · 1 / 1 actions" in popup.comparison_current.text and "Line 2 · gather east" in popup.comparison_other.text, "The comparison holds the shorter draft at its endpoint")
  var current_board: GridContainer = popup.comparison_current_board
  var other_board: GridContainer = popup.comparison_other_board
@@ -1332,7 +1336,7 @@ func check_duplicate_draft(popup) -> void:
  popup.progress.folder = temporary.get_current_dir()
  var button: Button = popup.duplicate_draft_button
  var choice: OptionButton = popup.draft_choice
- check(button.is_visible_in_tree() and not button.disabled and choice.item_count == 1 and not popup.compare_drafts_button.visible, "Duplicate draft is available before the first copy exists")
+ check(button.is_visible_in_tree() and not button.disabled and choice.item_count == 1, "Duplicate draft is available before the first copy exists")
  var main_source := "# Main draft\nwait()\nwait()\n"
  popup.source.text = main_source
  popup.source.set_caret_line(1)
@@ -1542,6 +1546,48 @@ func check_comparison_starting_board(popup) -> void:
  start.select(1)
  start.item_selected.emit(1)
  check(classic.error == OK and not popup.python_mode and start.is_visible_in_tree() and popup.comparison_current_route.initial.turn == 0 and popup.comparison_other_route.actions.size() == 2 and popup.garden.turn == 5, "Classic drafts can also compare from fresh nursery previews")
+
+func check_compare_personal_best(popup) -> void:
+ var id: String = Program.OPEN_NURSERY.id
+ popup.language.item_selected.emit(0)
+ popup.draft_choice.item_selected.emit(0)
+ popup.nursery_target.value = 3
+ popup.source.text = "wait()\n"
+ popup.compare_drafts_button.pressed.emit()
+ var choice: OptionButton = popup.comparison_choice
+ var view: OptionButton = popup.comparison_view
+ var start: OptionButton = popup.comparison_start
+ var slider: HSlider = popup.comparison_slider
+ var edit: Button = popup.comparison_other_edit
+ var draft_count: int = popup.draft_choice.item_count
+ check(popup.comparison_panel.visible and choice.item_count == draft_count - 1, "A different nursery target leaves the personal best out of the choices")
+ press_key(KEY_ESCAPE)
+
+ popup.nursery_target.value = 1
+ var saved: Dictionary = popup.progress.nursery_record(id, popup.garden)
+ var turn: int = popup.garden.turn
+ var balance: int = popup.progress.nursery_balance()
+ var candidate := "# Candidate\nwait()\n"
+ popup.source.text = candidate
+ popup.compare_drafts_button.pressed.emit()
+ start.select(0)
+ start.item_selected.emit(0)
+ select_comparison_copy(choice, "<personal-best>")
+ check(choice.get_item_text(choice.selected) == "Personal best" and start.selected == 1 and slider.max_value == 6 and popup.comparison_current_route.initial.turn == 0 and popup.comparison_other_route.initial.turn == 0 and popup.comparison_other_code.text == saved.source and popup.garden.turn == turn and popup.draft_choice.item_count == draft_count, "Selecting the personal best compares the recorded source from a shared fresh board without creating a copy")
+ start.select(0)
+ start.item_selected.emit(0)
+ check(start.selected == 0 and popup.comparison_current_route.initial.turn == turn and popup.comparison_other_route.initial.turn == turn and "Blocked" in popup.comparison_other.text, "The live nursery remains available when comparing against the best")
+
+ start.select(1)
+ start.item_selected.emit(1)
+ slider.value = 6
+ view.select(3)
+ view.item_selected.emit(3)
+ edit.pressed.emit()
+ var copy_key: String = popup.progress.selected_draft(id, true)
+ check(edit.text == "Edit a copy" and not popup.comparison_panel.visible and popup.draft_choice.item_count == draft_count + 1 and popup.source.text == saved.source and popup.source.get_caret_line() == 5 and popup.progress.python_drafts.get(id) == candidate and popup.progress.nursery_record(id, popup.garden) == saved and popup.progress.nursery_balance() == balance, "Editing the best opens a separate copy at the preview line and preserves the record")
+ popup.compare_drafts_button.pressed.emit()
+ check(copy_key != id and choice.get_item_text(choice.selected) == "Personal best" and start.selected == 1 and view.selected == 3 and slider.value == 6 and popup.progress.nursery_record(id, popup.garden) == saved, "Returning from the editable copy remembers the personal best and preview position")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)
@@ -2399,6 +2445,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   check_comparison_source(popup)
   await check_comparison_resume(popup)
   await check_comparison_starting_board(popup)
+  check_compare_personal_best(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
