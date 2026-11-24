@@ -52,6 +52,11 @@ var comparison_other_code: CodeEdit
 var comparison_other_edit: Button
 var comparison_results: GridContainer
 var comparison_result_values: Array[Label] = []
+var comparison_goal_label: Label
+var comparison_current_goal: Button
+var comparison_other_goal: Button
+var comparison_goal_delta: Label
+var comparison_goal_actions := Vector2i(-1, -1)
 var comparison_best_source := ""
 var comparison_source := ""
 var comparison_key := ""
@@ -691,6 +696,16 @@ func _add_comparison_results(parent: Container) -> void:
    value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
    comparison_results.add_child(value)
    comparison_result_values.append(value)
+ comparison_goal_label = hud.label("", 14)
+ comparison_results.add_child(comparison_goal_label)
+ comparison_current_goal = _button(comparison_results, "", func(): _jump_to_comparison_goal(comparison_goal_actions.x))
+ comparison_other_goal = _button(comparison_results, "", func(): _jump_to_comparison_goal(comparison_goal_actions.y))
+ for button in [comparison_current_goal, comparison_other_goal]:
+  button.size_flags_horizontal = Control.SIZE_SHRINK_END
+  button.tooltip_text = "Jump to the action that first reaches the harvest target."
+ comparison_goal_delta = hud.label("", 14)
+ comparison_goal_delta.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+ comparison_results.add_child(comparison_goal_delta)
  comparison_results.hide()
 
 func _select_comparison_view(_index: int) -> void:
@@ -864,6 +879,7 @@ func _compare_drafts(index: int, action := -1) -> void:
  comparison_extend_button.visible = limited and comparison_limit < Programs.MAX_COMPUTATION_STEPS
  if comparison_extend_button.visible:
   comparison_extend_button.tooltip_text = "Preview both drafts up to %d actions." % mini(comparison_limit * 2, Programs.MAX_COMPUTATION_STEPS)
+ _update_comparison_goal()
  _update_comparison_differences()
  _show_comparison_step(position)
 
@@ -992,11 +1008,49 @@ func _show_comparison_results(current: Programs, other: Programs) -> void:
   var offset := 3 * row
   comparison_result_values[offset].text = str(left[row]) if current != null else "—"
   comparison_result_values[offset + 1].text = str(right[row]) if other != null else "—"
-  var difference := comparison_result_values[offset + 2]
-  difference.text = "%+d" % delta[row] if delta[row] != 0 else "0"
-  if current == null or other == null:
-   difference.text = "—"
-  difference.modulate = Color(COMPARISON_GOLD) if difference.text not in ["0", "—"] else Color.WHITE
+  _show_comparison_delta(comparison_result_values[offset + 2], delta[row], current != null and other != null)
+
+func _show_comparison_delta(label: Label, delta: int, available: bool) -> void:
+ if available:
+  label.text = "%+d" % delta if delta != 0 else "0"
+ else:
+  label.text = "—"
+ label.modulate = Color(COMPARISON_GOLD) if available and delta != 0 else Color.WHITE
+
+func _update_comparison_goal() -> void:
+ var goal := garden.harvest_target if garden.practice else garden.plants.size()
+ comparison_goal_label.text = "First reaches %d %s" % [goal, "lily" if goal == 1 else "lilies"]
+ comparison_goal_actions = Vector2i(
+  _first_harvest_goal_action(comparison_current_route, goal),
+  _first_harvest_goal_action(comparison_other_route, goal),
+ )
+ _show_goal_button(comparison_current_goal, comparison_current_route, comparison_goal_actions.x)
+ _show_goal_button(comparison_other_goal, comparison_other_route, comparison_goal_actions.y)
+ var both_reached := comparison_goal_actions.x >= 0 and comparison_goal_actions.y >= 0
+ _show_comparison_delta(comparison_goal_delta, comparison_goal_actions.y - comparison_goal_actions.x, both_reached)
+
+func _first_harvest_goal_action(route: Dictionary, goal: int) -> int:
+ var history: Array = route.get("totals_history", [])
+ for index in history.size():
+  if history[index].x >= goal:
+   return index
+ return -1
+
+func _show_goal_button(button: Button, route: Dictionary, action: int) -> void:
+ button.disabled = action < 0
+ if action >= 0:
+  button.text = "Action %d" % action
+ elif route.has("totals_history"):
+  button.text = "Not reached" if not route.get("limited", false) else "Preview limit"
+ else:
+  button.text = "—"
+
+func _jump_to_comparison_goal(action: int) -> void:
+ if action < 0 or not comparison_results.is_visible_in_tree():
+  return
+ comparison_slider.value = action
+ if comparison_slider.visible:
+  comparison_slider.grab_focus()
 
 func _comparison_interruption(route: Dictionary, index: int) -> String:
  if _comparison_blocked(route, index):

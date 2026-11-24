@@ -1608,12 +1608,14 @@ func check_extended_comparison(popup) -> void:
  var extend: Button = popup.comparison_extend_button
  select_comparison_copy(choice, "<personal-best>")
  check(ongoing.error == OK and saved.score.x == 270 and extend.is_visible_in_tree() and slider.value == Program.MAX_STEPS and popup.comparison_current_route.limited and popup.comparison_other_route.limited, "Long draft and best comparisons start at the standard preview limit")
+ check(popup.comparison_current_goal.text == "Preview limit" and popup.comparison_other_goal.text == "Preview limit" and popup.comparison_goal_delta.text == "—", "A truncated preview reports that the target is still outside the visible results")
 
  view.select(2)
  view.item_selected.emit(2)
  extend.grab_focus()
  press_key(KEY_ENTER)
  check(slider.has_focus() and slider.value == Program.MAX_STEPS and slider.max_value == 270 and view.selected == 2 and not extend.visible and popup.comparison_current_route.actions.size() == 268 and popup.comparison_current_route.preview.run_harvest_count() == 2 and popup.comparison_other_route.preview.run_harvest_count() == 2, "Extending from the keyboard completes both traces and keeps the selected action and view")
+ check(popup.comparison_goal_actions == Vector2i(268, 270) and popup.comparison_goal_delta.text == "+2", "Extending reveals when each long draft first reaches the harvest target")
 
  slider.value = 258
  var printed: bool = "After warm-up" in popup.comparison_current_details.get_parsed_text()
@@ -1655,6 +1657,7 @@ func check_comparison_results(popup) -> void:
  view.select(4)
  view.item_selected.emit(4)
  check(other.error == OK and view.get_item_text(4) == "Results" and popup.comparison_results.is_visible_in_tree() and slider.value == 8 and values.map(func(label): return label.text) == ["1", "2", "+1", "1", "8", "+7", "0", "1", "+1", "0", "1", "+1"], "Results aligns both drafts' totals and signs the right-minus-left differences")
+ check(popup.comparison_goal_label.text == "First reaches 3 lilies" and popup.comparison_current_goal.text == "Not reached" and popup.comparison_other_goal.text == "Not reached" and popup.comparison_goal_delta.text == "—", "Completed previews can finish below their harvest target")
  slider.value = 0
  check(values.map(func(label): return label.text) == ["0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"] and popup.garden.harvested == 1 and popup.garden.turn == 9, "Results counts only this preview's work on a nursery already harvested")
  popup.comparison_difference_button.pressed.emit()
@@ -1663,6 +1666,34 @@ func check_comparison_results(popup) -> void:
  check(invalid.error == OK and "Check the arguments for fill()" in popup.comparison_other.text and values.map(func(label): return label.text) == ["1", "—", "—", "1", "—", "—", "0", "—", "—", "0", "—", "—"] and not popup.comparison_difference_button.visible, "Results preserves the valid side when the other draft cannot compile")
  press_key(KEY_ESCAPE)
  check(not popup.comparison_panel.visible and popup.garden.turn == 9 and popup.garden.tank == 4 and popup.garden.plant_status(Vector2i(1, 0)) == "Ripe" and popup.progress.nursery_balance() == balance and popup.source.text == current, "Results preserves the live nursery and editable program")
+
+ popup.nursery_target.value = 1
+ popup.compare_drafts_button.pressed.emit()
+ select_comparison_copy(choice, other.key)
+ view.select(4)
+ view.item_selected.emit(4)
+ var current_goal: Button = popup.comparison_current_goal
+ var other_goal: Button = popup.comparison_other_goal
+ check(popup.comparison_goal_label.text == "First reaches 1 lily" and current_goal.text == "Action 1" and other_goal.text == "Action 2" and popup.comparison_goal_delta.text == "+1", "Target timing uses the first qualifying action even when a draft keeps working")
+ other_goal.grab_focus()
+ press_key(KEY_ENTER)
+ check(slider.has_focus() and slider.value == 2 and values[0].text == "1" and values[1].text == "1", "The other draft's target button jumps the shared slider with the keyboard")
+ current_goal.pressed.emit()
+ var jumped: bool = slider.value == 1 and values[1].text == "0"
+ select_comparison_copy(choice, invalid.key)
+ check(jumped and not current_goal.disabled and other_goal.disabled and other_goal.text == "—" and popup.comparison_goal_delta.text == "—", "The current draft's milestone remains available when the other draft fails to compile")
+
+ popup.chooser.item_selected.emit(0)
+ popup.draft_choice.item_selected.emit(0)
+ var lesson := "fill()\nhop(east)\nwater()\nwait()\ngather()\nhop(east)\nwater()\nwait()\ngather()\n"
+ var lesson_copy: Dictionary = popup.progress.create_draft_copy("first_bloom", "wait()\n" + lesson, true)
+ popup._refresh_draft_choice()
+ popup.source.text = lesson
+ popup.compare_drafts_button.pressed.emit()
+ select_comparison_copy(choice, lesson_copy.key)
+ view.select(4)
+ view.item_selected.emit(4)
+ check(lesson_copy.error == OK and popup.comparison_goal_label.text == "First reaches 2 lilies" and current_goal.text == "Action 9" and other_goal.text == "Action 10" and popup.comparison_goal_delta.text == "+1" and popup.garden.turn == 0, "A lesson's milestone requires harvesting all of its lilies")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)
