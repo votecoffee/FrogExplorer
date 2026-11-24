@@ -12,6 +12,7 @@ const COMPARISON_TOTAL_NAMES := ["Lilies harvested", "Actions", "Water doses", "
 enum ComparisonView { BOARDS, VARIABLES, PRINT_OUTPUT, SOURCE, RESULTS }
 enum ComparisonStart { LIVE, FRESH }
 enum ComparisonTotals { SELECTED_ACTION, FIRST_TARGET }
+enum WatchCondition { CHANGES, EQUALS, AT_LEAST, AT_MOST }
 const CLASSIC_GUIDE := "hop north / east / south / west\nfill     plant     water     wait     gather\nrepeat N … end     # comment\nroutine NAME heading · call NAME east\nif / while CONDITION … end\nelse · not · and · or · break · continue\nLook ahead with clear east or lily north\nF9 toggles a breakpoint\nCtrl+F10 runs to cursor"
 const PYTHON_GUIDE := "hop(east)    fill()    water()\nplant()       wait()       gather()\nfor bed in range(2):\nif water_level() < tank_capacity():\nwhile clear(east):\ndef walk(heading, steps: int):\nstart = column()    print(start)\nTab indents · Shift+Tab unindents\nF9 toggles a breakpoint\nCtrl+F10 runs to cursor\nShift+F11 steps out of a function"
 var hud: ExplorerHUD
@@ -83,6 +84,9 @@ var variables_title: Label
 var variables_text: RichTextLabel
 var live_watch_row: HBoxContainer
 var live_watch_choice: OptionButton
+var watch_condition_row: HBoxContainer
+var watch_condition_choice: OptionButton
+var watch_target_edit: LineEdit
 var review_history_list: ItemList
 var variable_source_button: Button
 var variable_changes_button: Button
@@ -138,6 +142,8 @@ var breakpoint_offset := -1
 var run_to_line := -1
 var watched_variable := ""
 var watchpoint_active := false
+var watch_condition: int = WatchCondition.CHANGES
+var watch_target: Variant = null
 var live_change_source_line := -1
 var step_out_frame: Dictionary = {}
 var interval := 0.0
@@ -294,6 +300,21 @@ func _ready() -> void:
  live_watch_choice.item_selected.connect(_select_live_watch)
  live_watch_row.add_child(live_watch_choice)
  live_watch_row.hide()
+ watch_condition_row = HBoxContainer.new()
+ variables_stack.add_child(watch_condition_row)
+ watch_condition_row.add_child(hud.label("Stop when", 15))
+ watch_condition_choice = OptionButton.new()
+ watch_condition_choice.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ for label in ["Changes", "Equals", "At least", "At most"]:
+  watch_condition_choice.add_item(label)
+ watch_condition_choice.item_selected.connect(_select_watch_condition)
+ watch_condition_row.add_child(watch_condition_choice)
+ watch_target_edit = LineEdit.new()
+ watch_target_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ watch_target_edit.custom_minimum_size.x = 84
+ watch_target_edit.text_changed.connect(func(_value: String): _update_watch_target())
+ watch_condition_row.add_child(watch_target_edit)
+ watch_condition_row.hide()
  variables_text = RichTextLabel.new()
  variables_text.custom_minimum_size.y = output_text.custom_minimum_size.y
  variables_text.add_theme_font_override("normal_font", source.get_theme_font("font"))
@@ -1430,6 +1451,7 @@ func _clear_program() -> void:
  run_to_line = -1
  watched_variable = ""
  watchpoint_active = false
+ _reset_watch_condition()
  live_change_source_line = -1
  step_out_frame = {}
 
@@ -1799,8 +1821,9 @@ func _can_run_to(commands: Array, line: int) -> bool:
 func _run_to_variable_change() -> void:
  var variable := ""
  if review_run_to_change.is_visible_in_tree():
+  _reset_watch_condition()
   variable = review_variable_name
- elif next_live_change_button.is_visible_in_tree():
+ elif next_live_change_button.is_visible_in_tree() and not next_live_change_button.disabled:
   variable = watched_variable
  if variable.is_empty():
   return
@@ -1859,7 +1882,8 @@ func _show_progress() -> void:
  elif not step_out_frame.is_empty():
   status.text += " · Stepping out of %s()" % step_out_frame.function
  elif watchpoint_active:
-  status.text += " · Watching %s" % watched_variable
+  var condition := _watch_condition_text()
+  status.text += " · Watching %s%s" % [watched_variable, condition]
 
 func _mark_line(editor: CodeEdit, line: int) -> void:
  var marked := clampi(line, 0, editor.get_line_count() - 1)
@@ -1938,18 +1962,23 @@ func _advance() -> void:
    garden.track_variable_sources = false
    if offset == steps.size():
     _finish_incomplete()
-   elif not _pause_on_variable_change(before_variables):
+   elif not _pause_on_watchpoint(before_variables):
     _show_progress()
  _draw()
 
-func _pause_on_variable_change(before: Dictionary) -> bool:
+func _pause_on_watchpoint(before: Dictionary) -> bool:
  if not running or not watchpoint_active:
   return false
  var after := garden.inspect_variables()
- if is_same(before.get(watched_variable), after.get(watched_variable)):
+ var previous: Variant = before.get(watched_variable)
+ var current: Variant = after.get(watched_variable)
+ if is_same(previous, current):
+  return false
+ if watch_condition != WatchCondition.CHANGES and (_watch_condition_matches(previous) or not _watch_condition_matches(current)):
   return false
  var change := _format_variable_transition(before, after, watched_variable)
- status.text = "Variable changed · %s = %s · %d actions" % [watched_variable, change, garden.run_action_count()]
+ var reason := "Variable changed" if watch_condition == WatchCondition.CHANGES else "Watch condition met"
+ status.text = "%s · %s = %s · %d actions" % [reason, watched_variable, change, garden.run_action_count()]
  live_change_source_line = garden.variable_sources.get(watched_variable, -1)
  watchpoint_active = false
  running = false
@@ -2033,8 +2062,6 @@ func _draw() -> void:
  check_button.disabled = active
  run_button.text = ("Pause" if running else "Resume" if active else "Run") + " · Ctrl+Enter"
  next_live_change_button.visible = active and not running and not watched_variable.is_empty()
- if next_live_change_button.visible:
-  next_live_change_button.tooltip_text = "Continue until %s changes. Ctrl+Shift+Enter also continues." % watched_variable
  step_button.disabled = running
  stop_button.disabled = not active
  nursery_target.editable = not active and not best_panel.visible
@@ -2165,6 +2192,7 @@ func _can_choose_live_watch() -> bool:
 
 func _refresh_live_watch() -> void:
  live_watch_row.visible = variables_panel.visible and _can_choose_live_watch()
+ _refresh_watch_condition()
  if not live_watch_row.visible:
   return
  var names := displayed_variables.keys()
@@ -2189,11 +2217,70 @@ func _select_live_watch(index: int) -> void:
   return
  watched_variable = variable
  watchpoint_active = false
+ _reset_watch_condition()
  live_change_source_line = -1
  _show_progress()
  _draw()
  if not live_watch_row.is_visible_in_tree():
   source.grab_focus()
+
+func _reset_watch_condition() -> void:
+ watch_condition = WatchCondition.CHANGES
+ watch_target = null
+ watch_condition_choice.select(WatchCondition.CHANGES)
+ watch_target_edit.text = ""
+
+func _select_watch_condition(index: int) -> void:
+ watch_condition = index
+ _update_watch_target()
+
+func _update_watch_target() -> void:
+ var was_active := watchpoint_active
+ watchpoint_active = false
+ watch_target = _parse_watch_target()
+ _refresh_watch_condition()
+ if was_active and _can_choose_live_watch():
+  _show_progress()
+
+func _parse_watch_target() -> Variant:
+ if watch_condition == WatchCondition.CHANGES:
+  return null
+ var value := watch_target_edit.text.strip_edges()
+ if watch_condition == WatchCondition.EQUALS:
+  if value == "True":
+   return true
+  if value == "False":
+   return false
+ if value.length() > 11 or not value.is_valid_int():
+  return null
+ var number := int(value)
+ return number if number >= Programs.MIN_VALUE and number <= Programs.MAX_VALUE else null
+
+func _watch_condition_matches(value: Variant) -> bool:
+ if watch_condition == WatchCondition.EQUALS:
+  return is_same(value, watch_target)
+ if not value is int:
+  return false
+ return value >= watch_target if watch_condition == WatchCondition.AT_LEAST else value <= watch_target
+
+func _watch_condition_text() -> String:
+ if watch_condition == WatchCondition.CHANGES or watch_target == null:
+  return ""
+ var operators := ["", "==", "≥", "≤"]
+ return " %s %s" % [operators[watch_condition], Programs.python_value_text(watch_target)]
+
+func _refresh_watch_condition() -> void:
+ var any_change := watch_condition == WatchCondition.CHANGES
+ watch_condition_row.visible = live_watch_row.visible and not watched_variable.is_empty()
+ watch_target_edit.visible = not any_change
+ watch_target_edit.placeholder_text = "Number or Boolean" if watch_condition == WatchCondition.EQUALS else "Whole number"
+ next_live_change_button.text = "Next change" if any_change else "Next match"
+ next_live_change_button.disabled = not any_change and watch_target == null
+ if next_live_change_button.disabled:
+  next_live_change_button.tooltip_text = "Enter a signed 32-bit integer, or True or False for Equals."
+ else:
+  var destination := "%s changes" % watched_variable if any_change else watched_variable + _watch_condition_text()
+  next_live_change_button.tooltip_text = "Continue until %s. Ctrl+Shift+Enter also continues." % destination
 
 func _refresh_call_stack_list(selection: int) -> void:
  call_stack_list.clear()

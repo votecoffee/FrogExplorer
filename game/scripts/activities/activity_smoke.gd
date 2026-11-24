@@ -2533,6 +2533,89 @@ wait()
   popup._process(.25)
  check(popup.steps.is_empty() and popup.garden.turn == 7 and popup.garden.variables.get("outer") == 2, "Ordinary Resume runs through later changes after a variable is selected from the Watch menu")
 
+func open_live_watch_condition(popup, route: String, mode: int) -> void:
+ popup._reset()
+ popup.source.text = route
+ popup.source.grab_focus()
+ press_key(KEY_F10)
+ press_key(KEY_F7, true, true)
+ popup.live_watch_choice.select(1)
+ popup.live_watch_choice.item_selected.emit(1)
+ popup.watch_condition_choice.select(mode)
+ popup.watch_condition_choice.item_selected.emit(mode)
+
+func set_watch_target(popup, target: String) -> void:
+ popup.watch_target_edit.text = target
+ popup.watch_target_edit.text_changed.emit(target)
+
+func check_watch_conditions(popup) -> void:
+ var counter := """count = 0
+wait()
+count = 1
+wait()
+count = 2
+wait()
+count = 3
+wait()
+count = 4
+wait()
+count = 1
+wait()
+count = 4
+wait()
+wait()
+"""
+ open_live_watch_condition(popup, counter, 2)
+ var next: Button = popup.next_live_change_button
+ var empty_disabled := next.disabled
+ set_watch_target(popup, "True")
+ var boolean_disabled := next.disabled
+ set_watch_target(popup, "2147483648")
+ press_key(KEY_ENTER, true, true)
+ check(empty_disabled and boolean_disabled and next.disabled and popup.watch_target_edit.is_visible_in_tree() and not popup.running and popup.garden.turn == 1, "A threshold requires a valid integer before the button or keyboard shortcut can start it")
+ set_watch_target(popup, "3")
+ var ready := not next.disabled and next.text == "Next match"
+ press_key(KEY_ENTER, true, true)
+ popup._process(.25)
+ var below: bool = popup.running and popup.garden.variables.get("count") == 2
+ popup._process(.25)
+ check(ready and below and not popup.running and popup.garden.turn == 3 and "Watch condition met · count = 2 → 3" in popup.status.text and popup.live_change_source_line == 6, "At least pauses at the first integer match and retains the assignment source")
+ press_key(KEY_ENTER, true, true)
+ popup._process(.25)
+ var already_true: bool = popup.running and popup.garden.turn == 4
+ popup._process(.25)
+ var became_false: bool = popup.running and popup.garden.turn == 5
+ popup._process(.25)
+ check(already_true and became_false and not popup.running and popup.garden.turn == 6 and "Watch condition met · count = 1 → 4" in popup.status.text, "Next match waits for an already-true condition to become false and then true again")
+ press_key(KEY_ENTER, true, true)
+ press_key(KEY_ENTER, true)
+ var armed: bool = not popup.running and popup.watchpoint_active
+ set_watch_target(popup, "0")
+ check(armed and not popup.running and not popup.watchpoint_active and popup.watch_target == 0 and popup.garden.turn == 6, "Editing a pending target keeps the program paused and waits for a new Next match request")
+
+ var flag := "flag = False\nwait()\nflag = 0\nwait()\nflag = 1\nwait()\nflag = True\nwait()\n"
+ open_live_watch_condition(popup, flag, 1)
+ set_watch_target(popup, "True")
+ press_key(KEY_ENTER, true, true)
+ popup._process(.25)
+ var integer_skipped: bool = popup.running and popup.garden.turn == 2 and is_same(popup.garden.variables.get("flag"), 1)
+ popup._process(.25)
+ check(integer_skipped and not popup.running and popup.garden.turn == 3 and "Watch condition met · flag = 1 → True" in popup.status.text, "Equals True waits for a Boolean after passing the integer one")
+ popup.live_watch_choice.select(0)
+ popup.live_watch_choice.item_selected.emit(0)
+ popup.live_watch_choice.select(1)
+ popup.live_watch_choice.item_selected.emit(1)
+ check(popup.watch_condition_choice.selected == 0 and popup.watch_target_edit.text.is_empty() and next.text == "Next change" and not next.disabled, "A fresh variable selection restores the ordinary change watch")
+
+ var depth := "depth = 4\nwait()\ndepth = 3\nwait()\ndepth = False\nwait()\ndepth = -1\nwait()\n"
+ open_live_watch_condition(popup, depth, 3)
+ set_watch_target(popup, "0")
+ press_key(KEY_ENTER, true, true)
+ popup._process(.25)
+ var boolean_skipped: bool = popup.running and popup.garden.turn == 2
+ popup._process(.25)
+ check(boolean_skipped and not popup.running and popup.garden.turn == 3 and "Watch condition met · depth = False → -1" in popup.status.text, "At most ignores Booleans and stops when a signed integer reaches the target range")
+
 func travel(game, id: String) -> bool:
  game.travel.request(id)
  var until := Time.get_ticks_msec() + 10000
@@ -3404,6 +3487,7 @@ if not (3 <= water_level() <= 7) and column() > row():
   check_run_to_change(popup)
   check_next_live_change(popup)
   check_live_watch_choice(popup)
+  check_watch_conditions(popup)
   popup._close()
 
  check(await travel(game, "home_woodland_pond"), "Return home from activities")
