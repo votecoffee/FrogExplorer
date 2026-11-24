@@ -1257,30 +1257,33 @@ func check_comparison_python_details(popup) -> void:
  slider.value = 0
  view.select(1)
  view.item_selected.emit(1)
- check(slider.value == 0 and current.visible and other.visible and not popup.comparison_current_board.visible and current.text == "count = 2" and other.text == "count = 10\nday = 0", "Variables shows both sets of assignments before the first board action")
+ check(slider.value == 0 and current.visible and other.visible and not popup.comparison_current_board.visible and current.get_parsed_text() == "count = 2\nday = —" and other.get_parsed_text() == "count = 10\nday = 0", "Variables shows both sets of assignments before the first board action")
+ check("[color=#e8c879]count = 2[/color]" in current.text and "[color=#e8c879]day = —[/color]" in current.text and "[color=#e8c879]day = 0[/color]" in other.text, "Different variables and unassigned values appear in gold on aligned rows")
  slider.grab_focus()
  press_key(KEY_RIGHT)
- check(slider.value == 1 and current.text == "count = 3" and other.text == "count = 11\nday = 1", "Keyboard stepping shows variable values after the first action")
+ check(slider.value == 1 and current.get_parsed_text() == "count = 3\nday = —" and other.get_parsed_text() == "count = 11\nday = 1", "Keyboard stepping shows variable values after the first action")
  view.select(2)
  view.item_selected.emit(2)
- check(slider.value == 1 and current.text == "Line 2 · Current start 2\nLine 5 · Current end 3" and other.text == "Line 2 · Other start 10\nLine 8 · Other action 11", "Print output shows both transcripts at the selected action")
+ check(slider.value == 1 and current.get_parsed_text() == "Line 2 · Current start 2\nLine 5 · Current end 3" and other.get_parsed_text() == "Line 2 · Other start 10\nLine 8 · Other action 11", "Print output shows both transcripts at the selected action")
  slider.value = 35
- check(current.text.ends_with("Current end 3") and other.text.split("\n").size() == Program.MAX_OUTPUT_MESSAGES and "Other start" not in other.text and other.text.ends_with("Other action 45"), "The shorter transcript holds as the longer route fills its output buffer")
+ check(current.get_parsed_text().ends_with("Current end 3") and other.get_parsed_text().split("\n").size() == Program.MAX_OUTPUT_MESSAGES and "Other start" not in other.get_parsed_text() and other.get_parsed_text().ends_with("Other action 45"), "The shorter transcript holds as the longer route fills its output buffer")
+ await frames(2)
+ check("[color=" not in current.text and other.text.ends_with("[color=#e8c879]Line 8 · Other action 45[/color]") and other.get_v_scroll_bar().value > 0, "Print output scrolls to the highlighted message and leaves earlier output plain")
  slider.value = 0
- check(current.text == "Line 2 · Current start 2" and other.text == "Line 2 · Other start 10", "Rewinding recovers early output after the final buffer rolls over")
+ check(current.get_parsed_text() == "Line 2 · Current start 2" and other.get_parsed_text() == "Line 2 · Other start 10", "Rewinding recovers early output after the final buffer rolls over")
  select_comparison_copy(chooser, bad_draft.key)
- check(view.selected == 2 and other.text == "Preview unavailable" and "Check the arguments for fill()" in popup.comparison_other.text and current.text.ends_with("Current end 3"), "A compile failure clears that draft's details while the other output remains available")
+ check(view.selected == 2 and other.get_parsed_text() == "Preview unavailable" and "Check the arguments for fill()" in popup.comparison_other.text and current.get_parsed_text().ends_with("Current end 3") and "[color=" not in current.text, "A compile failure clears that draft's details while the other output remains available")
  view.select(0)
  view.item_selected.emit(0)
  check(popup.comparison_current_board.visible and not current.is_visible_in_tree() and popup.source.text == main_source and popup.garden.turn == 1 and popup.garden.variables == {"marker":99} and popup.output_text.text == "Line 3 · live 99", "Switching views preserves the editable draft and the live Python state")
  press_key(KEY_ESCAPE)
- check(popup.visible and not popup.comparison_panel.visible and current.text.is_empty() and other.text.is_empty(), "Closing the comparison clears both Python detail panels")
+ check(popup.visible and not popup.comparison_panel.visible and current.get_parsed_text().is_empty() and other.get_parsed_text().is_empty(), "Closing the comparison clears both Python detail panels")
 
 func check_comparison_python_differences(popup) -> void:
  var current_source := "count = 1\nprint('left')\nwait()\ncount = 3\nprint('same')\nwait()\ncount = 7\nwait()\nwait()\nprint('left end')\n"
  var other_source := "count = 2\nprint('right')\nwait()\ncount = 3\n# A different line number for the same message\nprint('same')\nwait()\ncount = 8\nwait()\nwait()\nprint('right end')\n"
  var other: Dictionary = popup.progress.create_draft_copy("first_bloom", other_source, true)
- var still: Dictionary = popup.progress.create_draft_copy("first_bloom", "print('other')\n", true)
+ var still: Dictionary = popup.progress.create_draft_copy("first_bloom", "print('[b]other[/b]')\n", true)
  popup.chooser.item_selected.emit(0)
  popup.source.text = current_source
  popup.compare_drafts_button.pressed.emit()
@@ -1295,23 +1298,26 @@ func check_comparison_python_differences(popup) -> void:
  check(slider.value == 4 and first.text == "First difference · Start" and popup.comparison_differences == [0, 2], "Variables finds different starting values and skips an unchanged mismatch")
  first.pressed.emit()
  press_key(KEY_PAGEDOWN)
- check(slider.value == 2 and popup.comparison_current_details.text == "count = 7" and popup.comparison_other_details.text == "count = 8", "Page Down jumps to the next mismatch after the variables match again")
+ check(slider.value == 2 and popup.comparison_current_details.get_parsed_text() == "count = 7" and popup.comparison_other_details.get_parsed_text() == "count = 8", "Page Down jumps to the next mismatch after the variables match again")
  view.select(2)
  view.item_selected.emit(2)
  check(slider.value == 2 and popup.comparison_differences == [0, 4], "Print differences skip shared messages whose source lines differ")
+ slider.value = 1
+ check("[color=" not in popup.comparison_current_details.text and "[color=" not in popup.comparison_other_details.text, "Matching messages at this action leave earlier mismatches unhighlighted")
  press_key(KEY_PAGEDOWN)
- check(slider.value == 4 and popup.comparison_board_key.text == "Difference 2 of 2" and popup.comparison_other_details.text.ends_with("right end"), "Print navigation finds the later different message")
+ check(slider.value == 4 and "Difference 2 of 2" in popup.comparison_board_key.text and popup.comparison_other_details.get_parsed_text().ends_with("right end"), "Print navigation finds the later different message")
  view.select(0)
  view.item_selected.emit(0)
  check(slider.value == 4 and first.disabled and popup.comparison_differences.is_empty(), "Returning to Boards restores its own difference list")
 
  popup.compare_drafts_button.pressed.emit()
- popup.source.text = "print('main')\n"
+ popup.source.text = "print('[color=red]main[/color]')\n"
  popup.compare_drafts_button.pressed.emit()
  select_comparison_copy(choice, still.key)
  view.select(2)
  view.item_selected.emit(2)
- check(still.error == OK and slider.max_value == 0 and not slider.visible and first.is_visible_in_tree() and first.text == "First difference · Start" and popup.comparison_board_key.text == "Difference 1 of 1", "Print-only drafts can differ without taking a board action")
+ check(still.error == OK and slider.max_value == 0 and not slider.visible and first.is_visible_in_tree() and first.text == "First difference · Start" and "Difference 1 of 1" in popup.comparison_board_key.text, "Print-only drafts can differ without taking a board action")
+ check(popup.comparison_current_details.get_parsed_text() == "Line 1 · [color=red]main[/color]" and popup.comparison_other_details.get_parsed_text() == "Line 1 · [b]other[/b]" and popup.comparison_current_details.text.count("[color=") == 1, "Bracketed print output displays literally inside the comparison highlight")
 
 func travel(game, id: String) -> bool:
  game.travel.request(id)

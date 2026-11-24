@@ -5,6 +5,8 @@ const Programs = preload("res://scripts/activities/garden_program.gd")
 const Progress = preload("res://scripts/activities/activity_progress.gd")
 const RUN_INTERVAL := .23
 const COMPARISON_BOARD_KEY := "Gold outline · Tile differs between drafts"
+const COMPARISON_GOLD := "#e8c879"
+const COMPARISON_HIGHLIGHT := "[color=" + COMPARISON_GOLD + "]"
 enum ComparisonView { BOARDS, VARIABLES, PRINT_OUTPUT }
 const CLASSIC_GUIDE := "hop north / east / south / west\nfill     plant     water     wait     gather\nrepeat N … end     # comment\nroutine NAME heading · call NAME east\nif / while CONDITION … end\nelse · not · and · or · break · continue\nLook ahead with clear east or lily north\nF9 toggles a breakpoint"
 const PYTHON_GUIDE := "hop(east)    fill()    water()\nplant()       wait()       gather()\nfor bed in range(2):\nif water_level() < tank_capacity():\nwhile clear(east):\ndef walk(heading, steps: int):\nstart = column()    print(start)\nTab indents · Shift+Tab unindents\nF9 toggles a breakpoint"
@@ -615,7 +617,7 @@ func _add_draft_comparison(parent: Container) -> void:
  comparison_other_details = _comparison_details_box(results)
  var footer := HBoxContainer.new()
  comparison_panel.add_child(footer)
- comparison_board_key = hud.label(COMPARISON_BOARD_KEY, 13, Color("#e8c879"))
+ comparison_board_key = hud.label(COMPARISON_BOARD_KEY, 13, Color(COMPARISON_GOLD))
  comparison_board_key.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  footer.add_child(comparison_board_key)
  comparison_view = OptionButton.new()
@@ -638,6 +640,7 @@ func _comparison_details_box(parent: Container) -> RichTextLabel:
  parent.add_child(panel)
  var details := RichTextLabel.new()
  details.custom_minimum_size.y = 144
+ details.bbcode_enabled = true
  details.selection_enabled = true
  details.focus_mode = Control.FOCUS_ALL
  details.add_theme_font_size_override("normal_font_size", 14)
@@ -820,35 +823,79 @@ func _show_comparison_step(value: float) -> void:
  if show_boards:
   _draw_grid(comparison_current_board, current, _comparison_blocked(comparison_current_route, index), other, Vector2(61, 36))
   _draw_grid(comparison_other_board, other, _comparison_blocked(comparison_other_route, index), current, Vector2(61, 36))
- _show_comparison_details(comparison_current_details, comparison_current_route, index, view)
- _show_comparison_details(comparison_other_details, comparison_other_route, index, view)
+ _show_comparison_details(comparison_current_details, comparison_current_route, comparison_other_route, index, view)
+ _show_comparison_details(comparison_other_details, comparison_other_route, comparison_current_route, index, view)
  var before := comparison_differences.bsearch(index)
  var after := comparison_differences.bsearch(index, false)
  comparison_previous_difference_button.disabled = before == 0
  comparison_next_difference_button.disabled = after == comparison_differences.size()
- var show_key := show_boards and current != null and other != null
- comparison_board_key.text = COMPARISON_BOARD_KEY if show_key else ""
+ var legend := ""
+ if current != null and other != null:
+  match view:
+   ComparisonView.BOARDS:
+    legend = COMPARISON_BOARD_KEY
+   ComparisonView.VARIABLES:
+    legend = "Gold text · Different values    ·    — Unassigned"
+   ComparisonView.PRINT_OUTPUT:
+    legend = "Gold text · Different messages at this action"
  if before < after:
-  var difference := "Difference %d of %d" % [after, comparison_differences.size()]
-  comparison_board_key.text += ("    ·    " if show_key else "") + difference
- comparison_board_key.visible = not comparison_board_key.text.is_empty()
+  legend += ("    ·    " if not legend.is_empty() else "") + "Difference %d of %d" % [after, comparison_differences.size()]
+ comparison_board_key.text = legend
+ comparison_board_key.visible = not legend.is_empty()
 
-func _show_comparison_details(details: RichTextLabel, route: Dictionary, index: int, view: int) -> void:
+func _show_comparison_details(details: RichTextLabel, route: Dictionary, peer: Dictionary, index: int, view: int) -> void:
  var panel := details.get_parent() as PanelContainer
  panel.visible = view != ComparisonView.BOARDS
  if not panel.visible:
   return
  var text := "Preview unavailable"
  if route.has("actions"):
-  var count := mini(index, route.actions.size())
   if view == ComparisonView.VARIABLES:
-   text = _format_program_variables(route.variable_history[count])
+   text = _comparison_variable_text(route, peer, index)
   else:
-   text = _format_program_output(route.output_history[count])
-   if text.is_empty():
-    text = "No print output"
+   text = _comparison_print_text(route, peer, index)
  if details.text != text:
   details.text = text
+  var first_highlight := text.find(COMPARISON_HIGHLIGHT)
+  var paragraph := text.left(first_highlight).count("\n") if first_highlight >= 0 else 0
+  details.scroll_to_paragraph(paragraph)
+
+func _comparison_variable_text(route: Dictionary, peer: Dictionary, index: int) -> String:
+ var values: Dictionary = route.variable_history[mini(index, route.actions.size())]
+ var mismatches := {}
+ if peer.has("actions"):
+  var other_values: Dictionary = peer.variable_history[mini(index, peer.actions.size())]
+  mismatches = _variable_mismatches(values, other_values)
+ var names := values.keys()
+ for name: String in mismatches:
+  if not values.has(name):
+   names.append(name)
+ names.sort()
+ var lines := PackedStringArray()
+ for name: String in names:
+  var value := Programs.python_value_text(values[name]) if values.has(name) else "—"
+  lines.append(_comparison_text("%s = %s" % [name, value], mismatches.has(name)))
+ return "No variables assigned" if lines.is_empty() else "\n".join(lines)
+
+func _comparison_print_text(route: Dictionary, peer: Dictionary, index: int) -> String:
+ var entries: Array = route.output_history[mini(index, route.actions.size())]
+ var peer_compiled := peer.has("actions")
+ var other_messages := _prints_at_action(peer, index) if peer_compiled else PackedStringArray()
+ var turn: int = route.initial.turn + index
+ var message_index := 0
+ var lines := PackedStringArray()
+ for entry: Dictionary in entries:
+  var different := false
+  if peer_compiled and entry.turn == turn:
+   different = message_index >= other_messages.size() or entry.text != other_messages[message_index]
+   message_index += 1
+  lines.append(_comparison_text(_print_line(entry), different))
+ return "No print output" if lines.is_empty() else "\n".join(lines)
+
+func _comparison_text(value: String, different: bool) -> String:
+ # User output is plain text. Only our color tag is interpreted as BBCode.
+ var escaped := value.replace("[", "[lb]")
+ return COMPARISON_HIGHLIGHT + escaped + "[/color]" if different else escaped
 
 func _comparison_board_at(route: Dictionary, index: int) -> Programs:
  return _board_after_actions(route, mini(index, route.actions.size())) if route.has("actions") else null
@@ -1361,8 +1408,11 @@ func _format_program_output(entries: Array, through_turn := -1) -> String:
  var lines := PackedStringArray()
  for entry: Dictionary in entries:
   if through_turn < 0 or entry.turn <= through_turn:
-   lines.append("Line %d · %s" % [entry.line + 1, entry.text])
+   lines.append(_print_line(entry))
  return "\n".join(lines)
+
+func _print_line(entry: Dictionary) -> String:
+ return "Line %d · %s" % [entry.line + 1, entry.text]
 
 func _draw_diagnostics(view: Programs, context := "Program", through_turn := -1, snapshot: Variant = null) -> void:
  var transcript := _format_program_output(view.output, through_turn)
@@ -1430,7 +1480,7 @@ func _draw_grid(grid: GridContainer, view: Programs, blocked := false, peer: Pro
     style.bg_color = Color("#214355") if tile == "~" else Color("#424744") if tile == "#" else Color("#293b27")
    style.set_corner_radius_all(6)
    if peer != null and ((cell == view.cell) != (cell == peer.cell) or plant != peer.plant_status(cell)):
-    style.border_color = Color("#e8c879")
+    style.border_color = Color(COMPARISON_GOLD)
     style.set_border_width_all(2)
    card.add_theme_stylebox_override("panel", style)
    card.custom_minimum_size = card_size
