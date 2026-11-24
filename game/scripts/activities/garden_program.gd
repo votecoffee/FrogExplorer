@@ -447,6 +447,8 @@ var variables: Dictionary = {}
 var local_frames: Array[Dictionary] = []
 var call_revision := 0
 var variable_revision := 0
+var track_variable_sources := false
+var variable_sources: Dictionary = {}
 var module_revision := 0
 
 static func _instruction_count(instructions: Array) -> int:
@@ -859,6 +861,7 @@ func reset_program() -> void:
  local_frames.clear()
  call_revision = 0
  variable_revision = 0
+ variable_sources = {}
  module_revision = 0
 
 func run_harvest_count() -> int:
@@ -931,6 +934,8 @@ func is_complete() -> bool:
  return not practice and harvested == plants.size()
 
 func next_action_index(instructions: Array, first: int) -> int:
+ if track_variable_sources:
+  variable_sources = {}
  var index := first
  var computed := 0
  while index < instructions.size() and runtime_error.is_empty():
@@ -965,7 +970,9 @@ func next_action_index(instructions: Array, first: int) -> int:
    if not runtime_error.is_empty():
     runtime_error_line = instruction.line
     break
-   local_frames.append({"function":instruction.enter_scope, "line":instruction.line, "locals":locals, "revision":0})
+   var frame := {"function":instruction.enter_scope, "line":instruction.line, "locals":locals, "revision":0}
+   local_frames.append(frame)
+   _record_frame_sources(frame, instruction.line)
    call_revision += 1
    if not debug_boundary:
     variable_revision += 1
@@ -973,6 +980,7 @@ func next_action_index(instructions: Array, first: int) -> int:
    continue
   if instruction.has("leave_scope"):
    var frame: Dictionary = local_frames.pop_back()
+   _record_frame_sources(frame, instruction.line)
    call_revision += 1
    if not debug_boundary:
     variable_revision += 1
@@ -983,7 +991,7 @@ func next_action_index(instructions: Array, first: int) -> int:
      runtime_error = "Function '%s' returned without a number or Boolean." % frame.function
      runtime_error_line = instruction.line
      break
-    _set_variable(capture.name, value, capture.local)
+    _set_variable(capture.name, value, capture.local, instruction.line)
    index += 1
    continue
   if instruction.has("output"):
@@ -998,7 +1006,7 @@ func next_action_index(instructions: Array, first: int) -> int:
    if value == null:
     runtime_error_line = instruction.line
     break
-   _set_variable(variable, value, instruction.get("local", false))
+   _set_variable(variable, value, instruction.get("local", false), instruction.line)
    index += 1
    continue
   if not instruction.has("skip"):
@@ -1010,7 +1018,7 @@ func next_action_index(instructions: Array, first: int) -> int:
    loop_entries.erase(index - int(instruction.leave_loop))
   var passes := false
   if instruction.has("range"):
-   passes = _next_counted_iteration(index, instruction.range)
+   passes = _next_counted_iteration(index, instruction.range, instruction.line)
    if not runtime_error.is_empty():
     runtime_error_line = instruction.line
     break
@@ -1057,18 +1065,28 @@ func _call_values(inputs: Array) -> Dictionary:
 func _variable_store(local: bool) -> Dictionary:
  return local_frames.back().locals if local else variables
 
-func _set_variable(variable: String, value: Variant, local: bool) -> void:
+func _record_frame_sources(frame: Dictionary, line: int) -> void:
+ if not track_variable_sources:
+  return
+ var prefix := local_variable_prefix(frame.function)
+ for variable: String in frame.locals:
+  variable_sources[prefix + variable] = line
+
+func _set_variable(variable: String, value: Variant, local: bool, line: int) -> void:
  var store := _variable_store(local)
  if store.has(variable) and is_same(store[variable], value):
   return
  store[variable] = value
+ if track_variable_sources:
+  var name := local_variable_prefix(local_frames.back().function) + variable if local else variable
+  variable_sources[name] = line
  variable_revision += 1
  if local:
   local_frames.back().revision += 1
  else:
   module_revision += 1
 
-func _next_counted_iteration(index: int, spec: Dictionary) -> bool:
+func _next_counted_iteration(index: int, spec: Dictionary, line: int) -> bool:
  var entry: Dictionary = loop_entries.get(index, {})
  if entry.is_empty():
   var args: Array[int] = []
@@ -1095,7 +1113,7 @@ func _next_counted_iteration(index: int, spec: Dictionary) -> bool:
   loop_entries.erase(index)
   return false
  if not spec.target.is_empty():
-  _set_variable(spec.target, item, spec.get("local", false))
+  _set_variable(spec.target, item, spec.get("local", false), line)
  entry.next = item + int(entry.stride)
  loop_entries[index] = entry
  return true

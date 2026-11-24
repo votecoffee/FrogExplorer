@@ -303,6 +303,8 @@ In a replay, choose a variable from **All variables** to filter the Changes list
 
 Choose **History** beside a followed variable to see its starting value and every change. Double-click an entry to jump to that action, or press **Ctrl+Shift+F7** to focus History and use **Up/Down** and **Enter**. **Esc** returns focus to the timeline, and **Ctrl+F7** switches back to the changes for the current action.
 
+Select a History entry and choose **Source line** or press **F12** with the list focused to open the Python line responsible for the change. Parameter assignments and scope exits point to the call site. This keeps the replay position and execution marker in place.
+
 While paused inside a Python function, press **Shift+F11** in the editor to **Step out**. Pondbot finishes that call and pauses before the next board command so you can see the caller's variables and any returned value. If a breakpoint pauses the run before the function returns, choose **Resume** to continue stepping out. **Step**, **Stop**, and **Reset board** clear the request.
 
 ```python

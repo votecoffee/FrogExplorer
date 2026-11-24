@@ -82,6 +82,7 @@ var variables_panel: PanelContainer
 var variables_title: Label
 var variables_text: RichTextLabel
 var review_history_list: ItemList
+var review_history_source_button: Button
 var variable_changes_button: Button
 var call_stack_button: Button
 var call_stack_list: ItemList
@@ -286,8 +287,11 @@ func _ready() -> void:
  review_history_list.focus_mode = Control.FOCUS_ALL
  review_history_list.tooltip_text = "Press Enter or double-click an entry to jump to that action."
  review_history_list.item_activated.connect(_jump_to_history_action)
+ review_history_list.item_selected.connect(func(_row: int): _refresh_history_source_button())
  variables_stack.add_child(review_history_list)
  review_history_list.hide()
+ review_history_source_button = _button(variables_stack, "Source line · F12", _jump_to_history_source)
+ review_history_source_button.hide()
  call_stack_row = HBoxContainer.new()
  variables_stack.add_child(call_stack_row)
  call_stack_list = ItemList.new()
@@ -1507,13 +1511,16 @@ func _trace(commands: Array, fresh_board := false, practice_limit := Programs.MA
   initial = garden.copy_board() as Programs
   initial.reset_program()
  var preview := initial.copy_board() as Programs
+ preview.track_variable_sources = not capture_comparison
  var traced: Array[Dictionary] = []
  var index := preview.next_action_index(commands, 0)
  # Review position zero includes assignments before the first board action.
  var variable_history: Array[Dictionary] = [preview.inspect_variables()]
  var call_history: Array[Array] = []
+ var variable_source_history: Array[Dictionary] = []
  if not capture_comparison:
   call_history.append(preview.inspect_call_stack())
+  variable_source_history.append(preview.variable_sources)
  var output_history: Array[Array] = []
  var totals_history: Array[Vector4i] = []
  var capture_output := capture_comparison and python_mode
@@ -1527,7 +1534,7 @@ func _trace(commands: Array, fresh_board := false, practice_limit := Programs.MA
   if not error.is_empty():
    return {"actions":traced, "initial":initial, "preview":preview, "line":action.line,
            "error":error, "variable_history":variable_history, "output_history":output_history,
-           "totals_history":totals_history, "call_history":call_history}
+           "totals_history":totals_history, "call_history":call_history, "variable_source_history":variable_source_history}
   traced.append(action)
   var complete := preview.is_complete()
   var revision := preview.variable_revision
@@ -1539,6 +1546,7 @@ func _trace(commands: Array, fresh_board := false, practice_limit := Programs.MA
   if not capture_comparison:
    var calls: Array = call_history[-1] if preview.call_revision == call_revision else preview.inspect_call_stack()
    call_history.append(calls)
+   variable_source_history.append({} if complete else preview.variable_sources)
   if capture_comparison:
    totals_history.append(_comparison_totals(preview))
   if capture_output:
@@ -1550,7 +1558,7 @@ func _trace(commands: Array, fresh_board := false, practice_limit := Programs.MA
  return {"actions":traced, "initial":initial, "preview":preview, "line":preview.runtime_error_line,
          "error":preview.runtime_error, "limited":preview.practice and index < commands.size(),
          "variable_history":variable_history, "output_history":output_history, "totals_history":totals_history,
-         "call_history":call_history}
+         "call_history":call_history, "variable_source_history":variable_source_history}
 
 func _toggle_review() -> void:
  if best_panel.visible:
@@ -1568,7 +1576,7 @@ func _open_review(length: int) -> void:
  var route := best_route if best_panel.visible else checked_route
  var history: Array = route.variable_history
  _populate_review_variables(history)
- _index_review_changes(history)
+ _index_review_changes(history, route.variable_source_history)
  review_slider.max_value = length
  review_slider.set_value_no_signal(0)
  review_slider.visible = length > 0
@@ -1598,12 +1606,12 @@ func _select_review_variable(index: int) -> void:
   return
  review_variable_name = "" if index == 0 else review_variable_filter.get_item_text(index)
  var route := best_route if best_panel.visible else checked_route
- _index_review_changes(route.variable_history)
+ _index_review_changes(route.variable_history, route.variable_source_history)
  _refresh_variables()
  if review_slider.visible:
   review_slider.grab_focus()
 
-func _index_review_changes(history: Array) -> void:
+func _index_review_changes(history: Array, source_history: Array) -> void:
  review_change_actions.clear()
  for index in range(1, history.size()):
   var before: Dictionary = history[index - 1]
@@ -1617,18 +1625,39 @@ func _index_review_changes(history: Array) -> void:
    changed = not is_same(before.get(review_variable_name), after.get(review_variable_name))
   if changed:
    review_change_actions.append(index)
- _rebuild_review_history(history)
+ _rebuild_review_history(history, source_history)
 
-func _rebuild_review_history(history: Array) -> void:
+func _rebuild_review_history(history: Array, source_history: Array) -> void:
  review_history_list.clear()
  if review_variable_name.is_empty():
   return
  var initial: Dictionary = history[0]
  var value := Programs.python_value_text(initial[review_variable_name]) if initial.has(review_variable_name) else "unassigned"
- review_history_list.add_item("Start · %s" % value)
+ _add_review_history_entry("Start · %s" % value, source_history[0])
  for action in review_change_actions:
   var transition := _format_variable_transition(history[action - 1], history[action], review_variable_name)
-  review_history_list.add_item("Action %d · %s" % [action, transition])
+  _add_review_history_entry("Action %d · %s" % [action, transition], source_history[action])
+
+func _add_review_history_entry(label: String, sources: Dictionary) -> void:
+ var row := review_history_list.item_count
+ var line: int = sources.get(review_variable_name, -1)
+ review_history_list.add_item(label)
+ review_history_list.set_item_metadata(row, line)
+ if line >= 0:
+  review_history_list.set_item_tooltip(row, "Source line %d" % (line + 1))
+
+func _review_history_source_line() -> int:
+ var selected := review_history_list.get_selected_items()
+ return -1 if selected.is_empty() else int(review_history_list.get_item_metadata(selected[0]))
+
+func _refresh_history_source_button() -> void:
+ var line := _review_history_source_line()
+ review_history_source_button.disabled = line < 0
+ review_history_source_button.text = "Source line %d · F12" % (line + 1) if line >= 0 else "Source line · F12"
+
+func _jump_to_history_source() -> void:
+ if review_history_list.is_visible_in_tree():
+  _focus_source_line(_review_history_source_line())
 
 func _jump_to_history_action(row: int) -> void:
  if not review_history_list.is_visible_in_tree() or row < 0 or row >= review_history_list.item_count:
@@ -2029,6 +2058,7 @@ func _refresh_variables() -> void:
   review_history_button.set_pressed_no_signal(false)
  var show_history := review_history_button.visible and review_history_button.button_pressed
  review_history_list.visible = show_history
+ review_history_source_button.visible = show_history
  review_change_row.visible = show_review_changes and not review_change_actions.is_empty()
  if review_change_row.visible:
   review_previous_change.disabled = _review_change_index(false) < 0
@@ -2048,6 +2078,7 @@ func _refresh_variables() -> void:
   var row := review_change_actions.bsearch(roundi(review_slider.value), false)
   review_history_list.select(row)
   review_history_list.ensure_current_is_visible()
+  _refresh_history_source_button()
   return
  if show_calls:
   _refresh_frame_variables()
@@ -2083,8 +2114,10 @@ func _refresh_frame_variables() -> void:
 func _open_call_site(index: int) -> void:
  if index < 0 or index >= displayed_calls.size():
   return
+ _focus_source_line(displayed_calls[index].line)
+
+func _focus_source_line(line: int) -> void:
  var editor := best_source if best_panel.visible else source
- var line: int = displayed_calls[index].line
  if not editor.is_visible_in_tree() or line < 0 or line >= editor.get_line_count():
   return
  # Navigation changes the caret without replacing the existing execution marker.
@@ -2229,6 +2262,9 @@ func _input(event: InputEvent) -> void:
      (best_source if best_panel.visible else source).grab_focus()
     elif return_to_timeline:
      _focus_review_timeline()
+   get_viewport().set_input_as_handled()
+  elif event.keycode == KEY_F12 and review_history_list.has_focus():
+   _jump_to_history_source()
    get_viewport().set_input_as_handled()
   elif best_panel.visible:
    return
