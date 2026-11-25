@@ -131,6 +131,12 @@ The pond is available on every supported platform. Real-world packs currently re
 .\scripts\run_windows.ps1 -Place helsinki_senate_square
 ```
 
+The Windows launcher reuses the imported base game on subsequent starts. It
+imports automatically when the base cache needs refreshing, then starts ROS
+when configured. To scan for newly installed optional assets or repair an
+optional pack's imports, run `.\Start-FrogExplorer.cmd -ImportAssets`. If
+startup stops, the console reports the phase and the log path under `state/`.
+
 Use Logitech **F710 or F310 controllers in X mode**. Keep the controller's MODE light off for the normal stick/D-pad arrangement. Keyboard controls work alongside the gamepad; a keyboard legend appears at the bottom right when no controller is detected. **F2** shows detected devices and axes.
 
 Press **Start on each additional controller** to join up to four local frogs. Two players use left/right split screen; three or four use a grid. Each player owns their frog, size, camera and vehicle. Keyboard input belongs to Player 1.

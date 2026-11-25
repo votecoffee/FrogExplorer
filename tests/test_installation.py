@@ -2,6 +2,7 @@
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -16,6 +17,7 @@ from manage_assets import import_assets,safe_path
 import bootstrap
 from bootstrap import unpack,platform_key
 from build_ros_windows import link_game, stage_game
+from prepare_windows_game import cache_is_current
 
 
 class AssetImportTests(unittest.TestCase):
@@ -148,6 +150,47 @@ class WorkspaceSettingsTests(unittest.TestCase):
                     self.assertEqual(json.loads(output.stdout.splitlines()[-1]), [str(expected), "--test"])
 
             self.assertEqual(settings.read_bytes(), original)
+
+
+class WindowsLaunchImportTests(unittest.TestCase):
+    def test_warm_base_imports_are_reused_until_an_input_or_output_changes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            game = Path(directory)
+            engine = game / "godot.exe"
+            project = game / "project.godot"
+            asset = game / "frog.glb"
+            sidecar = game / "frog.glb.import"
+            output = game / ".godot/imported/frog.scn"
+            uid = game / ".godot/uid_cache.bin"
+            classes = game / ".godot/global_script_class_cache.cfg"
+            scan = game / ".godot/editor/filesystem_cache10"
+            files = {
+                engine: "engine", project: "project", asset: "model", output: "scene",
+                sidecar: 'dest_files=["res://.godot/imported/frog.scn"]\n',
+                uid: "uids", classes: "list=Array[Dictionary]([])", scan: "filesystem scan",
+            }
+            timestamp = 1_790_000_000
+            for path, value in files.items():
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(value, encoding="utf-8")
+                os.utime(path, (timestamp, timestamp))
+            self.assertTrue(cache_is_current(engine, game, [asset]))
+            for changed in (engine, project, asset, sidecar):
+                with self.subTest(changed=changed.name):
+                    os.utime(changed, (timestamp + 10, timestamp + 10))
+                    self.assertFalse(cache_is_current(engine, game, [asset]))
+                    os.utime(changed, (timestamp, timestamp))
+            script = game / "scripts/player.gd"
+            script.parent.mkdir()
+            script.write_text("class_name FrogPlayer\nextends Node\n", encoding="utf-8")
+            self.assertFalse(cache_is_current(engine, game, [asset]))
+            classes.write_text(
+                'list=Array[Dictionary]([{"class": &"FrogPlayer", "path": "res://scripts/player.gd"}])',
+                encoding="utf-8",
+            )
+            self.assertTrue(cache_is_current(engine, game, [asset]))
+            output.unlink()
+            self.assertFalse(cache_is_current(engine, game, [asset]))
 
 
 class WindowsStageTests(unittest.TestCase):
